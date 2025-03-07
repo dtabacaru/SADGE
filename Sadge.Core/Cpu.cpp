@@ -1,0 +1,1711 @@
+#include "Cpu.h"
+
+#include <fstream>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <mmsystem.h>
+
+void Cpu::Stop()
+{
+  m_close_window = true;
+}
+
+void Cpu::WriteEram()
+{
+  if (m_battery_flag)
+  {
+    std::ofstream sram = std::ofstream(m_save_file_path, std::ios_base::binary);
+
+    for (int rom_bank_num = 0; rom_bank_num < m_num_ram_banks; rom_bank_num += 1)
+      sram.write(reinterpret_cast<const char*>(m_ram_banks[rom_bank_num].data()), ERAM_SIZE);
+  }
+}
+
+Status Cpu::SetRom(const std::filesystem::path& rom_path, std::vector<uint8_t> rom)
+{
+  Status status;
+
+  if (rom.empty())
+  {
+    std::string msg = "ROM is empty.";
+
+    status.SetMsg(msg);
+    status.SetValid(false);
+    return status;
+  }
+
+  if (rom.size() < (static_cast<size_t>(BANK_SIZE) * 2))
+  {
+    std::string msg = "ROM is too small to be a GameBoy ROM.";
+
+    status.SetMsg(msg);
+    status.SetValid(false);
+    return status;
+  }
+
+  if (rom.size() % BANK_SIZE != 0)
+  {
+    std::string msg = "ROM is not a multiple of 16K.";
+
+    status.SetMsg(msg);
+    status.SetValid(false);
+    return status;
+  }
+
+  m_rom_file_path = rom_path;
+  m_rom = std::move(rom);
+
+  status = ParseHeader();
+
+  return status;
+}
+
+void Cpu::InitBanks()
+{
+  m_num_rom_banks = m_rom.size() / BANK_SIZE;
+  m_rom_banks = std::vector<std::vector<uint8_t>>(m_num_rom_banks);
+
+  for (int rom_bank_num = 0; rom_bank_num < m_num_rom_banks; rom_bank_num += 1)
+  {
+    m_rom_banks[rom_bank_num] = std::vector<uint8_t>(BANK_SIZE);
+    std::copy(m_rom.begin() + BANK_SIZE * rom_bank_num, m_rom.begin() + BANK_SIZE * rom_bank_num + BANK_SIZE, m_rom_banks[rom_bank_num].begin());
+  }
+
+  m_num_ram_banks = RamSizeToNumBanks(m_rom_header.GetRamSize());
+  m_ram_banks = std::vector<std::vector<uint8_t>>(m_num_ram_banks);
+
+  for (int ram_bank_num = 0; ram_bank_num < m_num_ram_banks; ram_bank_num += 1)
+    m_ram_banks[ram_bank_num] = std::vector<uint8_t>(ERAM_SIZE);
+
+  if (m_battery_flag)
+  {
+    m_save_file_path = m_rom_file_path;
+    m_save_file_path.replace_extension(SAVE_EXTENSION);
+
+    std::ifstream eram_file(m_save_file_path, std::ios_base::binary);
+
+    if (eram_file)
+      for (int ram_bank_num = 0; ram_bank_num < m_num_ram_banks; ram_bank_num += 1)
+        eram_file.read((char*)m_ram_banks[ram_bank_num].data(), ERAM_SIZE);
+  }
+
+  std::copy(BOOT_ROM.begin(), BOOT_ROM.end(), m_rom_banks[0].begin());
+}
+
+Status Cpu::ParseHeader()
+{
+  Status status;
+
+  memcpy(&m_rom_header, m_rom.data() + static_cast<uint16_t>(ExecutionAddress::RESET), RomHeader::SIZE);
+
+  RomState rom_state = m_rom_header.Valid(m_rom);
+  if (rom_state != RomState::VALID && m_rom_file_path.filename() != "cpu_instrs.gb") // blargg cpu_instrs.gb does not pass checksum
+  {
+    status.SetValid(false);
+    std::string msg = "Invalid GameBoy ROM: ";
+
+    switch (rom_state)
+    {
+      case RomState::BAD_NINTENDO_LOGO:
+        msg += "Bad Nintendo logo";
+        break;
+      case RomState::BAD_HEADER_CHECKSUM:
+        msg += "Bad header checksum";
+        break;
+      case RomState::BAD_GLOBAL_CHECKSUM:
+        msg += "Bad global checksum";
+        break;
+    }
+
+    status.SetMsg(msg);
+  }
+
+  switch (m_rom_header.GetCartridgeType())
+  {
+    case CartridgeType::ROM_ONLY:
+      // OK
+      break;
+    case CartridgeType::MBC1:
+      // OK
+      break;
+    case CartridgeType::MBC1_RAM:
+      // OK
+      break;
+    case CartridgeType::MBC1_RAM_BATTERY:
+      // OK
+      m_battery_flag = true;
+      break;
+    case CartridgeType::MBC3:
+      // TEST
+      break;
+    case CartridgeType::MBC3_RAM:
+      // TEST
+      break;
+    case CartridgeType::MBC3_RAM_BATTERY:
+      // TEST
+      m_battery_flag = true;
+      break;
+    default:
+      throw std::exception(std::format("Cartridge type not implemented: {}", CartridgeTypeToString(m_rom_header.GetCartridgeType())).c_str());
+  }
+
+  return status;
+}
+
+void* Cpu::GetWindowHandle()
+{
+  return m_lcd_controller.GetHandle();
+}
+
+Cpu::Cpu(bool screen_on) : m_timer_controller(m_interrupt_controller),
+m_joypad_controller(m_interrupt_controller),
+m_lcd_controller(screen_on, m_interrupt_controller),
+m_serial_controller(m_interrupt_controller)
+{
+  //timeBeginPeriod(1);
+}
+
+Cpu::~Cpu() 
+{ 
+  WriteEram();
+  //timeEndPeriod(1);
+}
+
+
+
+void Cpu::Update(int cycle_count)
+{
+  m_total_cycle_count += cycle_count;
+  m_interrupt_controller.Update(m_interrupt_enabled_requested);
+  m_interrupt_enabled_requested = false;
+
+  for (int m_cycle = 0; m_cycle < (cycle_count / 4); m_cycle += 1)
+  {
+    if (m_lcd_controller.DmaRequested())
+    {
+      uint16_t dma_address = m_lcd_controller.GetCurrentDmaAddress();
+      m_lcd_controller.ServiceDma(ReadAddress(dma_address));
+    }
+
+    bool frame_ready = m_lcd_controller.Update(m_frame_time);
+
+    m_frame_cycles += 4;
+    bool apu_div_tick = m_timer_controller.Update();
+
+    if (apu_div_tick)
+     m_audio_controller.ApuDivTick();
+
+    m_audio_controller.Update(frame_ready);
+
+    if (frame_ready)
+    {
+      m_joypad_controller.CheckButtons();
+      WaitFrame();
+    } 
+  }
+}
+
+constexpr auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22))*1;
+
+void Cpu::WaitFrame()
+{
+  double frame_expected_time = (m_frame_cycles / CLOCK_RATE) - m_compensation_time;
+  double wait_time = frame_expected_time - m_execution_stopwatch.Elapsed();
+
+  //std::this_thread::sleep_for(std::chrono::duration<double>(wait_time));
+  while (m_execution_stopwatch.Elapsed() < frame_expected_time) {}
+
+  m_frame_time = m_execution_stopwatch.Elapsed();
+
+  m_compensation_time = m_frame_time - frame_expected_time;
+
+  if (wait_time < -DRAG_WINDOW_DETECT_TIME)
+  {
+    m_compensation_time = 0;
+    m_audio_controller.Reset();
+  }
+
+  m_execution_stopwatch.Restart();
+  m_frame_cycles = 0;
+}
+
+void Cpu::Init()
+{
+  InitBanks();
+  //m_lcd_controller.Init();
+  m_audio_controller.Init();
+  m_execution_stopwatch.Start();
+}
+
+void Cpu::Main()
+{
+  int cycle_count = 0;
+
+  if (m_halt_requested)                                 cycle_count += HaltHandler();
+  else if (m_stop_requested)                            cycle_count += StopHandler();
+  else if (m_interrupt_controller.InterruptRequested()) cycle_count += InterruptHandler();
+  else                                                  cycle_count += ExecutionHandler();
+
+  Update(cycle_count);
+}
+
+void Cpu::RunUntil(uint64_t cycle_count)
+{
+  Init();
+
+  while (m_total_cycle_count < cycle_count)
+    Main();
+}
+
+void Cpu::CloseWindow()
+{
+  m_lcd_controller.Close();
+}
+
+void Cpu::SetScale(int scale)
+{
+  m_lcd_controller.SetScale(scale);
+}
+
+void Cpu::Run()
+{
+  Init();
+
+  while (!m_close_window)
+    Main();
+
+  //m_lcd_controller.Close();
+}
+
+int Cpu::Execute(uint8_t opcode)
+{
+  switch (opcode)
+  {
+    case 0x00:
+      return Op0x00();
+    case 0x01:
+      return Op0x01();
+    case 0x02:
+      return Op0x02();
+    case 0x03:
+      return Op0x03();
+    case 0x04:
+      return Op0x04();
+    case 0x05:
+      return Op0x05();
+    case 0x06:
+      return Op0x06();
+    case 0x07:
+      return Op0x07();
+    case 0x08:
+      return Op0x08();
+    case 0x09:
+      return Op0x09();
+    case 0x0A:
+      return Op0x0A();
+    case 0x0B:
+      return Op0x0B();
+    case 0x0C:
+      return Op0x0C();
+    case 0x0D:
+      return Op0x0D();
+    case 0x0E:
+      return Op0x0E();
+    case 0x0F:
+      return Op0x0F();
+    case 0x10:
+      return Op0x10();
+    case 0x11:
+      return Op0x11();
+    case 0x12:
+      return Op0x12();
+    case 0x13:
+      return Op0x13();
+    case 0x14:
+      return Op0x14();
+    case 0x15:
+      return Op0x15();
+    case 0x16:
+      return Op0x16();
+    case 0x17:
+      return Op0x17();
+    case 0x18:
+      return Op0x18();
+    case 0x19:
+      return Op0x19();
+    case 0x1A:
+      return Op0x1A();
+    case 0x1B:
+      return Op0x1B();
+    case 0x1C:
+      return Op0x1C();
+    case 0x1D:
+      return Op0x1D();
+    case 0x1E:
+      return Op0x1E();
+    case 0x1F:
+      return Op0x1F();
+    case 0x20:
+      return Op0x20();
+    case 0x21:
+      return Op0x21();
+    case 0x22:
+      return Op0x22();
+    case 0x23:
+      return Op0x23();
+    case 0x24:
+      return Op0x24();
+    case 0x25:
+      return Op0x25();
+    case 0x26:
+      return Op0x26();
+    case 0x27:
+      return Op0x27();
+    case 0x28:
+      return Op0x28();
+    case 0x29:
+      return Op0x29();
+    case 0x2A:
+      return Op0x2A();
+    case 0x2B:
+      return Op0x2B();
+    case 0x2C:
+      return Op0x2C();
+    case 0x2D:
+      return Op0x2D();
+    case 0x2E:
+      return Op0x2E();
+    case 0x2F:
+      return Op0x2F();
+    case 0x30:
+      return Op0x30();
+    case 0x31:
+      return Op0x31();
+    case 0x32:
+      return Op0x32();
+    case 0x33:
+      return Op0x33();
+    case 0x34:
+      return Op0x34();
+    case 0x35:
+      return Op0x35();
+    case 0x36:
+      return Op0x36();
+    case 0x37:
+      return Op0x37();
+    case 0x38:
+      return Op0x38();
+    case 0x39:
+      return Op0x39();
+    case 0x3A:
+      return Op0x3A();
+    case 0x3B:
+      return Op0x3B();
+    case 0x3C:
+      return Op0x3C();
+    case 0x3D:
+      return Op0x3D();
+    case 0x3E:
+      return Op0x3E();
+    case 0x3F:
+      return Op0x3F();
+    case 0x40:
+      return Op0x40();
+    case 0x41:
+      return Op0x41();
+    case 0x42:
+      return Op0x42();
+    case 0x43:
+      return Op0x43();
+    case 0x44:
+      return Op0x44();
+    case 0x45:
+      return Op0x45();
+    case 0x46:
+      return Op0x46();
+    case 0x47:
+      return Op0x47();
+    case 0x48:
+      return Op0x48();
+    case 0x49:
+      return Op0x49();
+    case 0x4A:
+      return Op0x4A();
+    case 0x4B:
+      return Op0x4B();
+    case 0x4C:
+      return Op0x4C();
+    case 0x4D:
+      return Op0x4D();
+    case 0x4E:
+      return Op0x4E();
+    case 0x4F:
+      return Op0x4F();
+    case 0x50:
+      return Op0x50();
+    case 0x51:
+      return Op0x51();
+    case 0x52:
+      return Op0x52();
+    case 0x53:
+      return Op0x53();
+    case 0x54:
+      return Op0x54();
+    case 0x55:
+      return Op0x55();
+    case 0x56:
+      return Op0x56();
+    case 0x57:
+      return Op0x57();
+    case 0x58:
+      return Op0x58();
+    case 0x59:
+      return Op0x59();
+    case 0x5A:
+      return Op0x5A();
+    case 0x5B:
+      return Op0x5B();
+    case 0x5C:
+      return Op0x5C();
+    case 0x5D:
+      return Op0x5D();
+    case 0x5E:
+      return Op0x5E();
+    case 0x5F:
+      return Op0x5F();
+    case 0x60:
+      return Op0x60();
+    case 0x61:
+      return Op0x61();
+    case 0x62:
+      return Op0x62();
+    case 0x63:
+      return Op0x63();
+    case 0x64:
+      return Op0x64();
+    case 0x65:
+      return Op0x65();
+    case 0x66:
+      return Op0x66();
+    case 0x67:
+      return Op0x67();
+    case 0x68:
+      return Op0x68();
+    case 0x69:
+      return Op0x69();
+    case 0x6A:
+      return Op0x6A();
+    case 0x6B:
+      return Op0x6B();
+    case 0x6C:
+      return Op0x6C();
+    case 0x6D:
+      return Op0x6D();
+    case 0x6E:
+      return Op0x6E();
+    case 0x6F:
+      return Op0x6F();
+    case 0x70:
+      return Op0x70();
+    case 0x71:
+      return Op0x71();
+    case 0x72:
+      return Op0x72();
+    case 0x73:
+      return Op0x73();
+    case 0x74:
+      return Op0x74();
+    case 0x75:
+      return Op0x75();
+    case 0x76:
+      return Op0x76();
+    case 0x77:
+      return Op0x77();
+    case 0x78:
+      return Op0x78();
+    case 0x79:
+      return Op0x79();
+    case 0x7A:
+      return Op0x7A();
+    case 0x7B:
+      return Op0x7B();
+    case 0x7C:
+      return Op0x7C();
+    case 0x7D:
+      return Op0x7D();
+    case 0x7E:
+      return Op0x7E();
+    case 0x7F:
+      return Op0x7F();
+    case 0x80:
+      return Op0x80();
+    case 0x81:
+      return Op0x81();
+    case 0x82:
+      return Op0x82();
+    case 0x83:
+      return Op0x83();
+    case 0x84:
+      return Op0x84();
+    case 0x85:
+      return Op0x85();
+    case 0x86:
+      return Op0x86();
+    case 0x87:
+      return Op0x87();
+    case 0x88:
+      return Op0x88();
+    case 0x89:
+      return Op0x89();
+    case 0x8A:
+      return Op0x8A();
+    case 0x8B:
+      return Op0x8B();
+    case 0x8C:
+      return Op0x8C();
+    case 0x8D:
+      return Op0x8D();
+    case 0x8E:
+      return Op0x8E();
+    case 0x8F:
+      return Op0x8F();
+    case 0x90:
+      return Op0x90();
+    case 0x91:
+      return Op0x91();
+    case 0x92:
+      return Op0x92();
+    case 0x93:
+      return Op0x93();
+    case 0x94:
+      return Op0x94();
+    case 0x95:
+      return Op0x95();
+    case 0x96:
+      return Op0x96();
+    case 0x97:
+      return Op0x97();
+    case 0x98:
+      return Op0x98();
+    case 0x99:
+      return Op0x99();
+    case 0x9A:
+      return Op0x9A();
+    case 0x9B:
+      return Op0x9B();
+    case 0x9C:
+      return Op0x9C();
+    case 0x9D:
+      return Op0x9D();
+    case 0x9E:
+      return Op0x9E();
+    case 0x9F:
+      return Op0x9F();
+    case 0xA0:
+      return Op0xA0();
+    case 0xA1:
+      return Op0xA1();
+    case 0xA2:
+      return Op0xA2();
+    case 0xA3:
+      return Op0xA3();
+    case 0xA4:
+      return Op0xA4();
+    case 0xA5:
+      return Op0xA5();
+    case 0xA6:
+      return Op0xA6();
+    case 0xA7:
+      return Op0xA7();
+    case 0xA8:
+      return Op0xA8();
+    case 0xA9:
+      return Op0xA9();
+    case 0xAA:
+      return Op0xAA();
+    case 0xAB:
+      return Op0xAB();
+    case 0xAC:
+      return Op0xAC();
+    case 0xAD:
+      return Op0xAD();
+    case 0xAE:
+      return Op0xAE();
+    case 0xAF:
+      return Op0xAF();
+    case 0xB0:
+      return Op0xB0();
+    case 0xB1:
+      return Op0xB1();
+    case 0xB2:
+      return Op0xB2();
+    case 0xB3:
+      return Op0xB3();
+    case 0xB4:
+      return Op0xB4();
+    case 0xB5:
+      return Op0xB5();
+    case 0xB6:
+      return Op0xB6();
+    case 0xB7:
+      return Op0xB7();
+    case 0xB8:
+      return Op0xB8();
+    case 0xB9:
+      return Op0xB9();
+    case 0xBA:
+      return Op0xBA();
+    case 0xBB:
+      return Op0xBB();
+    case 0xBC:
+      return Op0xBC();
+    case 0xBD:
+      return Op0xBD();
+    case 0xBE:
+      return Op0xBE();
+    case 0xBF:
+      return Op0xBF();
+    case 0xC0:
+      return Op0xC0();
+    case 0xC1:
+      return Op0xC1();
+    case 0xC2:
+      return Op0xC2();
+    case 0xC3:
+      return Op0xC3();
+    case 0xC4:
+      return Op0xC4();
+    case 0xC5:
+      return Op0xC5();
+    case 0xC6:
+      return Op0xC6();
+    case 0xC7:
+      return Op0xC7();
+    case 0xC8:
+      return Op0xC8();
+    case 0xC9:
+      return Op0xC9();
+    case 0xCA:
+      return Op0xCA();
+    case 0xCB:
+      return Op0xCB();
+    case 0xCC:
+      return Op0xCC();
+    case 0xCD:
+      return Op0xCD();
+    case 0xCE:
+      return Op0xCE();
+    case 0xCF:
+      return Op0xCF();
+    case 0xD0:
+      return Op0xD0();
+    case 0xD1:
+      return Op0xD1();
+    case 0xD2:
+      return Op0xD2();
+    case 0xD3:
+      return Op0xD3();
+    case 0xD4:
+      return Op0xD4();
+    case 0xD5:
+      return Op0xD5();
+    case 0xD6:
+      return Op0xD6();
+    case 0xD7:
+      return Op0xD7();
+    case 0xD8:
+      return Op0xD8();
+    case 0xD9:
+      return Op0xD9();
+    case 0xDA:
+      return Op0xDA();
+    case 0xDB:
+      return Op0xDB();
+    case 0xDC:
+      return Op0xDC();
+    case 0xDD:
+      return Op0xDD();
+    case 0xDE:
+      return Op0xDE();
+    case 0xDF:
+      return Op0xDF();
+    case 0xE0:
+      return Op0xE0();
+    case 0xE1:
+      return Op0xE1();
+    case 0xE2:
+      return Op0xE2();
+    case 0xE3:
+      return Op0xE3();
+    case 0xE4:
+      return Op0xE4();
+    case 0xE5:
+      return Op0xE5();
+    case 0xE6:
+      return Op0xE6();
+    case 0xE7:
+      return Op0xE7();
+    case 0xE8:
+      return Op0xE8();
+    case 0xE9:
+      return Op0xE9();
+    case 0xEA:
+      return Op0xEA();
+    case 0xEB:
+      return Op0xEB();
+    case 0xEC:
+      return Op0xEC();
+    case 0xED:
+      return Op0xED();
+    case 0xEE:
+      return Op0xEE();
+    case 0xEF:
+      return Op0xEF();
+    case 0xF0:
+      return Op0xF0();
+    case 0xF1:
+      return Op0xF1();
+    case 0xF2:
+      return Op0xF2();
+    case 0xF3:
+      return Op0xF3();
+    case 0xF4:
+      return Op0xF4();
+    case 0xF5:
+      return Op0xF5();
+    case 0xF6:
+      return Op0xF6();
+    case 0xF7:
+      return Op0xF7();
+    case 0xF8:
+      return Op0xF8();
+    case 0xF9:
+      return Op0xF9();
+    case 0xFA:
+      return Op0xFA();
+    case 0xFB:
+      return Op0xFB();
+    case 0xFC:
+      return Op0xFC();
+    case 0xFD:
+      return Op0xFD();
+    case 0xFE:
+      return Op0xFE();
+    case 0xFF:
+      return Op0xFF();
+    default:
+      return 0;
+  }
+}
+
+int Cpu::ExecuteCb(uint8_t opcode)
+{
+  switch (opcode)
+  {
+    case 0x00:
+      return OpCb0x00();
+    case 0x01:
+      return OpCb0x01();
+    case 0x02:
+      return OpCb0x02();
+    case 0x03:
+      return OpCb0x03();
+    case 0x04:
+      return OpCb0x04();
+    case 0x05:
+      return OpCb0x05();
+    case 0x06:
+      return OpCb0x06();
+    case 0x07:
+      return OpCb0x07();
+    case 0x08:
+      return OpCb0x08();
+    case 0x09:
+      return OpCb0x09();
+    case 0x0A:
+      return OpCb0x0A();
+    case 0x0B:
+      return OpCb0x0B();
+    case 0x0C:
+      return OpCb0x0C();
+    case 0x0D:
+      return OpCb0x0D();
+    case 0x0E:
+      return OpCb0x0E();
+    case 0x0F:
+      return OpCb0x0F();
+    case 0x10:
+      return OpCb0x10();
+    case 0x11:
+      return OpCb0x11();
+    case 0x12:
+      return OpCb0x12();
+    case 0x13:
+      return OpCb0x13();
+    case 0x14:
+      return OpCb0x14();
+    case 0x15:
+      return OpCb0x15();
+    case 0x16:
+      return OpCb0x16();
+    case 0x17:
+      return OpCb0x17();
+    case 0x18:
+      return OpCb0x18();
+    case 0x19:
+      return OpCb0x19();
+    case 0x1A:
+      return OpCb0x1A();
+    case 0x1B:
+      return OpCb0x1B();
+    case 0x1C:
+      return OpCb0x1C();
+    case 0x1D:
+      return OpCb0x1D();
+    case 0x1E:
+      return OpCb0x1E();
+    case 0x1F:
+      return OpCb0x1F();
+    case 0x20:
+      return OpCb0x20();
+    case 0x21:
+      return OpCb0x21();
+    case 0x22:
+      return OpCb0x22();
+    case 0x23:
+      return OpCb0x23();
+    case 0x24:
+      return OpCb0x24();
+    case 0x25:
+      return OpCb0x25();
+    case 0x26:
+      return OpCb0x26();
+    case 0x27:
+      return OpCb0x27();
+    case 0x28:
+      return OpCb0x28();
+    case 0x29:
+      return OpCb0x29();
+    case 0x2A:
+      return OpCb0x2A();
+    case 0x2B:
+      return OpCb0x2B();
+    case 0x2C:
+      return OpCb0x2C();
+    case 0x2D:
+      return OpCb0x2D();
+    case 0x2E:
+      return OpCb0x2E();
+    case 0x2F:
+      return OpCb0x2F();
+    case 0x30:
+      return OpCb0x30();
+    case 0x31:
+      return OpCb0x31();
+    case 0x32:
+      return OpCb0x32();
+    case 0x33:
+      return OpCb0x33();
+    case 0x34:
+      return OpCb0x34();
+    case 0x35:
+      return OpCb0x35();
+    case 0x36:
+      return OpCb0x36();
+    case 0x37:
+      return OpCb0x37();
+    case 0x38:
+      return OpCb0x38();
+    case 0x39:
+      return OpCb0x39();
+    case 0x3A:
+      return OpCb0x3A();
+    case 0x3B:
+      return OpCb0x3B();
+    case 0x3C:
+      return OpCb0x3C();
+    case 0x3D:
+      return OpCb0x3D();
+    case 0x3E:
+      return OpCb0x3E();
+    case 0x3F:
+      return OpCb0x3F();
+    case 0x40:
+      return OpCb0x40();
+    case 0x41:
+      return OpCb0x41();
+    case 0x42:
+      return OpCb0x42();
+    case 0x43:
+      return OpCb0x43();
+    case 0x44:
+      return OpCb0x44();
+    case 0x45:
+      return OpCb0x45();
+    case 0x46:
+      return OpCb0x46();
+    case 0x47:
+      return OpCb0x47();
+    case 0x48:
+      return OpCb0x48();
+    case 0x49:
+      return OpCb0x49();
+    case 0x4A:
+      return OpCb0x4A();
+    case 0x4B:
+      return OpCb0x4B();
+    case 0x4C:
+      return OpCb0x4C();
+    case 0x4D:
+      return OpCb0x4D();
+    case 0x4E:
+      return OpCb0x4E();
+    case 0x4F:
+      return OpCb0x4F();
+    case 0x50:
+      return OpCb0x50();
+    case 0x51:
+      return OpCb0x51();
+    case 0x52:
+      return OpCb0x52();
+    case 0x53:
+      return OpCb0x53();
+    case 0x54:
+      return OpCb0x54();
+    case 0x55:
+      return OpCb0x55();
+    case 0x56:
+      return OpCb0x56();
+    case 0x57:
+      return OpCb0x57();
+    case 0x58:
+      return OpCb0x58();
+    case 0x59:
+      return OpCb0x59();
+    case 0x5A:
+      return OpCb0x5A();
+    case 0x5B:
+      return OpCb0x5B();
+    case 0x5C:
+      return OpCb0x5C();
+    case 0x5D:
+      return OpCb0x5D();
+    case 0x5E:
+      return OpCb0x5E();
+    case 0x5F:
+      return OpCb0x5F();
+    case 0x60:
+      return OpCb0x60();
+    case 0x61:
+      return OpCb0x61();
+    case 0x62:
+      return OpCb0x62();
+    case 0x63:
+      return OpCb0x63();
+    case 0x64:
+      return OpCb0x64();
+    case 0x65:
+      return OpCb0x65();
+    case 0x66:
+      return OpCb0x66();
+    case 0x67:
+      return OpCb0x67();
+    case 0x68:
+      return OpCb0x68();
+    case 0x69:
+      return OpCb0x69();
+    case 0x6A:
+      return OpCb0x6A();
+    case 0x6B:
+      return OpCb0x6B();
+    case 0x6C:
+      return OpCb0x6C();
+    case 0x6D:
+      return OpCb0x6D();
+    case 0x6E:
+      return OpCb0x6E();
+    case 0x6F:
+      return OpCb0x6F();
+    case 0x70:
+      return OpCb0x70();
+    case 0x71:
+      return OpCb0x71();
+    case 0x72:
+      return OpCb0x72();
+    case 0x73:
+      return OpCb0x73();
+    case 0x74:
+      return OpCb0x74();
+    case 0x75:
+      return OpCb0x75();
+    case 0x76:
+      return OpCb0x76();
+    case 0x77:
+      return OpCb0x77();
+    case 0x78:
+      return OpCb0x78();
+    case 0x79:
+      return OpCb0x79();
+    case 0x7A:
+      return OpCb0x7A();
+    case 0x7B:
+      return OpCb0x7B();
+    case 0x7C:
+      return OpCb0x7C();
+    case 0x7D:
+      return OpCb0x7D();
+    case 0x7E:
+      return OpCb0x7E();
+    case 0x7F:
+      return OpCb0x7F();
+    case 0x80:
+      return OpCb0x80();
+    case 0x81:
+      return OpCb0x81();
+    case 0x82:
+      return OpCb0x82();
+    case 0x83:
+      return OpCb0x83();
+    case 0x84:
+      return OpCb0x84();
+    case 0x85:
+      return OpCb0x85();
+    case 0x86:
+      return OpCb0x86();
+    case 0x87:
+      return OpCb0x87();
+    case 0x88:
+      return OpCb0x88();
+    case 0x89:
+      return OpCb0x89();
+    case 0x8A:
+      return OpCb0x8A();
+    case 0x8B:
+      return OpCb0x8B();
+    case 0x8C:
+      return OpCb0x8C();
+    case 0x8D:
+      return OpCb0x8D();
+    case 0x8E:
+      return OpCb0x8E();
+    case 0x8F:
+      return OpCb0x8F();
+    case 0x90:
+      return OpCb0x90();
+    case 0x91:
+      return OpCb0x91();
+    case 0x92:
+      return OpCb0x92();
+    case 0x93:
+      return OpCb0x93();
+    case 0x94:
+      return OpCb0x94();
+    case 0x95:
+      return OpCb0x95();
+    case 0x96:
+      return OpCb0x96();
+    case 0x97:
+      return OpCb0x97();
+    case 0x98:
+      return OpCb0x98();
+    case 0x99:
+      return OpCb0x99();
+    case 0x9A:
+      return OpCb0x9A();
+    case 0x9B:
+      return OpCb0x9B();
+    case 0x9C:
+      return OpCb0x9C();
+    case 0x9D:
+      return OpCb0x9D();
+    case 0x9E:
+      return OpCb0x9E();
+    case 0x9F:
+      return OpCb0x9F();
+    case 0xA0:
+      return OpCb0xA0();
+    case 0xA1:
+      return OpCb0xA1();
+    case 0xA2:
+      return OpCb0xA2();
+    case 0xA3:
+      return OpCb0xA3();
+    case 0xA4:
+      return OpCb0xA4();
+    case 0xA5:
+      return OpCb0xA5();
+    case 0xA6:
+      return OpCb0xA6();
+    case 0xA7:
+      return OpCb0xA7();
+    case 0xA8:
+      return OpCb0xA8();
+    case 0xA9:
+      return OpCb0xA9();
+    case 0xAA:
+      return OpCb0xAA();
+    case 0xAB:
+      return OpCb0xAB();
+    case 0xAC:
+      return OpCb0xAC();
+    case 0xAD:
+      return OpCb0xAD();
+    case 0xAE:
+      return OpCb0xAE();
+    case 0xAF:
+      return OpCb0xAF();
+    case 0xB0:
+      return OpCb0xB0();
+    case 0xB1:
+      return OpCb0xB1();
+    case 0xB2:
+      return OpCb0xB2();
+    case 0xB3:
+      return OpCb0xB3();
+    case 0xB4:
+      return OpCb0xB4();
+    case 0xB5:
+      return OpCb0xB5();
+    case 0xB6:
+      return OpCb0xB6();
+    case 0xB7:
+      return OpCb0xB7();
+    case 0xB8:
+      return OpCb0xB8();
+    case 0xB9:
+      return OpCb0xB9();
+    case 0xBA:
+      return OpCb0xBA();
+    case 0xBB:
+      return OpCb0xBB();
+    case 0xBC:
+      return OpCb0xBC();
+    case 0xBD:
+      return OpCb0xBD();
+    case 0xBE:
+      return OpCb0xBE();
+    case 0xBF:
+      return OpCb0xBF();
+    case 0xC0:
+      return OpCb0xC0();
+    case 0xC1:
+      return OpCb0xC1();
+    case 0xC2:
+      return OpCb0xC2();
+    case 0xC3:
+      return OpCb0xC3();
+    case 0xC4:
+      return OpCb0xC4();
+    case 0xC5:
+      return OpCb0xC5();
+    case 0xC6:
+      return OpCb0xC6();
+    case 0xC7:
+      return OpCb0xC7();
+    case 0xC8:
+      return OpCb0xC8();
+    case 0xC9:
+      return OpCb0xC9();
+    case 0xCA:
+      return OpCb0xCA();
+    case 0xCB:
+      return OpCb0xCB();
+    case 0xCC:
+      return OpCb0xCC();
+    case 0xCD:
+      return OpCb0xCD();
+    case 0xCE:
+      return OpCb0xCE();
+    case 0xCF:
+      return OpCb0xCF();
+    case 0xD0:
+      return OpCb0xD0();
+    case 0xD1:
+      return OpCb0xD1();
+    case 0xD2:
+      return OpCb0xD2();
+    case 0xD3:
+      return OpCb0xD3();
+    case 0xD4:
+      return OpCb0xD4();
+    case 0xD5:
+      return OpCb0xD5();
+    case 0xD6:
+      return OpCb0xD6();
+    case 0xD7:
+      return OpCb0xD7();
+    case 0xD8:
+      return OpCb0xD8();
+    case 0xD9:
+      return OpCb0xD9();
+    case 0xDA:
+      return OpCb0xDA();
+    case 0xDB:
+      return OpCb0xDB();
+    case 0xDC:
+      return OpCb0xDC();
+    case 0xDD:
+      return OpCb0xDD();
+    case 0xDE:
+      return OpCb0xDE();
+    case 0xDF:
+      return OpCb0xDF();
+    case 0xE0:
+      return OpCb0xE0();
+    case 0xE1:
+      return OpCb0xE1();
+    case 0xE2:
+      return OpCb0xE2();
+    case 0xE3:
+      return OpCb0xE3();
+    case 0xE4:
+      return OpCb0xE4();
+    case 0xE5:
+      return OpCb0xE5();
+    case 0xE6:
+      return OpCb0xE6();
+    case 0xE7:
+      return OpCb0xE7();
+    case 0xE8:
+      return OpCb0xE8();
+    case 0xE9:
+      return OpCb0xE9();
+    case 0xEA:
+      return OpCb0xEA();
+    case 0xEB:
+      return OpCb0xEB();
+    case 0xEC:
+      return OpCb0xEC();
+    case 0xED:
+      return OpCb0xED();
+    case 0xEE:
+      return OpCb0xEE();
+    case 0xEF:
+      return OpCb0xEF();
+    case 0xF0:
+      return OpCb0xF0();
+    case 0xF1:
+      return OpCb0xF1();
+    case 0xF2:
+      return OpCb0xF2();
+    case 0xF3:
+      return OpCb0xF3();
+    case 0xF4:
+      return OpCb0xF4();
+    case 0xF5:
+      return OpCb0xF5();
+    case 0xF6:
+      return OpCb0xF6();
+    case 0xF7:
+      return OpCb0xF7();
+    case 0xF8:
+      return OpCb0xF8();
+    case 0xF9:
+      return OpCb0xF9();
+    case 0xFA:
+      return OpCb0xFA();
+    case 0xFB:
+      return OpCb0xFB();
+    case 0xFC:
+      return OpCb0xFC();
+    case 0xFD:
+      return OpCb0xFD();
+    case 0xFE:
+      return OpCb0xFE();
+    case 0xFF:
+      return OpCb0xFF();
+    default:
+      return 0;
+  }
+}
+
+void Cpu::WriteIo(uint16_t address, uint8_t val)
+{
+  if (address == static_cast<uint16_t>(JoypadController::JoypadAddress::STATE))
+  {
+    m_joypad_controller.WriteSelect(val);
+  }
+  else if (address >= static_cast<uint16_t>(SerialController::Address::START) &&
+           address <= static_cast<uint16_t>(SerialController::Address::END))
+  {
+    m_serial_controller.HandleWrite(address, val);
+  }
+  else if (address >= static_cast<uint16_t>(TimerController::TimerAddress::START) &&
+           address <= static_cast<uint16_t>(TimerController::TimerAddress::END))
+  {
+    bool apu_div_tick = m_timer_controller.HandleWrite(address, val);
+    if (apu_div_tick)
+      m_audio_controller.ApuDivTick();
+  }
+  else if (address == static_cast<uint16_t>(InterruptController::InterruptAddress::FLAG))
+  {
+    m_interrupt_controller.HandleWrite(address, val);
+  }
+  else if (address >= static_cast<uint16_t>(AudioController::AudioAddress::START) &&
+           address <= static_cast<uint16_t>(AudioController::AudioAddress::END))
+  {
+    m_audio_controller.HandleWrite(address, val);
+  }
+  else if (address >= static_cast<uint16_t>(AudioController::AudioWaveAddress::START) &&
+           address <= static_cast<uint16_t>(AudioController::AudioWaveAddress::END))
+  {
+    m_audio_controller.HandleWrite(address, val);
+  }
+  else if (address >= static_cast<uint16_t>(LcdController::Address::START) &&
+           address <= static_cast<uint16_t>(LcdController::Address::END))
+  {
+    m_lcd_controller.HandleWrite(address, val);
+  }
+  else if (address == static_cast<uint16_t>(ExecutionAddress::BOOT_COMPLETE))
+  {
+    if (val && !m_boot_complete)
+    { 
+      m_boot_complete = true;
+      std::copy(m_rom.begin(), m_rom.begin() + BOOT_ROM.size(), m_rom_banks[0].begin()); // Unmap boot ROM
+    }   
+  }
+  else
+  {
+    (void)val;
+  }
+}
+
+uint8_t Cpu::ReadIo(uint16_t address)
+{
+  if (address == static_cast<uint16_t>(JoypadController::JoypadAddress::STATE))
+  {
+    return m_joypad_controller.ReadJoypad();
+  }
+  else if (address >= static_cast<uint16_t>(SerialController::Address::START) &&
+           address <= static_cast<uint16_t>(SerialController::Address::END))
+  {
+    return m_serial_controller.HandleRead(address);
+  }
+  else if (address >= static_cast<uint16_t>(TimerController::TimerAddress::START) &&
+           address <= static_cast<uint16_t>(TimerController::TimerAddress::END))
+  {
+    return m_timer_controller.HandleRead(address);
+  }
+  else if (address == static_cast<uint16_t>(InterruptController::InterruptAddress::FLAG))
+  {
+    return m_interrupt_controller.HandleRead(address);
+  }
+  else if (address >= static_cast<uint16_t>(AudioController::AudioAddress::START) &&
+           address <= static_cast<uint16_t>(AudioController::AudioAddress::END))
+  {
+    return m_audio_controller.HandleRead(address);
+  }
+  else if (address >= static_cast<uint16_t>(AudioController::AudioWaveAddress::START) &&
+           address <= static_cast<uint16_t>(AudioController::AudioWaveAddress::END))
+  {
+    return m_audio_controller.HandleRead(address);
+  }
+  else if (address >= static_cast<uint16_t>(LcdController::Address::START) &&
+           address <= static_cast<uint16_t>(LcdController::Address::END))
+  {
+    return m_lcd_controller.HandleRead(address);
+  }
+  else if (address == static_cast<uint16_t>(ExecutionAddress::BOOT_COMPLETE))
+  {
+    return m_boot_complete;
+  }
+  else
+  {
+    return DEFAULT_READ;
+  }
+}
+
+void Cpu::WriteAddress(uint16_t address, uint8_t val)
+{
+  if (address == 0xFFFF) // (FFFF-FFFF) Interrupts Enable Register (IE)
+  {
+    m_interrupt_controller.HandleWrite(address, val);
+  }
+  else if (address >= 0xFF80) // (FF80-FFFE) High RAM (HRAM)
+  {
+    address -= 0xFF80;
+    m_hram[address] = val;
+  }
+  else if (address >= 0xFF00) // (FF00-FF7F) I/O Registers
+  {
+    WriteIo(address, val);
+  }
+  else if (address >= 0xFEA0) // (FEA0-FEFF) Not Usable
+  {
+    (void)val;
+  }
+  else if (address >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
+  {
+    m_lcd_controller.HandleWrite(address, val);
+  }
+  else if (address >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
+  {
+    address -= 0xE000;
+    m_wram[address] = val;
+  }
+  else if (address >= 0xC000) // (C000-DFFF) 8KB Work RAM (WRAM)
+  {
+    address -= 0xC000;
+    m_wram[address] = val;
+  }
+  else if (address >= 0xA000) // (A000-BFFF) 8KB External RAM In cartridge, switchable bank if any
+  {
+    if (m_external_ram_enable)
+    {
+      address -= 0xA000;
+      m_ram_banks[m_ram_bank][address] = val;
+    }
+  }
+  else if (address >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
+  {
+    m_lcd_controller.HandleWrite(address, val);
+  }
+  else if (address >= 0x6000) // (6000-7FFF) MBC Mode
+  {
+    switch (m_rom_header.GetCartridgeType())
+    {
+      case CartridgeType::MBC1:
+        // Fall through
+      case CartridgeType::MBC1_RAM:
+        // Fall through
+      case CartridgeType::MBC1_RAM_BATTERY:
+        Mbc1_7FFF(val);
+        break;
+      case CartridgeType::MBC3:
+        // Fall through
+      case CartridgeType::MBC3_RAM:
+        // Fall through
+      case CartridgeType::MBC3_RAM_BATTERY:
+        Mbc3_7FFF(val);
+        break;
+      default:
+        break;
+    }
+    
+  }
+  else if (address >= 0x4000) // (4000-5FFF) RAM bank or Upper 2 bits of ROM bank
+  {
+    switch (m_rom_header.GetCartridgeType())
+    {
+      case CartridgeType::MBC1:
+        // Fall through
+      case CartridgeType::MBC1_RAM:
+        // Fall through
+      case CartridgeType::MBC1_RAM_BATTERY:
+        Mbc1_5FFF(val);
+        break;
+      case CartridgeType::MBC3:
+        // Fall through
+      case CartridgeType::MBC3_RAM:
+        // Fall through
+      case CartridgeType::MBC3_RAM_BATTERY:
+        Mbc3_5FFF(val);
+        break;
+      default:
+        break;
+    }
+  }
+  else if (address >= 0x2000) // (2000-3FFF) Lower 5 bits of ROM bank
+  {
+    switch (m_rom_header.GetCartridgeType())
+    {
+      case CartridgeType::MBC1:
+        // Fall through
+      case CartridgeType::MBC1_RAM:
+        // Fall through
+      case CartridgeType::MBC1_RAM_BATTERY:
+        Mbc1_3FFF(val);
+        break;
+      case CartridgeType::MBC3:
+        // Fall through
+      case CartridgeType::MBC3_RAM:
+        // Fall through
+      case CartridgeType::MBC3_RAM_BATTERY:
+        Mbc3_3FFF(val);
+        break;
+      default:
+        break;
+    }
+  }
+  else //if (address > 0x0000) // (0000-1FFF) External RAM enable
+  {
+    switch (m_rom_header.GetCartridgeType())
+    {
+      case CartridgeType::MBC1:
+        // Fall through
+      case CartridgeType::MBC1_RAM:
+        // Fall through
+      case CartridgeType::MBC1_RAM_BATTERY:
+        Mbc1_1FFF(val);
+        break;
+      case CartridgeType::MBC3:
+        // Fall through
+      case CartridgeType::MBC3_RAM:
+        // Fall through
+      case CartridgeType::MBC3_RAM_BATTERY:
+        Mbc3_1FFF(val);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void Cpu::Mbc3_7FFF(uint8_t val)
+{
+
+}
+
+void Cpu::Mbc3_5FFF(uint8_t val)
+{
+  m_ram_bank = val & 0b11;
+}
+
+void Cpu::Mbc3_3FFF(uint8_t val)
+{
+  m_rom_bank = val & 0x7F;
+  m_rom_bank = m_rom_bank == 0 ? 1 : m_rom_bank;
+  m_rom_bank %= m_num_rom_banks;
+}
+
+void Cpu::Mbc3_1FFF(uint8_t val)
+{
+  m_external_ram_enable = ((val & 0xF) == 0xA);
+}
+
+void Cpu::Mbc1_7FFF(uint8_t val)
+{
+  m_mbc_mode = static_cast<Mbc1Mode>(val & 0x1);
+
+  if (m_mbc_mode == Mbc1Mode::MULTIPLE_RAM)
+    m_num_ram_banks = 4;
+  else
+    m_num_ram_banks = 1;
+}
+
+void Cpu::Mbc1_5FFF(uint8_t val)
+{
+  if (m_mbc_mode == Mbc1Mode::MULTIPLE_RAM)
+    m_ram_bank = val & 0b11;
+  else
+  {
+    m_upper_bank_bits = (val & 0b11) << 5;
+    m_rom_bank = m_upper_bank_bits | m_lower_bank_bits;
+    m_rom_bank %= m_num_rom_banks;
+  }
+}
+
+void Cpu::Mbc1_3FFF(uint8_t val)
+{
+  m_lower_bank_bits = val & 0x1F;
+  m_lower_bank_bits = m_lower_bank_bits == 0 ? 1 : m_lower_bank_bits;
+  m_rom_bank = m_upper_bank_bits | m_lower_bank_bits;
+  m_rom_bank %= m_num_rom_banks;
+}
+
+void Cpu::Mbc1_1FFF(uint8_t val)
+{
+  m_external_ram_enable = ((val & 0xF) == 0xA);
+}
+
+uint8_t Cpu::ReadAddress(uint16_t address) 
+{
+  if (address > 0xFFFE) // (FFFF-FFFF) Interrupts Enable Register (IE)
+  {
+    return m_interrupt_controller.HandleRead(address);
+  }
+  else if (address > 0xFF7F) // (FF80-FFFE) High RAM (HRAM)
+  {
+    address -= 0xFF80;
+    return m_hram[address];
+  }
+  else if (address >= 0xFF00) // (FF00-FF7F) I/O Registers
+  {
+    return ReadIo(address);
+  }
+  else if (address >= 0xFEA0) // (FEA0-FEFF) Not Usable
+  {
+    return DEFAULT_READ;
+  }
+  else if (address >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
+  {
+    return m_lcd_controller.HandleRead(address);
+  }
+  else if (address >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
+  {
+    address -= 0xE000;
+    return m_wram[address];
+  }
+  else if (address >= 0xC000) // (C000-DFFF) 8KB Work RAM (WRAM)
+  {
+    address -= 0xC000;
+    return m_wram[address];
+  }
+  else if (address >= 0xA000) // (A000-BFFF) 8KB External RAM In cartridge, switchable bank if any
+  {
+    if (m_external_ram_enable)
+    {
+      address -= 0xA000;
+      return m_ram_banks[m_ram_bank][address];
+    }
+    else
+      return DEFAULT_READ;
+  }
+  else if (address >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
+  {
+    return m_lcd_controller.HandleRead(address);
+  }
+  else if (address >= 0x4000) // (4000-7FFF) 16KB ROM bank 01~NN From cartridge, switchable bank via MBC (if any)
+  {
+    address -= 0x4000;
+    return m_rom_banks[m_rom_bank][address];
+  }
+  else //if (address > 0x0000) // (0000-3FFF) 16KB ROM bank 00 From cartridge, usually a fixed bank, BOOT_ROM mapped to 00-FF at start
+  {
+    return m_rom_banks[0][address];
+  }
+}
+
+void Cpu::SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie)
+{
+  m_pc = pc;
+  m_sp = sp;
+  m_af.h = a;
+  m_bc.h = b;
+  m_bc.l = c;
+  m_de.h = d;
+  m_de.l = e;
+  m_af.l = f;
+  m_hl.h = h;
+  m_hl.l = l;
+  m_interrupt_controller.SetState(ime, ie);
+}
+
+bool Cpu::CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
+{
+  if (pc != m_pc)
+    return false;
+  else if (sp != m_sp)
+    return false;
+  else if (a != m_af.h)
+    return false;
+  else if (b != m_bc.h)
+    return false;
+  else if (c != m_bc.l)
+    return false;
+  else if (d != m_de.h)
+    return false;
+  else if (e != m_de.l)
+    return false;
+  else if (f != m_af.l)
+    return false;
+  else if (h != m_hl.h)
+    return false;
+  else if (l != m_hl.l)
+    return false;
+  else if (!m_interrupt_controller.CheckState(ime))
+    return false;
+  else
+    return true;
+}

@@ -1,0 +1,475 @@
+#include "LcdController.h"
+
+#include "raylib.h"
+
+#include <algorithm>
+#include <execution>
+
+// DMG
+constexpr static std::array<Color, 4> COLOR_PALETTE{
+	Color{232, 252, 204, 255}, // 00 - White
+	Color{172, 212, 144, 255}, // 01 - Light Gray
+	Color{ 84, 140, 112, 255}, // 10 - Dark Gray
+	Color{ 20,  44,  56, 255}  // 11 - Black
+};
+
+// Grayscale
+//constexpr static std::array<Color, 4> COLOR_PALETTE{
+//  Color{255, 255, 255, 255}, // 00 - White
+//  Color{170, 170, 170, 255}, // 01 - Light Gray
+//  Color{ 85,  85,  85, 255}, // 10 - Dark Gray
+//  Color{  0,   0,   0, 255}  // 11 - Black
+//};
+
+// Cool colors
+//constexpr static std::array<Color, 4> COLOR_PALETTE{
+//  Color{235, 255, 255, 255},
+//  Color{170, 170, 190, 255},
+//  Color{ 85, 105,  85, 255},
+//  Color{ 20,   0,   0, 255}
+//};
+
+static Image image_buffer;
+static Texture2D texture_buffer;
+static std::vector<Color> frame_buffer = std::vector<Color>(SCREEN_WIDTH * SCREEN_HEIGHT, COLOR_PALETTE[0]);
+static Vector2 window_pos{};
+
+bool LcdController::WindowClosed()
+{
+	return WindowShouldClose();
+}
+
+void LcdController::FullScreen(bool fullscreen)
+{
+	if (fullscreen)
+	{
+		int monitor_height = GetMonitorHeight(0);
+		int monitor_width = GetMonitorWidth(0);
+		int scale = monitor_height / SCREEN_HEIGHT;
+		
+		m_render_scale = scale;
+
+		int gameboy_height = SCREEN_HEIGHT * m_render_scale;
+		int gameboy_width = SCREEN_HEIGHT * m_render_scale;
+
+		int window_height = SCREEN_HEIGHT * m_render_scale;
+		int window_width = SCREEN_WIDTH * m_render_scale;
+
+		SetWindowSize(window_width, window_height);
+		window_pos.x = (monitor_width - gameboy_width) / 2.0f;
+		window_pos.y = (monitor_height - gameboy_height) / 2.0f;
+	}
+	else
+	{
+		m_render_scale = 5;
+
+		int window_height = SCREEN_HEIGHT * m_render_scale;
+		int window_width = SCREEN_WIDTH * m_render_scale;
+
+		SetWindowSize(window_width, window_height);
+
+		window_pos.x = 0;
+		window_pos.y = 0;
+	}
+
+	ToggleBorderlessWindowed();
+	ClearBackground(BLACK);
+}
+
+void* LcdController::GetHandle()
+{
+	return GetWindowHandle();
+}
+
+void LcdController::Init()
+{
+	SetTraceLogLevel(LOG_NONE);
+
+	window_pos.x = 0;
+	window_pos.y = 0;
+
+	SetConfigFlags(FLAG_WINDOW_HIDDEN);
+
+	int window_height = SCREEN_HEIGHT * m_render_scale;
+	int window_width = SCREEN_WIDTH * m_render_scale;
+
+	InitWindow(window_width, window_height, "GameBoy");
+
+	image_buffer = {
+		.data = frame_buffer.data(),
+		.width = SCREEN_WIDTH,
+		.height = SCREEN_HEIGHT,
+		.mipmaps = 1,
+		.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
+	};
+
+	texture_buffer = LoadTextureFromImage(image_buffer);
+}
+
+void LcdController::DrawDoubleFPS(int pos_x, int pos_y)
+{
+	if(m_fps_buffer.size() < 30)
+		m_fps_buffer.push_back(1/m_frame_time);
+	else
+	{
+		m_fps_buffer.pop_front();
+		m_fps_buffer.push_back(1/m_frame_time);
+
+		double fps = std::accumulate(m_fps_buffer.begin(), m_fps_buffer.end(), 0.0) / 30.0;
+
+		DrawText(TextFormat("%.4f FPS", fps), pos_x, pos_y, 20, LIME);
+	}
+}
+
+void LcdController::DrawFrame()
+{
+	UpdateTexture(texture_buffer, frame_buffer.data()); // Could check if texture changed
+	BeginDrawing();
+	ClearBackground(BLACK);
+	DrawTextureEx(texture_buffer, window_pos, 0.0f, static_cast<float>(m_render_scale), WHITE);
+	DrawDoubleFPS(static_cast<int>(10 + window_pos.x), static_cast<int>(10 + window_pos.y));
+	EndDrawing();
+}
+
+void LcdController::Close()
+{
+	UnloadTexture(texture_buffer);
+	CloseWindow();
+}
+
+bool LcdController::UpdateDisabled()
+{
+	m_disabled_cycle_count += 4;
+
+	if (m_disabled_cycle_count == 4560)
+	{
+		frame_buffer = std::vector<Color>(SCREEN_WIDTH * SCREEN_HEIGHT, COLOR_PALETTE[0b00]);
+		DrawFrame();
+
+		return true;
+	}
+
+	return false;
+}
+
+void LcdController::SetScale(int scale)
+{
+	m_render_scale = scale;
+
+	SetWindowSize(SCREEN_WIDTH * m_render_scale, SCREEN_HEIGHT * m_render_scale);
+}
+
+LcdController::LcdController(bool screen_on, InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::LCD), m_screen_on(screen_on)
+{
+
+}
+
+LcdController::~LcdController()
+{
+	
+}
+
+void LcdController::RenderBackground()
+{
+	if (m_lcdc & GetLcdcBitMask(LcdcBitMask::BG_WIN_ENABLE))
+	{
+		uint16_t tile_map_offset = (m_lcdc & GetLcdcBitMask(LcdcBitMask::BG_TILE_MAP)) ? TILE_MAP_OFFSET_1 : TILE_MAP_OFFSET_0;
+
+		uint8_t x = 0;
+		while (x < SCREEN_WIDTH)
+		{
+			uint8_t global_y = m_scy + m_ly;
+			uint8_t global_x = m_scx + x;
+
+			uint16_t tile_index_address = tile_map_offset + (global_y / NUM_PIXELS_PER_TILE_COLUMN) * NUM_TILES_PER_ROW + (global_x / NUM_PIXELS_PER_TILE_ROW);
+			uint8_t tile_index = m_vram[tile_index_address];
+
+			bool tile_map_0_flag = m_lcdc & GetLcdcBitMask(LcdcBitMask::BG_WIN_TILES);
+			uint16_t byte_offset = (tile_map_0_flag || (tile_index > TILE_BLOCK_0_THRESH)) ? tile_index * NUM_BYTES_PER_TILE
+				                                                                             : tile_index * NUM_BYTES_PER_TILE + TILE_BLOCK_1_OFFSET;
+
+			uint8_t tile_byte_offset = (global_y % NUM_PIXELS_PER_TILE_COLUMN) * 2;
+
+			int remaining_pixels = NUM_PIXELS_PER_TILE_ROW - (global_x % NUM_PIXELS_PER_TILE_ROW);
+			while (remaining_pixels > 0 && x < SCREEN_WIDTH)
+			{
+				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
+					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
+
+				uint16_t frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+
+				uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
+				frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+
+				x += 1;
+				remaining_pixels -= 1;
+			}
+		}
+	}
+	else
+	{
+		for (int x = 0; x < SCREEN_WIDTH; x += 1)
+		{
+			auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+			frame_buffer[frame_buffer_index] = COLOR_PALETTE[0b00];
+		}
+	}
+}
+
+void LcdController::RenderWindow()
+{
+	if (((m_lcdc & GetLcdcBitMask(LcdcBitMask::BG_WIN_ENABLE)) && (m_lcdc & GetLcdcBitMask(LcdcBitMask::WIN_ENABLE))))
+	{
+		if (m_ly < m_wy || m_wx >= (SCREEN_WIDTH + WINDOW_X_OFFSET) || m_wy >= SCREEN_HEIGHT)
+			return;
+
+		uint16_t tile_map_offset = m_lcdc & GetLcdcBitMask(LcdcBitMask::WIN_TILE_MAP) ? TILE_MAP_OFFSET_1 : TILE_MAP_OFFSET_0;
+		
+		int window_x_start = m_wx - WINDOW_X_OFFSET;
+		int x = window_x_start < 0 ? 0 : window_x_start;
+		while (x < SCREEN_WIDTH)
+		{
+			int relative_x = x - window_x_start;
+			int relative_y = m_wly;
+
+			uint16_t tile_index_address = tile_map_offset + relative_y / NUM_PIXELS_PER_TILE_COLUMN * NUM_TILES_PER_ROW + relative_x / NUM_PIXELS_PER_TILE_ROW;
+			uint8_t tile_index = m_vram[tile_index_address];
+
+			bool tile_map_0_flag = m_lcdc & GetLcdcBitMask(LcdcBitMask::BG_WIN_TILES);
+			uint16_t byte_offset = tile_map_0_flag || (tile_index > TILE_BLOCK_0_THRESH) ? tile_index * NUM_BYTES_PER_TILE 
+				                                                                           : tile_index * NUM_BYTES_PER_TILE + TILE_BLOCK_1_OFFSET;
+
+			uint8_t tile_byte_offset = (relative_y % NUM_PIXELS_PER_TILE_COLUMN) * NUM_BYTES_PER_X_ROW;
+
+			int remaining_pixels = NUM_PIXELS_PER_TILE_ROW - (relative_x % NUM_PIXELS_PER_TILE_ROW);
+			while (remaining_pixels > 0 && x < SCREEN_WIDTH)
+			{
+				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
+					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
+
+				uint16_t frame_buffer_index = m_ly * SCREEN_WIDTH + x;
+
+				uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
+				frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+				
+				x += 1;
+				remaining_pixels -= 1;
+			}
+		}
+
+		m_wly += 1;
+	}
+}
+
+void LcdController::RenderObjects()
+{
+	if (m_lcdc & GetLcdcBitMask(LcdcBitMask::OBJ_ENABLE))
+	{
+		m_objects.clear();
+
+		bool doublesize = (m_lcdc & GetLcdcBitMask(LcdcBitMask::OBJ_SIZE));
+
+		for (uint8_t object_num = 0; object_num < NUM_OBJECTS; object_num += 1)
+		{
+			uint8_t object_y   = m_oam[object_num * NUM_BYTES_PER_ATTRIBUTES + 0];
+			uint8_t object_x   = m_oam[object_num * NUM_BYTES_PER_ATTRIBUTES + 1];
+			uint8_t tile_index = m_oam[object_num * NUM_BYTES_PER_ATTRIBUTES + 2];
+			uint8_t attributes = m_oam[object_num * NUM_BYTES_PER_ATTRIBUTES + 3];
+
+			int global_y = object_y - OBJECT_Y_OFFSET;
+			int global_x = object_x - OBJECT_X_OFFSET;
+
+			uint8_t object_height = doublesize ? NUM_PIXELS_PER_DOUBLE_TILE_COLUMN : NUM_PIXELS_PER_TILE_COLUMN;
+
+			// Objects only unselected by y position, not x, even if off-screen
+			if (global_y > m_ly || global_y <= (m_ly - object_height))
+				continue;
+
+			m_objects.push_back({global_y, global_x, tile_index, attributes, object_num});
+
+			if (m_objects.size() == OBJECT_LIMIT)
+				break;
+		}
+
+		if (m_objects.size() == 0)
+			return;
+
+		// Sort backwards with current algorithm that writes objects over others
+		std::sort(m_objects.begin(), m_objects.end(),
+		[](const Object& a, const Object& b)
+		{
+			return (a.global_x == b.global_x) ? (a.object_num > b.object_num) : (a.global_x > b.global_x); 
+		});
+
+		for (uint64_t object_num = 0; object_num < m_objects.size(); object_num++)
+		{
+			// Objects fully off-screen, don't bother rendering
+			if (m_objects[object_num].global_x <= -8 || m_objects[object_num].global_x >= SCREEN_WIDTH)
+				continue;
+
+			bool flip_y = m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::FLIP_Y);
+			bool flip_x = m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::FLIP_X);
+
+			int byte_offset = m_objects[object_num].tile_index * NUM_BYTES_PER_TILE;
+			
+			if (doublesize)
+			{
+				bool lower_tile = (m_ly - m_objects[object_num].global_y) >= NUM_PIXELS_PER_TILE_COLUMN;
+
+				int tile_index_upper = flip_y ? (m_objects[object_num].tile_index | DOUBLESIZE_TILE_0_MASK) : (m_objects[object_num].tile_index & DOUBLESIZE_TILE_1_MASK);
+				int tile_index_lower = flip_y ? tile_index_upper - 1 : tile_index_upper + 1;
+
+				byte_offset = lower_tile ? tile_index_lower * NUM_BYTES_PER_TILE : tile_index_upper * NUM_BYTES_PER_TILE;
+			}
+			
+			int tile_byte_offset = ((m_ly - m_objects[object_num].global_y) % NUM_PIXELS_PER_TILE_COLUMN) * 2;
+			if (flip_y) tile_byte_offset = 14 - tile_byte_offset;		
+
+			int x = flip_x ? m_objects[object_num].global_x + 7 : m_objects[object_num].global_x;
+			int x_increment = flip_x ? -1 : 1;
+
+			int remaining_pixels = NUM_PIXELS_PER_TILE_ROW;
+
+			while (remaining_pixels > 0)
+			{
+				if (x < 0 || x >= SCREEN_WIDTH)
+				{
+					x += x_increment;
+					remaining_pixels -= 1;
+					continue;
+				}
+
+				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
+					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
+
+				uint64_t color_index = (m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT)) ? (m_obp1 >> (color_id * BITS_PER_COLOR)) & 0b11
+					                                                                                                                      : (m_obp0 >> (color_id * BITS_PER_COLOR)) & 0b11;
+
+				auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+
+				if (color_id)
+				{
+					if (m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PRIORITY))
+					{
+						if (ColorIsEqual(frame_buffer[frame_buffer_index], COLOR_PALETTE[(m_bgp & 0b11)]))
+							frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+						//else transparent (don't draw)
+					}
+					else
+						frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+				}
+				// else transparent (don't draw)
+
+				x += x_increment;
+				remaining_pixels -= 1;
+			}
+		}
+	}
+}
+
+uint8_t LcdController::HandleRead(uint16_t address) const
+{
+	if (address >= 0x8000 && address <= 0x9FFF)
+	{
+		address -= 0x8000;
+		return m_vram[address];
+	}
+	else if (address >= 0xFE00 && address <= 0xFE9F)
+	{
+		address -= 0xFE00;
+		return m_oam[address];
+	}
+
+	Address lcd_address = static_cast<Address>(address);
+
+	switch (lcd_address)
+	{
+		case LcdController::Address::CONTROL:
+			return m_lcdc;
+		case LcdController::Address::STATUS:
+			return m_stat;
+		case LcdController::Address::SCREEN_Y:
+			return m_scy;
+		case LcdController::Address::SCREEN_X:
+			return m_scx;
+		case LcdController::Address::LCD_Y:
+			return m_ly;
+		case LcdController::Address::LCD_Y_COMP:
+			return m_lyc;
+		case LcdController::Address::DMA:
+			return m_dma;
+		case LcdController::Address::BG_PALETTE:
+			return m_bgp;
+		case LcdController::Address::OBJ_PALETTE_0:
+			return m_obp0;
+		case LcdController::Address::OBJ_PALETTE_1:
+			return m_obp1;
+		case LcdController::Address::WINDOW_Y:
+			return m_wy;
+		case LcdController::Address::WINDOW_X:
+			return m_wx;
+		default:
+			throw DEFAULT_READ;
+	}
+}
+
+void LcdController::HandleWrite(uint16_t address, uint8_t val)
+{
+  if (address >= 0x8000 && address <= 0x9FFF)
+	{
+		address -= 0x8000;
+		m_vram[address] = val;
+		return;
+	}
+	else if (address >= 0xFE00 && address <= 0xFE9F)
+	{
+		address -= 0xFE00;
+		m_oam[address] = val;
+		return;
+	}
+
+	Address lcd_address = static_cast<Address>(address);
+
+	switch (lcd_address)
+	{
+		case LcdController::Address::CONTROL:
+			HandleLcdcWrite(val);
+			break;
+		case LcdController::Address::STATUS:
+			m_stat = val;
+			break;
+		case LcdController::Address::SCREEN_Y:
+			m_scy = val;
+			break;
+		case LcdController::Address::SCREEN_X:
+			m_scx = val;
+			break;
+		case LcdController::Address::LCD_Y:
+			m_ly = val;
+			break;
+		case LcdController::Address::LCD_Y_COMP:
+			m_lyc = val;
+			break;
+		case LcdController::Address::DMA:
+			HandleDmaWrite(val);
+			break;
+		case LcdController::Address::BG_PALETTE:
+			m_bgp = val;
+			break;
+		case LcdController::Address::OBJ_PALETTE_0:
+			m_obp0 = val;
+			break;
+		case LcdController::Address::OBJ_PALETTE_1:
+			m_obp1 = val;
+			break;
+		case LcdController::Address::WINDOW_Y:
+			m_wy = val;
+			break;
+		case LcdController::Address::WINDOW_X:
+			m_wx = val;
+			break;
+		default:
+			(void)val;
+			break;
+	}
+}
