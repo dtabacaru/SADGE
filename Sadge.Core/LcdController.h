@@ -120,18 +120,11 @@ public:
     MODE_1_VBLANK = 1
   };
 
-  enum class Pallete : uint8_t
-  {
-    BG_WIN = 0,
-    OBJ0   = 1,
-    OBJ1   = 2
-  };
-
-  struct Pixel
-  {
-    uint8_t id;
-    Pallete pallete;
-  };
+  //struct Pixel
+  //{
+  //  uint8_t id;
+  //  Pallete pallete;
+  //};
 
   inline constexpr uint8_t GetAttributeBitMask(ObjectAttributeBitMask bit_mask)
   {
@@ -266,7 +259,7 @@ private:
 
   inline void RenderScanline()
   {
-    m_line_buffer = std::vector<Pixel>(SCREEN_WIDTH);
+    m_line_buffer = std::vector<uint8_t>(SCREEN_WIDTH);
     RenderBackground();
     RenderWindow();
     RenderObjects();
@@ -410,7 +403,7 @@ private:
   Modes m_next_mode    = Modes::MODE_3_DRAW;
   uint32_t m_mode_transition_cycles = 80;
 
-  std::vector<Pixel>   m_line_buffer = std::vector<Pixel>(SCREEN_WIDTH);
+  std::vector<uint8_t> m_line_buffer = std::vector<uint8_t>(SCREEN_WIDTH);
   std::vector<uint8_t> m_oam         = std::vector<uint8_t>(OAM_SIZE);
   std::vector<uint8_t> m_vram        = std::vector<uint8_t>(VRAM_SIZE);
   std::vector<Object>  m_objects     = std::vector<Object>();

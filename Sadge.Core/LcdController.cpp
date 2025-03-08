@@ -199,7 +199,7 @@ void LcdController::RenderBackground()
 				//uint16_t frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
 
 				//uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
-				m_line_buffer[x] = Pixel{color_id, Pallete::BG_WIN};
+				m_line_buffer[x] = color_id;
 				//frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
 
 				x += 1;
@@ -212,7 +212,7 @@ void LcdController::RenderBackground()
 		for (int x = 0; x < SCREEN_WIDTH; x += 1)
 		{
 			//auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
-			m_line_buffer[x] = Pixel{0, Pallete::BG_WIN};
+			m_line_buffer[x] = 0;
 			//frame_buffer[frame_buffer_index] = COLOR_PALETTE[0b00];
 		}
 	}
@@ -254,7 +254,7 @@ void LcdController::RenderWindow()
 				//uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
 				//frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
 				
-				m_line_buffer[x] = Pixel{color_id, Pallete::BG_WIN};
+				m_line_buffer[x] = color_id;
 
 				x += 1;
 				remaining_pixels -= 1;
@@ -298,11 +298,10 @@ void LcdController::RenderObjects()
 		if (m_objects.size() == 0)
 			return;
 
-		// Sort backwards with current algorithm that writes objects over others
-		std::sort(m_objects.begin(), m_objects.end(),
+		std::stable_sort(m_objects.begin(), m_objects.end(),
 		[](const Object& a, const Object& b)
 		{
-			return (a.global_x == b.global_x) ? (a.object_num > b.object_num) : (a.global_x > b.global_x); 
+			return a.global_x < b.global_x;
 		});
 
 		for (uint64_t object_num = 0; object_num < m_objects.size(); object_num++)
@@ -346,18 +345,12 @@ void LcdController::RenderObjects()
 				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
 					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
 
-				Pallete pallete = m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT) ? Pallete::OBJ1 : Pallete::OBJ0;
+				uint8_t prio_mask = m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PRIORITY)       ? 0b1111 : 0b1100;
+				uint8_t pallete   = m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT) ? 0b1000 : 0b0100;
 
-				if (color_id)
+				if (color_id && (m_line_buffer[x] & prio_mask) == 0)
 				{
-					if (m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PRIORITY))
-					{
-						if(m_line_buffer[x].id == 0)
-							m_line_buffer[x] = Pixel{color_id, pallete};
-						//else transparent (don't draw)
-					}
-					else
-						m_line_buffer[x] = Pixel{color_id, pallete};
+					m_line_buffer[x] = color_id | pallete;
 				}
 				// else transparent (don't draw)
 
@@ -375,16 +368,16 @@ void LcdController::PopulateFrameBuffer()
 		auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
 
 		uint8_t color_index;
-		switch (m_line_buffer[x].pallete)
+		switch (m_line_buffer[x] >> 2)
 		{
-			case Pallete::BG_WIN:
-				color_index = (m_bgp >> (m_line_buffer[x].id * BITS_PER_COLOR)) & 0b11;
+			case 0:
+				color_index = (m_bgp  >> ((m_line_buffer[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
 				break;
-			case Pallete::OBJ0:
-				color_index = (m_obp0 >> (m_line_buffer[x].id * BITS_PER_COLOR)) & 0b11;
+			case 1:
+				color_index = (m_obp0 >> ((m_line_buffer[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
 				break;
-			case Pallete::OBJ1:
-				color_index = (m_obp1 >> (m_line_buffer[x].id * BITS_PER_COLOR)) & 0b11;
+			case 2:
+				color_index = (m_obp1 >> ((m_line_buffer[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
 				break;
 			default:
 				break;
