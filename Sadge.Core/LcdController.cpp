@@ -196,10 +196,11 @@ void LcdController::RenderBackground()
 				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
 					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
 
-				uint16_t frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+				//uint16_t frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
 
-				uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
-				frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+				//uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
+				m_line_buffer[x] = Pixel{color_id, Pallete::BG_WIN};
+				//frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
 
 				x += 1;
 				remaining_pixels -= 1;
@@ -210,8 +211,9 @@ void LcdController::RenderBackground()
 	{
 		for (int x = 0; x < SCREEN_WIDTH; x += 1)
 		{
-			auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
-			frame_buffer[frame_buffer_index] = COLOR_PALETTE[0b00];
+			//auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+			m_line_buffer[x] = Pixel{0, Pallete::BG_WIN};
+			//frame_buffer[frame_buffer_index] = COLOR_PALETTE[0b00];
 		}
 	}
 }
@@ -247,11 +249,13 @@ void LcdController::RenderWindow()
 				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
 					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
 
-				uint16_t frame_buffer_index = m_ly * SCREEN_WIDTH + x;
+				//uint16_t frame_buffer_index = m_ly * SCREEN_WIDTH + x;
 
-				uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
-				frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+				//uint8_t color_index = (m_bgp >> (color_id * BITS_PER_COLOR)) & 0b11;
+				//frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
 				
+				m_line_buffer[x] = Pixel{color_id, Pallete::BG_WIN};
+
 				x += 1;
 				remaining_pixels -= 1;
 			}
@@ -342,21 +346,18 @@ void LcdController::RenderObjects()
 				uint8_t color_id = (((m_vram[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
 					                  ((m_vram[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
 
-				uint64_t color_index = (m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT)) ? (m_obp1 >> (color_id * BITS_PER_COLOR)) & 0b11
-					                                                                                                                      : (m_obp0 >> (color_id * BITS_PER_COLOR)) & 0b11;
-
-				auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+				Pallete pallete = m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT) ? Pallete::OBJ1 : Pallete::OBJ0;
 
 				if (color_id)
 				{
 					if (m_objects[object_num].attributes & GetAttributeBitMask(ObjectAttributeBitMask::PRIORITY))
 					{
-						if (ColorIsEqual(frame_buffer[frame_buffer_index], COLOR_PALETTE[(m_bgp & 0b11)]))
-							frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+						if(m_line_buffer[x].id == 0)
+							m_line_buffer[x] = Pixel{color_id, pallete};
 						//else transparent (don't draw)
 					}
 					else
-						frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
+						m_line_buffer[x] = Pixel{color_id, pallete};
 				}
 				// else transparent (don't draw)
 
@@ -364,6 +365,32 @@ void LcdController::RenderObjects()
 				remaining_pixels -= 1;
 			}
 		}
+	}
+}
+
+void LcdController::PopulateFrameBuffer()
+{
+	for (int x = 0; x < SCREEN_WIDTH; x += 1)
+	{
+		auto frame_buffer_index = (m_ly * SCREEN_WIDTH) + x;
+
+		uint8_t color_index;
+		switch (m_line_buffer[x].pallete)
+		{
+			case Pallete::BG_WIN:
+				color_index = (m_bgp >> (m_line_buffer[x].id * BITS_PER_COLOR)) & 0b11;
+				break;
+			case Pallete::OBJ0:
+				color_index = (m_obp0 >> (m_line_buffer[x].id * BITS_PER_COLOR)) & 0b11;
+				break;
+			case Pallete::OBJ1:
+				color_index = (m_obp1 >> (m_line_buffer[x].id * BITS_PER_COLOR)) & 0b11;
+				break;
+			default:
+				break;
+		}
+
+		frame_buffer[frame_buffer_index] = COLOR_PALETTE[color_index];
 	}
 }
 

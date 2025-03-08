@@ -266,9 +266,11 @@ private:
 
   inline void RenderScanline()
   {
+    m_line_buffer = std::vector<Pixel>(SCREEN_WIDTH);
     RenderBackground();
     RenderWindow();
     RenderObjects();
+    PopulateFrameBuffer();
   }
 
   inline void CheckStatInterrupt(StatBitMask bit_mask)
@@ -402,15 +404,16 @@ private:
   void RenderBackground();
   void RenderObjects();
   void RenderWindow();
+  void PopulateFrameBuffer();
 
   Modes m_current_mode = Modes::MODE_2_OAM;
   Modes m_next_mode    = Modes::MODE_3_DRAW;
   uint32_t m_mode_transition_cycles = 80;
 
-  std::vector<Pixel> m_line_buffer = std::vector<Pixel>(SCREEN_WIDTH);
-  std::vector<uint8_t> m_oam = std::vector<uint8_t>(OAM_SIZE);
-  std::vector<uint8_t> m_vram = std::vector<uint8_t>(VRAM_SIZE);
-  std::vector<Object>  m_objects = std::vector<Object>();
+  std::vector<Pixel>   m_line_buffer = std::vector<Pixel>(SCREEN_WIDTH);
+  std::vector<uint8_t> m_oam         = std::vector<uint8_t>(OAM_SIZE);
+  std::vector<uint8_t> m_vram        = std::vector<uint8_t>(VRAM_SIZE);
+  std::vector<Object>  m_objects     = std::vector<Object>();
 
   uint8_t m_lcdc{};
   uint8_t m_stat{};
