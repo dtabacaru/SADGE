@@ -96,12 +96,19 @@ public:
   {
     if (GetLengthEnable() && enabled)
     {
-      length_timer_tick += 1;
+      apu_div_tick += 1;
 
-      if (length_timer_tick == 64)
+      if (apu_div_tick == 2)
       {
-        Disable();
+        length_timer_tick += 1;
+
+        if (length_timer_tick == 64)
+        {
+          Disable();
+        }
+        apu_div_tick = 0;
       }
+
     }
   }
 
@@ -113,6 +120,7 @@ public:
   int      vol_sweep_pace_tick{};
   double   ch_out{};
   int      length_timer_tick{};
+  int      apu_div_tick{};
 
   uint8_t nrx1{};
   uint8_t nrx2{};

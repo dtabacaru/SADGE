@@ -90,6 +90,14 @@ public:
 
   RomState Valid(const std::vector<uint8_t>&rom) const;
 
+  uint8_t GetColorHash() const
+  {
+    uint8_t sum = 0;
+    std::string rom_title = GetRomTitle();
+    for (int i = 0; i < rom_title.size(); i += 1)
+      sum += rom_title[i];
+  }
+
   void DrawNintendoLogo(NintendoLogoSource source) const
   {
     switch (source)

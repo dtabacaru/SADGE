@@ -18,12 +18,13 @@ void AudioInputCallback(void* buffer, unsigned int frames)
   for (unsigned int i = 0; i < num_frames; i++)
     d[i] = audio_buffer[i];
 
-  audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + num_frames);
+  if(num_frames > 0)
+    audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + num_frames);
 }
 
 void AudioController::Init()
 {
-  //SetTraceLogLevel(LOG_NONE);
+  SetTraceLogLevel(LOG_NONE);
   InitAudioDevice();
   SetAudioStreamBufferSizeDefault(375);
   audio_stream = LoadAudioStream(AUDIO_FREQUENCY, AUDIO_BITS, AUDIO_CHANNELS);

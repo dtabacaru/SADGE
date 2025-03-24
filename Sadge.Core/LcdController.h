@@ -27,7 +27,7 @@ class LcdController : public InterruptProvider
 public:
   void SetScale(int scale);
   bool WindowClosed();
-  void FullScreen(bool fullscreen);
+  void FullScreen(bool fullscreen, uint32_t width, uint32_t height);
 
   constexpr static uint8_t DEFAULT_READ = 0xFF;
 
@@ -317,7 +317,7 @@ private:
     else
       m_delay_frame = false;
 
-    CheckStatInterrupt(StatBitMask::MODE0_INT_SELECT);
+    CheckStatInterrupt(StatBitMask::MODE1_INT_SELECT);
     TriggerInterrupt(InterruptBitMask::VBLANK);
 
     m_wly = 0;

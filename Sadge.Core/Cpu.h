@@ -36,9 +36,9 @@ public:
   void* GetWindowHandle();
   void Main();
 
-  void FullScreen(bool fullscreen)
+  void FullScreen(bool fullscreen, uint32_t width, uint32_t height)
   {
-    m_lcd_controller.FullScreen(fullscreen);
+    m_lcd_controller.FullScreen(fullscreen, width, height);
   }
   void InitScreen()
   {

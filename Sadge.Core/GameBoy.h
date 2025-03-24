@@ -15,9 +15,9 @@ public:
     m_cpu.InitScreen();
   }
 
-  inline void FullScreen(bool fullscreen)
+  inline void FullScreen(bool fullscreen, uint32_t width, uint32_t height)
   {
-    m_cpu.FullScreen(fullscreen);
+    m_cpu.FullScreen(fullscreen, width, height);
   }
 
   inline void* GetHandle()

@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
   FILE* stream;
   freopen_s(&stream, "CONOUT$", "w", stdout);
 
-  //SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE);
+  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
   UNREFERENCED_PARAMETER(hPrevInstance);
   UNREFERENCED_PARAMETER(lpCmdLine);
@@ -72,8 +72,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
   return (int)msg.wParam;
 }
-
-bool popped_out = false;
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -203,14 +201,18 @@ void LoadRom(HWND hWnd)
     SetWindowLong(raylibHwnd, GWL_STYLE, ray_style);
 
     SetParent(raylibHwnd, hWnd);
-    SetWindowPos(raylibHwnd, nullptr, 0, 0, 0, 0, SWP_NOSIZE);
+
+    UINT dpi = GetDpiForWindow(hWnd);
+    float scaleFactor = dpi / 96.0f;  // 96 DPI is the baseline
+    int adjustedX = static_cast<int>(0 * scaleFactor);
+    int adjustedY = static_cast<int>(0 * scaleFactor);
+    SetWindowPos(raylibHwnd, nullptr, adjustedX, adjustedY, 0, 0, SWP_NOSIZE);
+
+    //SetWindowPos(raylibHwnd, nullptr, 0, 0, 0, 0, SWP_NOSIZE);
     ShowWindow(raylibHwnd, 1);
 
     game_boy.InsertRom(rom);
     game_boy.TurnOn();
-
-    if (popped_out)
-      game_boy.CloseScreen();
   });
 }
 
@@ -239,10 +241,38 @@ void ScaleWindow(HWND hWnd, int scale)
 
 bool fullscreen = false;
 
+struct MonitorSize
+{
+  uint32_t width{};
+  uint32_t height{};
+};
+
+MonitorSize GetLogicalMonitorSize(HWND hWnd) {
+  HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+  MonitorSize size;
+  UINT x_dpi;
+  UINT y_dpi;
+  HRESULT hr = GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &x_dpi, &y_dpi);
+  if (SUCCEEDED(hr)) {
+    double x_scale = ((double)x_dpi / 96);
+    double y_scale = ((double)y_dpi / 96);
+    size.width = GetSystemMetrics(SM_CXSCREEN) / x_scale;
+    size.height = GetSystemMetrics(SM_CYSCREEN) / y_scale;
+  }
+  else
+  {
+    size.width = GetSystemMetrics(SM_CXSCREEN);
+    size.height = GetSystemMetrics(SM_CYSCREEN);
+  }
+  return size;
+}
+
 void ToggleFullscreen(HWND hWnd)
 {
   if (!fullscreen)
   {
+    MonitorSize size = GetLogicalMonitorSize(hWnd);
+
     HWND raylibHwnd = (HWND)game_boy.GetHandle();
     int ray_style = GetWindowLong(raylibHwnd, GWL_STYLE);
     ray_style &= ~WS_CHILD;
@@ -251,7 +281,7 @@ void ToggleFullscreen(HWND hWnd)
     SetParent(raylibHwnd, nullptr);
     SetWindowPos(raylibHwnd, nullptr, 0, 0, 0, 0, SWP_NOSIZE);
     ShowWindow(raylibHwnd, 1);
-    game_boy.FullScreen(true);
+    game_boy.FullScreen(true, 1920, 1080);
     fullscreen = true;
   }
   else
@@ -264,7 +294,7 @@ void ToggleFullscreen(HWND hWnd)
     SetParent(raylibHwnd, hWnd);
     SetWindowPos(raylibHwnd, nullptr, 0, -39, 0, 0, SWP_NOSIZE);
     ShowWindow(raylibHwnd, 1);
-    game_boy.FullScreen(false);
+    game_boy.FullScreen(false, 1920, 1080);
     fullscreen = false;
   }
 }
@@ -273,6 +303,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
   {
+    case WM_KEYDOWN:
+    if (wParam == VK_ESCAPE)  // Check if the ESC key was pressed
+    {
+      // Perform your desired action, e.g., close the application
+      int a = 1;
+    }
+    break;
+
     case WM_COMMAND:
     {
       int wmId = LOWORD(wParam);

@@ -206,8 +206,7 @@ void Cpu::Update(int cycle_count)
   }
 }
 
-constexpr auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22))*1;
-
+constexpr auto STOPPED_WINDOW_DETECT_TIME = (70224.0 / (1 << 22))*1;
 void Cpu::WaitFrame()
 {
   double frame_expected_time = (m_frame_cycles / CLOCK_RATE) - m_compensation_time;
@@ -220,7 +219,7 @@ void Cpu::WaitFrame()
 
   m_compensation_time = m_frame_time - frame_expected_time;
 
-  if (wait_time < -DRAG_WINDOW_DETECT_TIME)
+  if (wait_time < -STOPPED_WINDOW_DETECT_TIME)
   {
     m_compensation_time = 0;
     m_audio_controller.Reset();

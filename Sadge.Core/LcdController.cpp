@@ -39,13 +39,11 @@ bool LcdController::WindowClosed()
 	return WindowShouldClose();
 }
 
-void LcdController::FullScreen(bool fullscreen)
+void LcdController::FullScreen(bool fullscreen, uint32_t width, uint32_t height)
 {
 	if (fullscreen)
 	{
-		int monitor_height = GetMonitorHeight(0);
-		int monitor_width = GetMonitorWidth(0);
-		int scale = monitor_height / SCREEN_HEIGHT;
+		int scale = height / SCREEN_HEIGHT;
 		
 		m_render_scale = scale;
 
@@ -56,8 +54,8 @@ void LcdController::FullScreen(bool fullscreen)
 		int window_width = SCREEN_WIDTH * m_render_scale;
 
 		SetWindowSize(window_width, window_height);
-		window_pos.x = (monitor_width - gameboy_width) / 2.0f;
-		window_pos.y = (monitor_height - gameboy_height) / 2.0f;
+		window_pos.x = (width - gameboy_width) / 2.0f;
+		window_pos.y = (height - gameboy_height) / 2.0f;
 	}
 	else
 	{
@@ -73,7 +71,6 @@ void LcdController::FullScreen(bool fullscreen)
 	}
 
 	ToggleBorderlessWindowed();
-	ClearBackground(BLACK);
 }
 
 void* LcdController::GetHandle()
