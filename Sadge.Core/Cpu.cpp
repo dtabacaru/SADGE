@@ -187,7 +187,7 @@ void Cpu::Update(int cycle_count)
   }
 }
 
-constexpr auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22))*1;
+constexpr auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22)) * 1;
 
 void Cpu::WaitFrame()
 {

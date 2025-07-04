@@ -234,7 +234,7 @@ private:
     }
   }
 
-  void PopulateFrameBuffer()
+  inline void PopulateFrameBuffer()
   {
     for (int x = 0; x < SCREEN_WIDTH; x += 1)
     {
@@ -244,7 +244,7 @@ private:
       switch (m_line[x] >> 2)
       {
         case 0:
-          color_index = (m_bgp >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
+          color_index = (m_bgp  >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
           break;
         case 1:
           color_index = (m_obp0 >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
