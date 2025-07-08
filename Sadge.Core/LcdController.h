@@ -9,6 +9,21 @@
 #include <thread>
 #include <vector>
 
+struct Pixel
+{
+  uint8_t R{};
+  uint8_t G{};
+  uint8_t B{};
+  uint8_t A{};
+};
+
+const static std::vector<Pixel> DEFAULT_COLOR_PALETTE{
+  Pixel{0xFF, 0xFF, 0xFF, 0xFF},
+  Pixel{0xFF, 0x84, 0x84, 0xFF},
+  Pixel{0x94, 0x3A, 0x3A, 0xFF},
+  Pixel{0x00, 0x00, 0x00, 0xFF}
+};
+
 struct Object
 {
   int global_y;
@@ -17,6 +32,8 @@ struct Object
   uint8_t attributes;
   uint8_t object_num;
 };
+
+typedef void (*FrameCallback)(const std::vector<Pixel>& frame, double frame_time);
 
 constexpr static auto SCREEN_WIDTH = 160;
 constexpr static auto SCREEN_HEIGHT = 144;
@@ -114,9 +131,12 @@ public:
     MODE_1_VBLANK = 1
   };
 
-  typedef void (*FrameCallback)(const std::vector<uint8_t>& frame, double frame_time);
-
-  FrameCallback m_frame_callback;
+  inline void SetColorPalettes(const std::vector<Pixel>& bg, const std::vector<Pixel>& obj0, const std::vector<Pixel>& obj1)
+  {
+    m_bg_palette = bg;
+    m_obj0_palette = obj0;
+    m_obj1_palette = obj1;
+  }
 
   void SetFrameCallback(FrameCallback frame_callback)
   {
@@ -240,23 +260,23 @@ private:
     {
       auto frame_index = (m_ly * SCREEN_WIDTH) + x;
 
-      uint8_t color_index{};
+      Pixel pixel{};
       switch (m_line[x] >> 2)
       {
         case 0:
-          color_index = (m_bgp  >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
+          pixel = m_bg_palette[(m_bgp  >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
           break;
         case 1:
-          color_index = (m_obp0 >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
+          pixel = m_obj0_palette[(m_obp0 >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
           break;
         case 2:
-          color_index = (m_obp1 >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11;
+          pixel = m_obj1_palette[(m_obp1 >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
           break;
         default:
           break;
       }
 
-      m_frame[frame_index] = color_index;
+      m_frame[frame_index] = pixel;
     }
   }
 
@@ -382,7 +402,7 @@ private:
 
     if (m_disabled_cycle_count == 4560)
     {
-      m_frame = std::vector<uint8_t>(SCREEN_WIDTH * SCREEN_HEIGHT, 0);
+      m_frame = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT, m_bg_palette[0]);
       m_frame_callback(m_frame, m_frame_time);
 
       return true;
@@ -420,12 +440,14 @@ private:
   void RenderObjects();
   void RenderWindow();
 
+  FrameCallback m_frame_callback = nullptr;
+
   Modes m_current_mode = Modes::MODE_2_OAM;
   Modes m_next_mode    = Modes::MODE_3_DRAW;
   uint32_t m_mode_transition_cycles = 80;
 
   std::vector<uint8_t> m_line    = std::vector<uint8_t>(SCREEN_WIDTH);
-  std::vector<uint8_t> m_frame   = std::vector<uint8_t>(SCREEN_WIDTH * SCREEN_HEIGHT);
+  std::vector<Pixel>   m_frame   = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT);
   std::vector<uint8_t> m_oam     = std::vector<uint8_t>(OAM_SIZE);
   std::vector<uint8_t> m_vram    = std::vector<uint8_t>(VRAM_SIZE);
   std::vector<Object>  m_objects = std::vector<Object>();
@@ -454,4 +476,8 @@ private:
   uint8_t m_dma_byte_offset = 0;
   bool m_dma_requested = false;
   bool m_dma_flag = false;
+
+  std::vector<Pixel> m_bg_palette = DEFAULT_COLOR_PALETTE;
+  std::vector<Pixel> m_obj0_palette = DEFAULT_COLOR_PALETTE;
+  std::vector<Pixel> m_obj1_palette = DEFAULT_COLOR_PALETTE;
 };

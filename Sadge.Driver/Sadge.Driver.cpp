@@ -175,13 +175,6 @@ void PlayAudio(std::vector<short>& subsample_buffer)
 
 constexpr auto WINDOW_TITLE = "Sadge.Driver";
 
-constexpr static std::array<Color, 4> COLOR_PALETTE{
-	Color{232, 252, 204, 255}, // 00 - White
-	Color{172, 212, 144, 255}, // 01 - Light Gray
-	Color{ 84, 140, 112, 255}, // 10 - Dark Gray
-	Color{ 20,  44,  56, 255}  // 11 - Black
-};
-
 constexpr auto RENDER_SCALE = 5;
 
 constexpr auto  FPS_BUFFER_SIZE = 32;
@@ -191,15 +184,14 @@ constexpr auto  FPS_WINDOW_OFFSET = 10;
 constexpr auto  FPS_F = "%.4f FPS";
 
 Texture2D          texture_buffer;
-std::vector<Color> frame_buffer = std::vector<Color>(SCREEN_WIDTH * SCREEN_HEIGHT, COLOR_PALETTE[0]);
+std::vector<Color> frame_buffer = std::vector<Color>(SCREEN_WIDTH * SCREEN_HEIGHT, Color{232, 252, 204, 255});
 Vector2            window_pos{0.0, 0.0};
 
 std::deque<double> fps_buffer;
 
-void ApplyPallete(const std::vector<uint8_t>& frame)
+void ToColorFrame(const std::vector<Pixel>& frame)
 {
-	for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i += 1)
-		frame_buffer[i] = COLOR_PALETTE[frame[i]];
+	std::memcpy(frame_buffer.data(), frame.data(), sizeof(Color) * frame_buffer.size());
 }
 
 void DrawDoubleFPS(double frame_time, int pos_x, int pos_y)
@@ -218,7 +210,7 @@ void DrawDoubleFPS(double frame_time, int pos_x, int pos_y)
 	DrawText(TextFormat(FPS_F, fps), pos_x, pos_y, FPS_FONT_SIZE, FPS_FONT_COLOR);
 }
 
-void DrawFrame(const std::vector<uint8_t>& frame, double frame_time)
+void DrawFrame(const std::vector<Pixel>& frame, double frame_time)
 {
 	if (WindowShouldClose())
 	{
@@ -229,7 +221,7 @@ void DrawFrame(const std::vector<uint8_t>& frame, double frame_time)
 	}
 
 	CheckButtons();
-	ApplyPallete(frame);
+	ToColorFrame(frame);
 
 	UpdateTexture(texture_buffer, frame_buffer.data());
 	BeginDrawing();

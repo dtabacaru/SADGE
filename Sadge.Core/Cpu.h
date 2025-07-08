@@ -13,6 +13,13 @@
 
 #include <filesystem>
 
+struct Palettes
+{
+  std::vector<Pixel> bg;
+  std::vector<Pixel> obj0;
+  std::vector<Pixel> obj1;
+};
+
 class Cpu
 {
 public:
@@ -86,6 +93,9 @@ public:
 
     return status;
   }
+
+  Palettes GetPalettes(std::string title);
+  uint8_t  GetTitleHash(std::string title);
 #pragma endregion
 
 private:

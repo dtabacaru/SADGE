@@ -62,7 +62,10 @@ public:
     return entry_point_bytes;
   }
 
-  std::string GetRomTitle() const { return m_rom_title; }
+  std::string GetRomTitle() const 
+  { 
+    return std::string(m_rom_title, ROM_TITLE_SIZE); 
+  }
 
   uint8_t GetSgbFlag() const { return m_sgb_flag; }
 
