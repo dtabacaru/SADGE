@@ -22,7 +22,7 @@ public:
     BUTTONS_START_DOWN = 0b00001000, // R
   };
 
-  // Top 2 bits always set
+  // Top 2 bits always 1
   // 0 = set, 1 = reset for joypad
   enum class JoypadSelect : uint8_t
   {
@@ -42,11 +42,11 @@ public:
 
   uint8_t ReadJoypad() const;
 
+  // TODO: Fix interrupts
   inline void PressActionButton(JoypadButtonBitMask button)
   {
-    bool trigger_interrupt = m_action_buttons == NO_BUTTONS_PRESSED;
     m_action_buttons &= ~static_cast<uint8_t>(button);
-    if(trigger_interrupt) TriggerInterrupt();
+    TriggerInterrupt();
   }
 
   inline void ReleaseActionButton(JoypadButtonBitMask button)

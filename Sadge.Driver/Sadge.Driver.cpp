@@ -134,7 +134,6 @@ void CheckButtons()
 	}
 }
 
-
 #pragma endregion
 
 #pragma region AUDIO
@@ -177,11 +176,11 @@ constexpr auto WINDOW_TITLE = "Sadge.Driver";
 
 constexpr auto RENDER_SCALE = 5;
 
-constexpr auto  FPS_BUFFER_SIZE = 32;
-constexpr auto  FPS_FONT_SIZE = 20;
-constexpr Color FPS_FONT_COLOR = LIME;
-constexpr auto  FPS_WINDOW_OFFSET = 10;
-constexpr auto  FPS_F = "%.4f FPS";
+constexpr auto FPS_BUFFER_SIZE = 32;
+constexpr auto FPS_FONT_SIZE = 20;
+constexpr auto FPS_FONT_COLOR = LIME;
+constexpr auto FPS_WINDOW_OFFSET = 10;
+constexpr auto FPS_F = "%.4f FPS";
 
 Texture2D          texture_buffer;
 std::vector<Color> frame_buffer = std::vector<Color>(SCREEN_WIDTH * SCREEN_HEIGHT, Color{232, 252, 204, 255});

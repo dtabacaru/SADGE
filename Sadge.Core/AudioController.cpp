@@ -220,7 +220,8 @@ void AudioController::SubSample()
     audio_cycle += AUDIO_DT * T_RATE;
   }
 
-  m_audio_callback(m_subsample_buffer);
+  if(m_audio_callback)
+    m_audio_callback(m_subsample_buffer);
 
   m_subsample_buffer.clear();
   m_samples_buffer.clear();

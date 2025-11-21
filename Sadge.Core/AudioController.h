@@ -72,7 +72,7 @@ public:
 
   typedef void (*AudioCallback)(std::vector<short>& audio_buffer);
 
-  AudioCallback m_audio_callback;
+  AudioCallback m_audio_callback = NULL;
 
   void SetAudioCallback(AudioCallback audio_callback)
   {
