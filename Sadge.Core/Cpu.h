@@ -333,7 +333,6 @@ private:
 
   inline int StopHandler()
   {
-    m_timer_controller.HandleDivWrite();
     throw std::exception("STOP not implemented.");
 
     return 4;
