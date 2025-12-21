@@ -29,10 +29,8 @@ public:
 
   enum class TimerBitMask : uint8_t
   {
-    CLOCK_SELECT_0  = 0b00000001, // R/W
-    CLOCK_SELECT_1  = 0b00000010, // R/W
-    CLOCK_SELECT_01 = 0b00000011,
-    ENABLE          = 0b00000100  // R/W
+    CLOCK_SELECT = 0b00000011,
+    ENABLE       = 0b00000100
   };
 
   enum class TimerClockSelect : uint8_t
@@ -54,30 +52,39 @@ public:
   bool HandleWrite(uint16_t address, uint8_t val);
   uint8_t HandleRead(uint16_t address) const;
 
-  inline bool UpdateApu(uint16_t last_cycle_count)
+  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
+  inline bool UpdateSysClock(uint16_t sys_clk)
   {
-    return (last_cycle_count & DIV_APU_BIT_MASK) && !(m_sys_clk & DIV_APU_BIT_MASK);
+    uint16_t last_cycle_count = m_sys_clk;
+    m_sys_clk = sys_clk;
+    UpdateTima(last_cycle_count);
+    return FallingEdgeDetect(last_cycle_count, DIV_APU_BIT_MASK);
   }
 
+  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
   inline bool Update()
   {
-    uint16_t last_cycle_count = m_sys_clk;
-    m_sys_clk += 4;
-    UpdateTima(last_cycle_count);
-    bool apu_tick = UpdateApu(last_cycle_count);
-    return apu_tick;
+    return UpdateSysClock(m_sys_clk + 4);
   }
 
+  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
   inline bool HandleDivWrite()
   {
-    uint16_t last_cycle_count = m_sys_clk;
-    m_sys_clk = 0;
-    UpdateTima(last_cycle_count);
-    bool apu_tick = UpdateApu(last_cycle_count);
-    return apu_tick;
+    return UpdateSysClock(0);
   }
 
 private:
+
+  inline bool FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bitmask)
+  {
+    return (last_cycle_count & div_bitmask) && !(m_sys_clk & div_bitmask);
+  }
+
+  inline void TickTima()
+  {
+    m_tima += 1;
+    if (m_tima == 0) TimaOverflow();
+  }
 
   inline void HandleTimaWrite(uint8_t val)
   {
@@ -100,14 +107,11 @@ private:
     if (m_enabled && !(val & GetBitMask(TimerBitMask::ENABLE)))
     {
       if (m_sys_clk & m_div_bitmask)
-      {
-        m_tima += 1;
-        if (m_tima == 0) TimaOverflow();
-      }
+        TickTima();
     }
 
     m_tac = val;
-    m_div_bitmask = BIT_MASK_LUT[m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT_01)];
+    m_div_bitmask = BIT_MASK_LUT[m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT)];
     m_enabled = m_tac & static_cast<uint8_t>(TimerBitMask::ENABLE);
   }
 
@@ -133,11 +137,8 @@ private:
 
     if (m_enabled)
     {
-      if ((last_cycle_count & m_div_bitmask) && !(m_sys_clk & m_div_bitmask))
-      {
-        m_tima += 1;
-        if (m_tima == 0) TimaOverflow();
-      }
+      if (FallingEdgeDetect(last_cycle_count, m_div_bitmask))
+        TickTima();
     }
   }
 
