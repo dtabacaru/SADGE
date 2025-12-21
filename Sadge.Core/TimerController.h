@@ -46,9 +46,9 @@ public:
     return static_cast<uint8_t>(bit_mask);
   }
 
-  inline constexpr uint8_t GetClockSelect(TimerClockSelect clock_select)
+  inline constexpr uint8_t GetTimerClockSelect(TimerClockSelect timer_clock_select)
   {
-    return static_cast<uint8_t>(clock_select);
+    return static_cast<uint8_t>(timer_clock_select);
   }
 
   TimerController(InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::TIMER) {}
@@ -88,7 +88,8 @@ private:
   inline void TickTima()
   {
     m_tima += 1;
-    if (m_tima == 0) TimaOverflow();
+    if (m_tima == 0) 
+      TimaOverflow();
   }
 
   inline void HandleTimaWrite(uint8_t val)
@@ -153,8 +154,19 @@ private:
   uint8_t m_tma{};
   uint8_t m_tac{};
 
-  uint16_t m_div_bit_mask{DIV_BIT_MASK_LUT[GetClockSelect(TimerClockSelect::HZ4096)]};
+  uint16_t m_div_bit_mask{DIV_BIT_MASK_LUT[GetTimerClockSelect(TimerClockSelect::HZ4096)]};
   uint16_t m_sys_clk{};
 
+  // Handle timer esoteric behaviour
+  //
+  // 1. When TIMA overflows from incrementing, TIMA is reloaded on the following cycle 'c'.
+  //   -set m_tima_reload_cycle_count = 0 on overflow
+  //   -if m_tima_reload_cycle_count == 4, TIMA is reloaded
+  // 2. On cycle 'c', if TMA is written to, TIMA is also set to the same value.
+  //   -if m_tima_reload_cycle_count == 4 on TMA write, TIMA=val
+  // 3. On cycle 'c', if TIMA is written to, the write is ignored.
+  //   -if m_tima_reload_cycle_count != 4 on TIMA write, TIMA = val
+  // 4. If TIMA is written to during the overflow cycle, the overflow is ignored
+  //   -set m_tima_reload_cycle_count = 8 on TIMA write so reload stops
   uint8_t m_tima_reload_cycle_count = 8;
 };
