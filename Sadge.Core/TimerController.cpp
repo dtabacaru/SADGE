@@ -44,21 +44,26 @@ uint8_t TimerController::HandleRead(uint16_t address) const
   }
 }
 
-constexpr uint16_t TimerController::GetDivBitMask()
+void TimerController::GetDivBitMask()
 {
   TimerClockSelect clock_select = static_cast<TimerClockSelect>(m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT_01));
 
   switch (clock_select)
   {
     case TimerClockSelect::HZ4096:
-      return 1 << 9;
+      m_div_bitmask = 1 << 9;
+      break;
     case TimerClockSelect::HZ262144:
-      return 1 << 3;
+      m_div_bitmask = 1 << 3;
+      break;
     case TimerClockSelect::HZ65536:
-      return 1 << 5;
+      m_div_bitmask = 1 << 5;
+      break;
     case TimerClockSelect::HZ16384:
-      return 1 << 7;
+      m_div_bitmask = 1 << 7;
+      break;
     default:
-      return 1 << 0;
+      m_div_bitmask = 1 << 0;
+      break;
   }
 }

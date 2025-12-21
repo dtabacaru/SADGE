@@ -76,7 +76,7 @@ public:
   }
 
 private:
-  constexpr uint16_t GetDivBitMask();
+  void GetDivBitMask();
 
   inline void HandleTimaWrite(uint8_t val)
   {
@@ -98,7 +98,7 @@ private:
   {
     if (Enabled() && !(val & GetBitMask(TimerBitMask::ENABLE)))
     {
-      if (m_sys_clk & GetDivBitMask())
+      if (m_sys_clk & m_div_bitmask)
       {
         m_tima += 1;
         if (m_tima == 0) TimaOverflow();
@@ -106,6 +106,7 @@ private:
     }
 
     m_tac = val;
+    GetDivBitMask();
   }
 
   inline void TimaOverflow()
@@ -130,7 +131,7 @@ private:
 
     if (Enabled())
     {
-      if ((last_cycle_count & GetDivBitMask()) && !(m_sys_clk & GetDivBitMask()))
+      if ((last_cycle_count & m_div_bitmask) && !(m_sys_clk & m_div_bitmask))
       {
         m_tima += 1;
         if (m_tima == 0) TimaOverflow();
@@ -142,6 +143,7 @@ private:
   uint8_t m_tma{};
   uint8_t m_tac{};
 
+  uint16_t m_div_bitmask{1 << 9};
   uint16_t m_sys_clk{};
 
   uint8_t m_tima_reload_cycle_count = 8;
