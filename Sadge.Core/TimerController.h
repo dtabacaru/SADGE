@@ -54,11 +54,6 @@ public:
   bool HandleWrite(uint16_t address, uint8_t val);
   uint8_t HandleRead(uint16_t address) const;
 
-  inline bool Enabled() const
-  {
-    return m_tac & static_cast<uint8_t>(TimerBitMask::ENABLE);
-  }
-
   inline bool UpdateApu(uint16_t last_cycle_count)
   {
     return (last_cycle_count & DIV_APU_BIT_MASK) && !(m_sys_clk & DIV_APU_BIT_MASK);
@@ -102,7 +97,7 @@ private:
 
   inline void HandleTacWrite(uint8_t val)
   {
-    if (Enabled() && !(val & GetBitMask(TimerBitMask::ENABLE)))
+    if (m_enabled && !(val & GetBitMask(TimerBitMask::ENABLE)))
     {
       if (m_sys_clk & m_div_bitmask)
       {
@@ -113,6 +108,7 @@ private:
 
     m_tac = val;
     m_div_bitmask = BIT_MASK_LUT[m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT_01)];
+    m_enabled = m_tac & static_cast<uint8_t>(TimerBitMask::ENABLE);
   }
 
   inline void TimaOverflow()
@@ -135,7 +131,7 @@ private:
       if (m_tima_reload_cycle_count == 4) ReloadTima();
     }
 
-    if (Enabled())
+    if (m_enabled)
     {
       if ((last_cycle_count & m_div_bitmask) && !(m_sys_clk & m_div_bitmask))
       {
@@ -144,6 +140,8 @@ private:
       }
     }
   }
+
+  bool m_enabled{};
 
   uint8_t m_tima{};
   uint8_t m_tma{};
