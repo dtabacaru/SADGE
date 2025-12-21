@@ -80,9 +80,9 @@ public:
 
 private:
 
-  inline bool FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bitmask)
+  inline bool FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bit_mask)
   {
-    return (last_cycle_count & div_bitmask) && !(m_sys_clk & div_bitmask);
+    return (last_cycle_count & div_bit_mask) && !(m_sys_clk & div_bit_mask);
   }
 
   inline void TickTima()
@@ -94,15 +94,15 @@ private:
 
   inline void HandleTimaWrite(uint8_t val)
   {
-    if (m_tima_reload_cycle_count != 4)
+    if (m_tima_reload_cycle != 4)
       m_tima = val;
 
-    m_tima_reload_cycle_count = 8;
+    m_tima_reload_cycle = 8;
   }
 
   inline void HandleTmaWrite(uint8_t val)
   {
-    if (m_tima_reload_cycle_count == 4)
+    if (m_tima_reload_cycle == 4)
       m_tima = val;
 
     m_tma = val;
@@ -123,7 +123,7 @@ private:
 
   inline void TimaOverflow()
   {
-    m_tima_reload_cycle_count = 0;
+    m_tima_reload_cycle = 0;
     m_tima = 0;
   }
 
@@ -135,10 +135,12 @@ private:
 
   inline void UpdateTima(uint16_t last_cycle_count)
   {
-    if (m_tima_reload_cycle_count < 8)
+    if (m_tima_reload_cycle < 8)
     {
-      m_tima_reload_cycle_count += 4;
-      if (m_tima_reload_cycle_count == 4) ReloadTima();
+      m_tima_reload_cycle += 4;
+
+      if (m_tima_reload_cycle == 4) 
+        ReloadTima();
     }
 
     if (m_enabled)
@@ -157,16 +159,20 @@ private:
   uint16_t m_div_bit_mask{DIV_BIT_MASK_LUT[GetTimerClockSelect(TimerClockSelect::HZ4096)]};
   uint16_t m_sys_clk{};
 
+  //
   // Handle timer esoteric behaviour
   //
-  // 1. When TIMA overflows from incrementing, TIMA is reloaded on the following cycle 'c'.
-  //   -set m_tima_reload_cycle_count = 0 on overflow
-  //   -if m_tima_reload_cycle_count == 4, TIMA is reloaded
-  // 2. On cycle 'c', if TMA is written to, TIMA is also set to the same value.
-  //   -if m_tima_reload_cycle_count == 4 on TMA write, TIMA=val
-  // 3. On cycle 'c', if TIMA is written to, the write is ignored.
-  //   -if m_tima_reload_cycle_count != 4 on TIMA write, TIMA = val
+  // 1. When TIMA overflows from incrementing on T cycle 0, TIMA is reloaded on the following M cycle; T cycle 4.
+  //   -set m_tima_reload_cycle = 0 on overflow
+  //   -if m_tima_reload_cycle == 4, TIMA is reloaded
+  // 2. On cycle 4, if TMA is written to, TIMA is also set to the same value.
+  //   -if m_tima_reload_cycle == 4 on TMA write, TIMA=val
+  // 3. On cycle 4, if TIMA is written to, the write is ignored.
+  //   -if m_tima_reload_cycle != 4 on TIMA write, TIMA = val
   // 4. If TIMA is written to during the overflow cycle, the overflow is ignored
-  //   -set m_tima_reload_cycle_count = 8 on TIMA write so reload stops
-  uint8_t m_tima_reload_cycle_count = 8;
+  //   -set m_tima_reload_cycle = 8 on TIMA write so reload stops
+  //
+  // Defaults to 8 = no current reload
+  //
+  uint8_t m_tima_reload_cycle{8};
 };
