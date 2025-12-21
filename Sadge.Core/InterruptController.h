@@ -81,6 +81,12 @@ public:
 
   uint16_t HandleInterrupt();
 
+  bool m_ime = false;
+  bool m_enable_next_instruction = false;
+  // Leave this as atomic in case driver/ui set this from a different thread
+  std::atomic<uint8_t> m_if{};
+  uint8_t m_ie{};
+
 private:
 
   inline bool InterruptExists(InterruptBitMask bit_mask) const
@@ -97,10 +103,4 @@ private:
   {
     m_if &= ~GetBitMask(bit_mask);
   }
-
-  bool m_ime = false;
-  bool m_enable_next_instruction = false;
-  // Leave this as atomic in case driver/ui set this from a different thread
-  std::atomic<uint8_t> m_if{};
-  uint8_t m_ie{};
 };

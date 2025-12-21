@@ -793,6 +793,7 @@ void Cpu::Main()
 {
   int cycle_count = 0;
 
+
   if (m_halt_requested)                                 cycle_count += HaltHandler();
   else if (m_stop_requested)                            cycle_count += StopHandler();
   else if (m_interrupt_controller.InterruptRequested()) cycle_count += InterruptHandler();

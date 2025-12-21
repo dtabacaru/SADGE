@@ -3,7 +3,7 @@
 #include "AudioChannel.h"
 
 #include <vector>
-#include <iostream>
+
 class WaveChannel : public AudioChannel
 {
 public:

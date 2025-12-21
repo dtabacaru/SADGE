@@ -236,7 +236,7 @@ uint8_t LcdController::HandleRead(uint16_t address) const
 		case LcdController::Address::WINDOW_X:
 			return m_wx;
 		default:
-			throw DEFAULT_READ;
+			return DEFAULT_READ;
 	}
 }
 
@@ -272,10 +272,10 @@ void LcdController::HandleWrite(uint16_t address, uint8_t val)
 			m_scx = val;
 			break;
 		case LcdController::Address::LCD_Y:
-			m_ly = val;
 			break;
 		case LcdController::Address::LCD_Y_COMP:
 			m_lyc = val;
+			CheckLyc();
 			break;
 		case LcdController::Address::DMA:
 			HandleDmaWrite(val);

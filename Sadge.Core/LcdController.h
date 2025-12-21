@@ -1,12 +1,7 @@
 #pragma once
 
-#include "JoypadController.h"
-
-#include <array>
-#include <atomic>
-#include <deque>
-#include <fstream>
-#include <thread>
+#include "InterruptProvider.h"
+#include <iostream>
 #include <vector>
 
 struct Pixel
@@ -214,6 +209,8 @@ private:
       m_disabled_cycle_count = 0;
       m_cycle_count = 0;
       m_wly = 0;
+      m_ly = 0;
+      CheckLyc();
     }
 
     m_lcdc = val;
@@ -411,6 +408,8 @@ private:
     return false;
   }
 
+
+
   inline bool UpdateState()
   {
     m_cycle_count += 4;
@@ -420,12 +419,16 @@ private:
       m_cycle_count = 0;
 
     // Line 153 sets m_ly to 0 after 4 cycles
-    if (m_cycle_count >= (FRAME_CYCLES - CYCLES_PER_ROW + 4))
+    if (m_cycle_count == (FRAME_CYCLES - CYCLES_PER_ROW + 4))
+    {
       m_ly = 0;
-    else 
+      CheckLyc();
+    }
+    else if ((m_cycle_count % CYCLES_PER_ROW) == 0)
+    {
       m_ly = m_cycle_count / CYCLES_PER_ROW;
-
-    CheckLyc();
+      CheckLyc();
+    }
 
     if (m_mode_transition_cycles == 0)
     {
