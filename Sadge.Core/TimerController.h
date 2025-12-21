@@ -2,6 +2,7 @@
 
 #include "InterruptProvider.h"
 
+#include <array>
 #include <stdint.h>
 
 class TimerController : public InterruptProvider
@@ -9,6 +10,12 @@ class TimerController : public InterruptProvider
 public:
   constexpr static uint8_t  DEFAULT_READ = 0xFF;
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b1000000000000;
+  constexpr static std::array<uint16_t, 4> BIT_MASK_LUT = {
+    static_cast<uint16_t>(1 << 9),
+    static_cast<uint16_t>(1 << 3),
+    static_cast<uint16_t>(1 << 5),
+    static_cast<uint16_t>(1 << 7),
+  };
 
   enum class TimerAddress : uint16_t
   {
@@ -76,7 +83,6 @@ public:
   }
 
 private:
-  void GetDivBitMask();
 
   inline void HandleTimaWrite(uint8_t val)
   {
@@ -106,7 +112,7 @@ private:
     }
 
     m_tac = val;
-    GetDivBitMask();
+    m_div_bitmask = BIT_MASK_LUT[m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT_01)];
   }
 
   inline void TimaOverflow()
@@ -143,7 +149,7 @@ private:
   uint8_t m_tma{};
   uint8_t m_tac{};
 
-  uint16_t m_div_bitmask{1 << 9};
+  uint16_t m_div_bitmask{BIT_MASK_LUT[static_cast<uint8_t>(TimerClockSelect::HZ4096)]};
   uint16_t m_sys_clk{};
 
   uint8_t m_tima_reload_cycle_count = 8;
