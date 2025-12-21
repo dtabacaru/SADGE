@@ -10,7 +10,7 @@ class TimerController : public InterruptProvider
 public:
   constexpr static uint8_t  DEFAULT_READ = 0xFF;
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b1000000000000;
-  constexpr static std::array<uint16_t, 4> BIT_MASK_LUT = {
+  constexpr static std::array<uint16_t, 4> DIV_BIT_MASK_LUT = {
     static_cast<uint16_t>(1 << 9),
     static_cast<uint16_t>(1 << 3),
     static_cast<uint16_t>(1 << 5),
@@ -44,6 +44,11 @@ public:
   inline constexpr uint8_t GetBitMask(TimerBitMask bit_mask)
   {
     return static_cast<uint8_t>(bit_mask);
+  }
+
+  inline constexpr uint8_t GetClockSelect(TimerClockSelect clock_select)
+  {
+    return static_cast<uint8_t>(clock_select);
   }
 
   TimerController(InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::TIMER) {}
@@ -106,12 +111,12 @@ private:
   {
     if (m_enabled && !(val & GetBitMask(TimerBitMask::ENABLE)))
     {
-      if (m_sys_clk & m_div_bitmask)
+      if (m_sys_clk & m_div_bit_mask)
         TickTima();
     }
 
     m_tac = val;
-    m_div_bitmask = BIT_MASK_LUT[m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT)];
+    m_div_bit_mask = DIV_BIT_MASK_LUT[m_tac & GetBitMask(TimerBitMask::CLOCK_SELECT)];
     m_enabled = m_tac & static_cast<uint8_t>(TimerBitMask::ENABLE);
   }
 
@@ -124,7 +129,7 @@ private:
   inline void ReloadTima()
   {
     TriggerInterrupt();
-    m_tima = static_cast<uint8_t>(m_tma);
+    m_tima = m_tma;
   }
 
   inline void UpdateTima(uint16_t last_cycle_count)
@@ -137,7 +142,7 @@ private:
 
     if (m_enabled)
     {
-      if (FallingEdgeDetect(last_cycle_count, m_div_bitmask))
+      if (FallingEdgeDetect(last_cycle_count, m_div_bit_mask))
         TickTima();
     }
   }
@@ -148,7 +153,7 @@ private:
   uint8_t m_tma{};
   uint8_t m_tac{};
 
-  uint16_t m_div_bitmask{BIT_MASK_LUT[static_cast<uint8_t>(TimerClockSelect::HZ4096)]};
+  uint16_t m_div_bit_mask{DIV_BIT_MASK_LUT[GetClockSelect(TimerClockSelect::HZ4096)]};
   uint16_t m_sys_clk{};
 
   uint8_t m_tima_reload_cycle_count = 8;
