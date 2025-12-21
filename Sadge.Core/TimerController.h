@@ -78,6 +78,14 @@ public:
 private:
   constexpr uint16_t GetDivBitMask();
 
+  inline void HandleTimaWrite(uint8_t val)
+  {
+    if (m_tima_reload_cycle_count != 4)
+      m_tima = val;
+
+    m_tima_reload_cycle_count = 8;
+  }
+
   inline void HandleTmaWrite(uint8_t val)
   {
     if (m_tima_reload_cycle_count == 4)
@@ -86,12 +94,18 @@ private:
     m_tma = val;
   }
 
-  inline void HandleTimaWrite(uint8_t val)
+  inline void HandleTacWrite(uint8_t val)
   {
-    if (m_tima_reload_cycle_count != 4)
-      m_tima = val;
+    if (Enabled() && !(val & GetBitMask(TimerBitMask::ENABLE)))
+    {
+      if (m_sys_clk & GetDivBitMask())
+      {
+        m_tima += 1;
+        if (m_tima == 0) TimaOverflow();
+      }
+    }
 
-    m_tima_reload_cycle_count = 8;
+    m_tac = val;
   }
 
   inline void TimaOverflow()
@@ -106,8 +120,23 @@ private:
     m_tima = static_cast<uint8_t>(m_tma);
   }
 
-  void UpdateTima(uint16_t last_cycle_count);
-  void HandleTacWrite(uint8_t val);
+  inline void UpdateTima(uint16_t last_cycle_count)
+  {
+    if (m_tima_reload_cycle_count < 8)
+    {
+      m_tima_reload_cycle_count += 4;
+      if (m_tima_reload_cycle_count == 4) ReloadTima();
+    }
+
+    if (Enabled())
+    {
+      if ((last_cycle_count & GetDivBitMask()) && !(m_sys_clk & GetDivBitMask()))
+      {
+        m_tima += 1;
+        if (m_tima == 0) TimaOverflow();
+      }
+    }
+  }
 
   uint8_t m_tima{};
   uint8_t m_tma{};
