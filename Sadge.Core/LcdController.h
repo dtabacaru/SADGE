@@ -2,6 +2,7 @@
 
 #include "InterruptProvider.h"
 #include <iostream>
+#include <array>
 #include <vector>
 
 struct Pixel
@@ -158,11 +159,6 @@ public:
     return static_cast<uint8_t>(mode);
   }
 
-  inline bool Enabled() const
-  {
-    return m_lcdc & GetLcdcBitMask(LcdcBitMask::ENABLE);
-  }
-
   LcdController(InterruptReceiver& interrupt_receiver);
 
   ~LcdController();
@@ -191,7 +187,7 @@ public:
     m_frame_time = frame_time;
     UpdateDma();
 
-    bool frame_ready = Enabled() ? UpdateState() : UpdateDisabled();
+    bool frame_ready = m_lcd_enabled ? UpdateState() : UpdateDisabled();
 
     return frame_ready;
   }
@@ -203,7 +199,7 @@ private:
 
   inline void HandleLcdcWrite(uint8_t val)
   {
-    if (!Enabled() && (val & GetLcdcBitMask(LcdcBitMask::ENABLE)))
+    if (!m_lcd_enabled && (val & GetLcdcBitMask(LcdcBitMask::ENABLE)))
     {
       m_delay_frame = true;
       m_disabled_cycle_count = 0;
@@ -214,8 +210,9 @@ private:
     }
 
     m_lcdc = val;
+    m_lcd_enabled = m_lcdc & GetLcdcBitMask(LcdcBitMask::ENABLE);
 
-    if (!Enabled())
+    if (!m_lcd_enabled)
     {
       SetStatMode(Modes::MODE_0_HBLANK);
       m_current_mode = Modes::MODE_0_HBLANK;
@@ -407,9 +404,7 @@ private:
 
     return false;
   }
-
-
-
+   
   inline bool UpdateState()
   {
     m_cycle_count += 4;
@@ -468,6 +463,7 @@ private:
   uint8_t m_wy{};
   uint8_t m_wx{};
   
+  bool     m_lcd_enabled{};
   double   m_frame_time = 0;
   uint32_t m_cycle_count = 0;
   uint32_t m_disabled_cycle_count = 0;
