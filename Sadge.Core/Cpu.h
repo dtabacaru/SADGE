@@ -11,6 +11,7 @@
 #include "Status.h"
 #include "StopWatch.h"
 
+#include <array>
 #include <iostream>
 #include <iomanip>
 #include <filesystem>
@@ -18,9 +19,9 @@
 
 struct Palettes
 {
-  std::vector<Pixel> bg;
-  std::vector<Pixel> obj0;
-  std::vector<Pixel> obj1;
+  std::array<Pixel, 4> bg;
+  std::array<Pixel, 4> obj0;
+  std::array<Pixel, 4> obj1;
 };
 
 class Cpu

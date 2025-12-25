@@ -188,7 +188,7 @@ Vector2            window_pos{0.0, 0.0};
 
 std::deque<double> fps_buffer;
 
-void ToColorFrame(const std::vector<Pixel>& frame)
+void ToColorFrame(const std::array<Pixel, 160 * 144>& frame)
 {
 	std::memcpy(frame_buffer.data(), frame.data(), sizeof(Color) * frame_buffer.size());
 }
@@ -209,7 +209,7 @@ void DrawDoubleFPS(double frame_time, int pos_x, int pos_y)
 	DrawText(TextFormat(FPS_F, fps), pos_x, pos_y, FPS_FONT_SIZE, FPS_FONT_COLOR);
 }
 
-void DrawFrame(const std::vector<Pixel>& frame, double frame_time)
+void DrawFrame(const std::array<Pixel, 160*144>& frame, double frame_time)
 {
 	if (WindowShouldClose())
 	{

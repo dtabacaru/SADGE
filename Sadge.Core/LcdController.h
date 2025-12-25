@@ -3,7 +3,6 @@
 #include "InterruptProvider.h"
 #include <iostream>
 #include <array>
-#include <vector>
 
 struct Pixel
 {
@@ -13,7 +12,7 @@ struct Pixel
   uint8_t A{};
 };
 
-const static std::vector<Pixel> DEFAULT_COLOR_PALETTE{
+const static std::array<Pixel, 4> DEFAULT_COLOR_PALETTE{
   Pixel{0xFF, 0xFF, 0xFF, 0xFF},
   Pixel{0xFF, 0x84, 0x84, 0xFF},
   Pixel{0x94, 0x3A, 0x3A, 0xFF},
@@ -29,10 +28,11 @@ struct Object
   uint8_t object_num;
 };
 
-typedef void (*FrameCallback)(const std::vector<Pixel>& frame, double frame_time);
-
 constexpr static auto SCREEN_WIDTH = 160;
 constexpr static auto SCREEN_HEIGHT = 144;
+constexpr static auto SCREEN_SIZE = SCREEN_WIDTH * SCREEN_HEIGHT;
+
+typedef void (*FrameCallback)(const std::array<Pixel, SCREEN_SIZE>& frame, double frame_time);
 
 // TODO: https://github.com/AntonioND/giibiiadvance/blob/master/docs/TCAGBD.pdf
 class LcdController : public InterruptProvider
@@ -127,7 +127,7 @@ public:
     MODE_1_VBLANK = 1
   };
 
-  inline void SetColorPalettes(const std::vector<Pixel>& bg, const std::vector<Pixel>& obj0, const std::vector<Pixel>& obj1)
+  inline void SetColorPalettes(const std::array<Pixel, 4>& bg,const std::array<Pixel, 4>& obj0, const std::array<Pixel, 4>& obj1)
   {
     m_bg_palette = bg;
     m_obj0_palette = obj0;
@@ -395,7 +395,7 @@ private:
 
     if (m_disabled_cycle_count == 4560)
     {
-      m_frame = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT, m_bg_palette[0]);
+      m_frame.fill(m_bg_palette[0]);
       m_frame_callback(m_frame, m_frame_time);
 
       return true;
@@ -443,11 +443,11 @@ private:
   Modes m_next_mode    = Modes::MODE_3_DRAW;
   uint32_t m_mode_transition_cycles = 80;
 
-  std::array<uint8_t, SCREEN_WIDTH> m_line;
-  std::vector<Pixel> m_frame   = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT);
-  std::array<uint8_t, OAM_SIZE> m_oam;
-  std::array<uint8_t, VRAM_SIZE> m_vram;
-  std::array<Object, OBJECT_LIMIT>  m_objects;
+  std::array<uint8_t, SCREEN_WIDTH> m_line{};
+  std::array<Pixel, SCREEN_WIDTH* SCREEN_HEIGHT> m_frame{};
+  std::array<uint8_t, OAM_SIZE> m_oam{};
+  std::array<uint8_t, VRAM_SIZE> m_vram{};
+  std::array<Object, OBJECT_LIMIT> m_objects{};
 
   uint8_t m_lcdc{};
   uint8_t m_stat{};
@@ -475,7 +475,7 @@ private:
   bool m_dma_requested = false;
   bool m_dma_flag = false;
 
-  std::vector<Pixel> m_bg_palette = DEFAULT_COLOR_PALETTE;
-  std::vector<Pixel> m_obj0_palette = DEFAULT_COLOR_PALETTE;
-  std::vector<Pixel> m_obj1_palette = DEFAULT_COLOR_PALETTE;
+  std::array<Pixel, 4> m_bg_palette = DEFAULT_COLOR_PALETTE;
+  std::array<Pixel, 4> m_obj0_palette = DEFAULT_COLOR_PALETTE;
+  std::array<Pixel, 4> m_obj1_palette = DEFAULT_COLOR_PALETTE;
 };
