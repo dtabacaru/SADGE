@@ -444,9 +444,9 @@ private:
   uint32_t m_mode_transition_cycles = 80;
 
   std::array<uint8_t, SCREEN_WIDTH> m_line;
-  std::vector<Pixel>   m_frame   = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT);
-  std::vector<uint8_t> m_oam     = std::vector<uint8_t>(OAM_SIZE);
-  std::vector<uint8_t> m_vram    = std::vector<uint8_t>(VRAM_SIZE);
+  std::vector<Pixel> m_frame   = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT);
+  std::array<uint8_t, OAM_SIZE> m_oam;
+  std::array<uint8_t, VRAM_SIZE> m_vram;
   std::vector<Object>  m_objects = std::vector<Object>();
 
   uint8_t m_lcdc{};
