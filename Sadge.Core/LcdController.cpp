@@ -102,10 +102,9 @@ void LcdController::RenderObjects()
 {
 	if (m_lcdc & GetLcdcBitMask(LcdcBitMask::OBJ_ENABLE))
 	{
-		m_objects.clear();
-
 		bool doublesize = (m_lcdc & GetLcdcBitMask(LcdcBitMask::OBJ_SIZE));
 
+		uint8_t valid_object_num = 0;
 		for (uint8_t object_num = 0; object_num < NUM_OBJECTS; object_num += 1)
 		{
 			uint8_t object_y   = m_oam[object_num * NUM_BYTES_PER_ATTRIBUTES + 0];
@@ -122,22 +121,24 @@ void LcdController::RenderObjects()
 			if (global_y > m_ly || global_y <= (m_ly - object_height))
 				continue;
 
-			m_objects.push_back({global_y, global_x, tile_index, attributes, object_num});
+			m_objects[valid_object_num] = { global_y, global_x, tile_index, attributes, object_num };
 
-			if (m_objects.size() == OBJECT_LIMIT)
+			valid_object_num += 1;
+
+			if (valid_object_num == OBJECT_LIMIT)
 				break;
 		}
 
-		if (m_objects.size() == 0)
+		if (valid_object_num == 0)
 			return;
 
-		std::stable_sort(m_objects.begin(), m_objects.end(),
+		std::stable_sort(m_objects.begin(), m_objects.begin() + valid_object_num,
 		[](const Object& a, const Object& b)
 		{
 			return a.global_x < b.global_x;
 		});
 
-		for (uint64_t object_num = 0; object_num < m_objects.size(); object_num++)
+		for (uint64_t object_num = 0; object_num < valid_object_num; object_num++)
 		{
 			// Objects fully off-screen, don't bother rendering
 			if (m_objects[object_num].global_x <= -8 || m_objects[object_num].global_x >= SCREEN_WIDTH)

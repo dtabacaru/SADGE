@@ -447,7 +447,7 @@ private:
   std::vector<Pixel> m_frame   = std::vector<Pixel>(SCREEN_WIDTH * SCREEN_HEIGHT);
   std::array<uint8_t, OAM_SIZE> m_oam;
   std::array<uint8_t, VRAM_SIZE> m_vram;
-  std::vector<Object>  m_objects = std::vector<Object>();
+  std::array<Object, OBJECT_LIMIT>  m_objects;
 
   uint8_t m_lcdc{};
   uint8_t m_stat{};
