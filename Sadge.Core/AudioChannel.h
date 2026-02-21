@@ -62,39 +62,69 @@ public:
     return ((nrx4 & GetNrx4BitMask(Nrx4BitMask::PERIOD_UPPER)) << 8) | nrx3;
   }
 
-  inline double Dac(uint8_t level, uint8_t volume)
+  inline bool DacEnabled() const
   {
-    return ((level - (volume / 2.0)) / 15.0);
+    return nrx2 & (static_cast<uint8_t>(Nrx2BitMask::INIT_VOL) | static_cast<uint8_t>(Nrx2BitMask::ENV_DIR));
+  }
+
+  inline void HandleNrx2Write(uint8_t val)
+  {
+    nrx2 = val;
+
+    if (!DacEnabled())
+    {
+      Disable();
+    }
+  }
+
+  inline double Dac(uint8_t level, double dc_offset)
+  {
+    return ((level - dc_offset) / 7.5);
   }
 
   inline virtual void HandleNrx4Write(uint8_t val)
   {
+    bool was_length_enabled = GetLengthEnable();
+
     nrx4 = val;
 
+    bool tick_length = !was_length_enabled && GetLengthEnable() && length_timer_tick == 1 && sound_length_tick != MaxLengthTick();
+
+    if (tick_length)
+      TickSoundLength();
+      
     if (nrx4 & GetNrx4BitMask(Nrx4BitMask::TRIGGER))
       Trigger();
   }
 
+  inline void ResetLengthTimer()
+  {
+    sound_length_tick = GetInitLengthTimer();
+  }
+
   inline virtual void Disable()
   {
-    enabled = false;
-    volume = 0;
-    ch_out = 0;
+    enabled = {};
+    volume = {};
+    ch_out = {};
+    length_timer_tick = {};
   }
 
   inline virtual void Trigger()
   {
+    if (!DacEnabled())
+      return;
+
     enabled = true;
-    if (length_timer_tick >= 64)
-      length_timer_tick = GetInitLengthTimer();
     vol_sweep_pace_tick = 0;
     volume = GetVolume();
-    ch_out = Dac(0, volume);
+    double dc_offset = volume / 2;
+    ch_out = Dac(0, dc_offset);
   }
-  
-  inline virtual void ApuDivTick()
+
+  inline virtual void TickSoundLength()
   {
-    if (GetLengthEnable() && enabled)
+    if (GetLengthEnable())
     {
       length_timer_tick += 1;
 
@@ -102,7 +132,7 @@ public:
       {
         sound_length_tick += 1;
 
-        if (sound_length_tick == 64)
+        if (sound_length_tick == MaxLengthTick())
         {
           Disable();
           sound_length_tick = 0;
@@ -112,6 +142,28 @@ public:
       }
     }
   }
+
+  inline virtual void ApuDivTick()
+  {
+    TickSoundLength();
+  }
+
+  inline virtual void Reset()
+  {
+    enabled={};
+    volume={};
+    vol_sweep_pace_tick={};
+    ch_out = {};
+    length_timer_tick = {};
+    sound_length_tick = {};
+
+    nrx1={};
+    nrx2={};
+    nrx3={};
+    nrx4={};
+  }
+
+  virtual int MaxLengthTick() const { return 64; }
 
   inline virtual void UpdateChOut() = 0;
   inline virtual void Update() = 0;

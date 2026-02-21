@@ -143,9 +143,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ColorPalette.h" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="Sadge.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -17,6 +17,7 @@ bool joystick_right = false;
 
 void CheckButtons()
 {
+#pragma region ACTION
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_MIDDLE_RIGHT))
 	{
 		game_boy_cpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
@@ -52,6 +53,45 @@ void CheckButtons()
 	{
 		game_boy_cpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
+
+	if (IsKeyDown(KEY_ENTER))
+	{
+		game_boy_cpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+	}
+	else if (IsKeyReleased(KEY_ENTER))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+	}
+
+	if (IsKeyDown(KEY_RIGHT_SHIFT))
+	{
+		game_boy_cpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+	}
+	else if (IsKeyReleased(KEY_RIGHT_SHIFT))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+	}
+
+	if (IsKeyDown(KEY_K))
+	{
+		game_boy_cpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+	}
+	else if (IsKeyReleased(KEY_K))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+	}
+
+	if (IsKeyDown(KEY_J))
+	{
+		game_boy_cpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+	}
+	else if (IsKeyReleased(KEY_J))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+	}
+#pragma endregion
+
+#pragma region DIRECTION
 
 	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > JOYSTICK_THRESH) && !joystick_down)
 	{
@@ -132,6 +172,44 @@ void CheckButtons()
 	{
 		game_boy_cpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
+
+	if (IsKeyDown(KEY_S))
+	{
+		game_boy_cpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+	}
+	else if (IsKeyReleased(KEY_S))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+	}
+
+	if (IsKeyDown(KEY_W))
+	{
+		game_boy_cpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+	}
+	else if (IsKeyReleased(KEY_W))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+	}
+
+	if (IsKeyDown(KEY_D))
+	{
+		game_boy_cpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+	}
+	else if (IsKeyReleased(KEY_D))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+	}
+
+	if (IsKeyDown(KEY_A))
+	{
+		game_boy_cpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+	}
+	else if (IsKeyReleased(KEY_A))
+	{
+		game_boy_cpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+	}
+
+#pragma endregion
 }
 
 #pragma endregion

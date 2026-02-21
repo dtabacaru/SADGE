@@ -4,7 +4,10 @@
 #include "NoiseChannel.h"
 #include "WaveChannel.h"
 
+#include <vector>
+
 constexpr static uint32_t AUDIO_FREQUENCY = 48000;
+constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 32768;
 constexpr static uint32_t AUDIO_BITS = 16;
 constexpr static uint8_t  AUDIO_CHANNELS = 1; // TODO: Stereo
 
@@ -68,7 +71,7 @@ public:
 
   void Init();
 
-  void Reset();
+  void ClearSamples();
 
   typedef void (*AudioCallback)(std::vector<short>& audio_buffer);
 
@@ -82,17 +85,12 @@ public:
   AudioController();
   ~AudioController();
 
-  inline bool AudioOn()
-  {
-    return m_nr52 & GetNr52BitMask(Nr52BitMask::AUDIO_ON);
-  }
-
   inline void ApuDivTick()
   {
-    m_ch1.ApuDivTick();
-    m_ch2.ApuDivTick();
-    m_ch3.ApuDivTick();
-    m_ch4.ApuDivTick();
+      m_ch1.ApuDivTick();
+      m_ch2.ApuDivTick();
+      m_ch3.ApuDivTick();
+      m_ch4.ApuDivTick();
   }
 
   inline double Mixer()
@@ -100,25 +98,30 @@ public:
     CheckPanning();
 
     return (m_ch1.ch_out + m_ch2.ch_out + m_ch3.ch_out + m_ch4.ch_out) / 4.0;
-    //return ( m_ch3.ch_out) / 4.0;
   }
 
   uint8_t HandleRead(uint16_t address) const;
   void HandleWrite(uint16_t address, uint8_t val);
-  void Update(bool frame_ready);
+  void Update(bool apu_tick);
 
 private:
   constexpr static auto     AUDIO_DT = (1.0 / AUDIO_FREQUENCY);
   constexpr static double   T_RATE = (1 << 22);
   constexpr static double   M_RATE = (1 << 20);
 
+  inline uint8_t GetChOnBits() const
+  {
+    return (static_cast<int>(m_ch4.enabled) << 3) | (static_cast<int>(m_ch3.enabled) << 2) | (static_cast<int>(m_ch2.enabled) << 1) | static_cast<int>(m_ch1.enabled);
+  }
+
   void HandleNr52Write(uint8_t val);
   void CheckPanning();
   void SubSample();
+  void Reset();
   
   std::vector<AudioSample> m_samples_buffer;
   std::vector<short>       m_subsample_buffer;
-  uint64_t m_cycle_count = 0;
+  uint64_t m_cycle_count{};
 
   PulseSweepChannel m_ch1;
   PulseChannel      m_ch2;
@@ -128,4 +131,6 @@ private:
   uint8_t m_nr50{};
   uint8_t m_nr51{};
   uint8_t m_nr52{};
+
+  bool m_audio_enabled{};
 };

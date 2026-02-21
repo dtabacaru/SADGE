@@ -2,12 +2,22 @@
 
 #include "AudioChannel.h"
 
-#include <vector>
+#include <array>
 
 class WaveChannel : public AudioChannel
 {
 public:
   constexpr static uint16_t WAVE_RAM_SIZE = 16; // bytes
+  constexpr static std::array<uint8_t, WAVE_RAM_SIZE> WAVE_RAM_INIT = { 0xE2, 0xB7, 0x10, 0x95, 0xC8, 0x6B, 0x0A, 0xF7, 0x02, 0xF6, 0x63, 0xCB, 0x59, 0xE3, 0x90, 0x2F };
+
+  WaveChannel()
+  {
+    // TODO randomize this, but this is one sample from my hardware
+    wave_ram = WAVE_RAM_INIT;
+    
+    // CGB for testing only - will be set by boot-rom 
+    //wave_ram = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
+  }
 
   enum class Nr30BitMask : uint8_t
   {
@@ -28,7 +38,7 @@ public:
   {
     return nrx1;
   }
-  
+
   inline uint8_t GetVolume()
   {
     return (nrx2 & static_cast<uint8_t>(Nr32BitMask::INIT_VOL)) >> 5;
@@ -41,11 +51,6 @@ public:
     ch_out = Dac(level, dc_offset);
   }
 
-  inline double Dac(uint8_t level, double dc_offset)
-  {
-    return (level - dc_offset) / 15.0;
-  }
-
   inline void UpdateChOut()
   {
     wave_form_index += 1;
@@ -54,37 +59,23 @@ public:
     int wave_address = wave_form_index / 2;
 
     current_sample = wave_form_index % 2 == 0 ? wave_ram[wave_address] >> 4
-                                              : wave_ram[wave_address] & 0xF;
+      : wave_ram[wave_address] & 0xF;
 
     OutputCurrentSample();
-  } 
+  }
 
   inline void Update()
   {
-    if (enabled)
-    {
-      period_counter += 2;
+    period_counter += 2;
 
-      if (period_counter >= MAX_PERIOD_COUNT)
-      {
-        UpdateChOut();
-        period_counter = period_counter > MAX_PERIOD_COUNT? GetPeriodCounter() + 1 : GetPeriodCounter();
-      }
+    if (period_counter >= MAX_PERIOD_COUNT)
+    {
+      UpdateChOut();
+      period_counter = period_counter > MAX_PERIOD_COUNT ? GetPeriodCounter() - 1 : GetPeriodCounter();
     }
   }
 
-  inline void ApuDivTick()
-  {
-    if (GetLengthEnable() && enabled)
-    {
-      length_timer_tick += 1;
-
-      if (length_timer_tick == 256)
-      {
-        Disable();
-      }
-    }
-  }
+  virtual int MaxLengthTick() const { return 256; }
 
   inline void HandleNr30Write(uint8_t val)
   {
@@ -94,19 +85,12 @@ public:
       Disable();
   }
 
-  inline virtual void HandleNrx4Write(uint8_t val)
-  {
-    nrx4 = val;
-
-    if (nrx4 & GetNrx4BitMask(Nrx4BitMask::TRIGGER))
-      Trigger();
-  }
-
   inline virtual void Trigger()
   {
+    if (!DacEnabled())
+      return;
+
     enabled = true;
-    if (length_timer_tick >= 256)
-      length_timer_tick = GetInitLengthTimer();
     period_counter = GetPeriodCounter();
     OutputCurrentSample();
 
@@ -121,11 +105,22 @@ public:
     wave_form_index = 0;
   }
 
+  inline virtual void Reset()
+  {
+    AudioChannel::Reset();
+
+    nr30 = {};
+    current_sample = {};
+    period_counter = {};
+    wave_form_index = {};
+    dc_offset = {};
+  }
+
   uint8_t  nr30{};
   uint8_t  current_sample{};
   int      period_counter{};
   int      wave_form_index{};
   double   dc_offset{};
 
-  std::vector<uint8_t> wave_ram = std::vector<uint8_t>(WAVE_RAM_SIZE);
+  std::array<uint8_t, WAVE_RAM_SIZE> wave_ram{};
 };

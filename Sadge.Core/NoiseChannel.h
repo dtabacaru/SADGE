@@ -35,22 +35,19 @@ public:
 
   inline void Update()
   {
-    if (enabled)
+    lfsr_tick += 1;
+
+    float divider = GetClockDivider();
+    if (divider == 0)
+      divider = 0.5;
+
+    uint32_t lfsr_period_count = static_cast<uint32_t>((1 << 20) / ((1<<18) / (divider * (1 << GetClockShift()))));
+
+    if (lfsr_tick >= lfsr_period_count)
     {
-      lfsr_tick += 1;
+      UpdateChOut();
 
-      float divider = GetClockDivider();
-      if (divider == 0)
-        divider = 0.5;
-
-      uint32_t lfsr_period_count = static_cast<uint32_t>((1 << 20) / (262144 / (divider * (1 << GetClockShift()))));
-
-      if (lfsr_tick >= lfsr_period_count)
-      {
-        UpdateChOut();
-
-        lfsr_tick = 0;
-      }
+      lfsr_tick = 0;
     }
   }
 
@@ -58,6 +55,7 @@ public:
   {
     uint16_t xor_result = ((lfsr & 0x1) ^ ((lfsr & 0x2) >> 1)) & 0x1;
     
+    lfsr &= ~0x8000;
     lfsr |= xor_result << 15;
     if (GetLfsrWidth())
     {
@@ -68,7 +66,8 @@ public:
 
     uint16_t bit_0 = lfsr & 0x1;
     uint8_t level = bit_0 ? volume : 0;
-    ch_out = Dac(level, volume);
+    double dc_offset = volume / 2;
+    ch_out = Dac(level, dc_offset);
   }
 
   inline void TickVolSweep()
@@ -88,22 +87,19 @@ public:
   {
     AudioChannel::ApuDivTick();
 
-    if (enabled)
+    envelope_tick += 1;
+
+    if (envelope_tick == 8)
     {
-      envelope_tick += 1;
+      vol_sweep_pace_tick += 1;
 
-      if (envelope_tick == 8)
+      if (vol_sweep_pace_tick == (nrx2 & GetNrx2BitMask(Nrx2BitMask::SWEEP_PACE)))
       {
-        vol_sweep_pace_tick += 1;
-
-        if (vol_sweep_pace_tick == (nrx2 & GetNrx2BitMask(Nrx2BitMask::SWEEP_PACE)))
-        {
-          TickVolSweep();
-          vol_sweep_pace_tick = 0;
-        }
-
-        envelope_tick = 0;
+        TickVolSweep();
+        vol_sweep_pace_tick = 0;
       }
+
+      envelope_tick = 0;
     }
   }
 
@@ -118,6 +114,14 @@ public:
   {
     AudioChannel::Disable();
     lfsr_tick = 0;
+  }
+
+  inline virtual void Reset()
+  {
+    AudioChannel::Reset();
+    envelope_tick = {};
+    lfsr_tick = {};
+    lfsr = {0xFFFF};
   }
 
   int envelope_tick{};

@@ -101,6 +101,11 @@ Palettes Cpu::GetPalettes(std::string title)
   char dis = title[3]; // Disambiguation is 4th char of title
 
   Palettes palettes;
+
+  palettes.bg   = {{{0xFF,0xFF,0xFF,0xFF},{0x7B,0xFF,0x31,0xFF},{0x00,0x63,0xC5,0xFF},{0x00,0x00,0x00,0xFF}}};
+  palettes.obj0 = {{{0xFF,0xFF,0xFF,0xFF},{0xFF,0x84,0x84,0xFF},{0x94,0x3A,0x3A,0xFF},{0x00,0x00,0x00,0xFF}}};
+  palettes.obj1 = {{{0xFF,0xFF,0xFF,0xFF},{0xFF,0x84,0x84,0xFF},{0x94,0x3A,0x3A,0xFF},{0x00,0x00,0x00,0xFF}}};
+
   switch (hash)
   {
     case 0xB3:
@@ -643,10 +648,6 @@ Palettes Cpu::GetPalettes(std::string title)
       palettes.obj0 = {{{0xFF,0xFF,0xFF,0xFF},{0xFF,0x84,0x84,0xFF},{0x94,0x3A,0x3A,0xFF},{0x00,0x00,0x00,0xFF}}};
       palettes.obj1 = {{{0xFF,0xFF,0xFF,0xFF},{0xFF,0x84,0x84,0xFF},{0x94,0x3A,0x3A,0xFF},{0x00,0x00,0x00,0xFF}}};
       break;
-    default:
-      palettes.bg   = {{{0xFF,0xFF,0xFF,0xFF},{0x7B,0xFF,0x31,0xFF},{0x00,0x63,0xC5,0xFF},{0x00,0x00,0x00,0xFF}}};
-      palettes.obj0 = {{{0xFF,0xFF,0xFF,0xFF},{0xFF,0x84,0x84,0xFF},{0x94,0x3A,0x3A,0xFF},{0x00,0x00,0x00,0xFF}}};
-      palettes.obj1 = {{{0xFF,0xFF,0xFF,0xFF},{0xFF,0x84,0x84,0xFF},{0x94,0x3A,0x3A,0xFF},{0x00,0x00,0x00,0xFF}}};
   }
 
   return palettes;
@@ -705,7 +706,19 @@ Status Cpu::ParseHeader()
     case CartridgeType::MBC3_RAM:
       // TEST
       break;
+    case CartridgeType::MBC3_TIMER_RAM_BATTERY:
+      // Fall through
     case CartridgeType::MBC3_RAM_BATTERY:
+      // TEST
+      m_battery_flag = true;
+      break;
+    case CartridgeType::MBC5:
+      // TEST
+      break;
+    case CartridgeType::MBC5_RAM:
+      // TEST
+      break;
+    case CartridgeType::MBC5_RAM_BATTERY:
       // TEST
       m_battery_flag = true;
       break;
@@ -776,7 +789,7 @@ void Cpu::WaitFrame()
   if (wait_time < -DRAG_WINDOW_DETECT_TIME)
   {
     m_compensation_time = 0;
-    m_audio_controller.Reset();
+    m_audio_controller.ClearSamples();
   }
 
   m_execution_stopwatch.Restart();
@@ -2017,6 +2030,14 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC3_RAM:
         // Fall through
       case CartridgeType::MBC3_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC3_TIMER_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC5:
+        // Fall through
+      case CartridgeType::MBC5_RAM:
+        // Fall through
+      case CartridgeType::MBC5_RAM_BATTERY:
         Mbc3_7FFF(val);
         break;
       default:
@@ -2040,6 +2061,14 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC3_RAM:
         // Fall through
       case CartridgeType::MBC3_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC3_TIMER_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC5:
+        // Fall through
+      case CartridgeType::MBC5_RAM:
+        // Fall through
+      case CartridgeType::MBC5_RAM_BATTERY:
         Mbc3_5FFF(val);
         break;
       default:
@@ -2062,6 +2091,14 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC3_RAM:
         // Fall through
       case CartridgeType::MBC3_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC3_TIMER_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC5:
+        // Fall through
+      case CartridgeType::MBC5_RAM:
+        // Fall through
+      case CartridgeType::MBC5_RAM_BATTERY:
         Mbc3_3FFF(val);
         break;
       default:
@@ -2084,6 +2121,14 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC3_RAM:
         // Fall through
       case CartridgeType::MBC3_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC3_TIMER_RAM_BATTERY:
+        // Fall through
+      case CartridgeType::MBC5:
+        // Fall through
+      case CartridgeType::MBC5_RAM:
+        // Fall through
+      case CartridgeType::MBC5_RAM_BATTERY:
         Mbc3_1FFF(val);
         break;
       default:

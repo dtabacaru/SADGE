@@ -27,15 +27,12 @@ public:
 
   inline void Update()
   {
-    if (enabled)
-    {
-      period_counter += 1;
+    period_counter += 1;
 
-      if (period_counter == MAX_PERIOD_COUNT)
-      {
-        UpdateChOut();
-        period_counter = GetPeriodCounter();
-      }
+    if (period_counter == MAX_PERIOD_COUNT)
+    {
+      UpdateChOut();
+      period_counter = GetPeriodCounter();
     }
   }
 
@@ -63,7 +60,8 @@ public:
         break;
     }
 
-    ch_out = Dac(level, volume);
+    double dc_offset = volume / 2;
+    ch_out = Dac(level, dc_offset);
   }
 
   inline void TickVolSweep()
@@ -79,23 +77,20 @@ public:
   {
     AudioChannel::ApuDivTick();
 
-    if (enabled)
+    envelope_tick += 1;
+
+    if (envelope_tick == 8)
     {
-      envelope_tick += 1;
+      vol_sweep_pace_tick += 1;
 
-      if (envelope_tick == 8)
+      if (vol_sweep_pace_tick == (nrx2 & GetNrx2BitMask(Nrx2BitMask::SWEEP_PACE)))
       {
-        vol_sweep_pace_tick += 1;
-
-        if (vol_sweep_pace_tick == (nrx2 & GetNrx2BitMask(Nrx2BitMask::SWEEP_PACE)))
-        {
-          TickVolSweep();
-          vol_sweep_pace_tick = 0;
-        }
-
-        envelope_tick = 0;
+        TickVolSweep();
+        vol_sweep_pace_tick = 0;
       }
-    }   
+
+      envelope_tick = 0;
+    }
   }
 
   inline virtual void Disable()
@@ -109,6 +104,15 @@ public:
     AudioChannel::Trigger();
     period_counter = GetPeriodCounter();
     envelope_tick = 0;
+  }
+
+  inline virtual void Reset()
+  {
+    AudioChannel::Reset();
+
+    period_counter = {};
+    wave_form_index = {};
+    envelope_tick = {};
   }
 
   int period_counter{};

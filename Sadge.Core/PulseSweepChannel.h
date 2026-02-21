@@ -59,27 +59,36 @@ public:
   inline void ApuDivTick()
   {
     PulseChannel::ApuDivTick();
-    if (enabled)
+
+    if (!enabled)
+      return;
+
+    if (GetFreqSweepPace() > 0 && GetFreqStep() > 0)
     {
-      if (GetFreqSweepPace() > 0 && GetFreqStep() > 0)
+      freq_tick += 1;
+
+      if (freq_tick == 4)
       {
-        freq_tick += 1;
+        freq_sweep_pace_tick += 1;
 
-        if (freq_tick == 4)
+        if (freq_sweep_pace_tick == GetFreqSweepPace())
         {
-          freq_sweep_pace_tick += 1;
+          TickFreqSweep();
 
-          if (freq_sweep_pace_tick == GetFreqSweepPace())
-          {
-            TickFreqSweep();
-
-            freq_sweep_pace_tick = 0;
-          }
-
-          freq_tick = 0;
+          freq_sweep_pace_tick = 0;
         }
+
+        freq_tick = 0;
       }
     }
+  }
+
+  inline virtual void Reset()
+  {
+    AudioChannel::Reset();
+    nr10 = {};
+    freq_tick = {};
+    freq_sweep_pace_tick = {};
   }
 
   uint8_t nr10{};
