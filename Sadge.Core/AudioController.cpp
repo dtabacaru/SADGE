@@ -233,17 +233,17 @@ void AudioController::CheckPanning()
 
 void AudioController::SubSample()
 {
-  uint64_t count = static_cast<uint64_t>((m_samples_buffer.size() / M_RATE) / AUDIO_DT);
+  uint64_t count  = static_cast<uint64_t>((m_samples_buffer.size() * AUDIO_FREQUENCY / M_RATE));
+  double sample_idx_step = M_RATE / AUDIO_FREQUENCY;
+  m_subsample_buffer.resize(count);
 
-  auto closest_sample = m_samples_buffer.begin();
-  double audio_cycle = static_cast<double>(m_samples_buffer.front().cycle);
+  double samples_idx_f = 0;
+  int      samples_idx = 0;
   for (int i = 0; i < count; i += 1)
   {
-    while (closest_sample->cycle < audio_cycle)
-      closest_sample += 1;
-
-    m_subsample_buffer.push_back(static_cast<short>(closest_sample->level * SHRT_MAX));
-    audio_cycle += AUDIO_DT * T_RATE;
+    m_subsample_buffer[i] = static_cast<short>(m_samples_buffer[samples_idx].level * SHRT_MAX);
+    samples_idx_f += sample_idx_step;
+    samples_idx = static_cast<int>(round(samples_idx_f));
   }
 
   if(m_audio_callback)
@@ -253,19 +253,16 @@ void AudioController::SubSample()
   m_samples_buffer.clear();
 }
 
-void AudioController::Update(bool frame_ready)
+void AudioController::Update()
 {
   if (m_audio_enabled)
   {
-    m_cycle_count += 4;
-
-    m_ch1.Update();
-    m_ch2.Update();
-    m_ch3.Update();
-    m_ch4.Update();
+    UpdateApu();
 
     double out = Mixer();
     m_samples_buffer.push_back({m_cycle_count, out});
+
+    m_cycle_count += 4;
 
     if (m_cycle_count == NUM_CYCLES_TO_BUFFER)
     {

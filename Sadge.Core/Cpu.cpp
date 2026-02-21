@@ -763,7 +763,7 @@ void Cpu::Update(int cycle_count)
     if (apu_div_tick)
      m_audio_controller.ApuDivTick();
 
-    m_audio_controller.Update(frame_ready);
+    m_audio_controller.Update();
 
     if (frame_ready)
     {

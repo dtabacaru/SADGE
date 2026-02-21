@@ -87,10 +87,26 @@ public:
 
   inline void ApuDivTick()
   {
+    if(m_ch1.enabled)
       m_ch1.ApuDivTick();
+    if (m_ch2.enabled)
       m_ch2.ApuDivTick();
+    if (m_ch3.enabled)
       m_ch3.ApuDivTick();
+    if (m_ch4.enabled)
       m_ch4.ApuDivTick();
+  }
+
+  inline void UpdateApu()
+  {
+    if (m_ch1.enabled)
+      m_ch1.Update();
+    if (m_ch2.enabled)
+      m_ch2.Update();
+    if (m_ch3.enabled)
+      m_ch3.Update();
+    if (m_ch4.enabled)
+      m_ch4.Update();
   }
 
   inline double Mixer()
@@ -102,7 +118,7 @@ public:
 
   uint8_t HandleRead(uint16_t address) const;
   void HandleWrite(uint16_t address, uint8_t val);
-  void Update(bool apu_tick);
+  void Update();
 
 private:
   constexpr static auto     AUDIO_DT = (1.0 / AUDIO_FREQUENCY);
