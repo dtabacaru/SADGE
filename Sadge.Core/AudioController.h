@@ -7,7 +7,7 @@
 #include <vector>
 
 constexpr static uint32_t AUDIO_BITS = 16;
-constexpr static uint32_t AUDIO_FREQUENCY = 192000;
+constexpr static uint32_t AUDIO_FREQUENCY = 48000;
 constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536; // TODO: Non-integer cycles
 constexpr static double   T_RATE = (1 << 22);
 constexpr static double   M_RATE = (1 << 20);

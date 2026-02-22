@@ -84,12 +84,6 @@ public:
     }
   }
 
-  inline virtual void Disable()
-  {
-    AudioChannel::Disable();
-    wave_form_index = 0;
-  }
-
   inline virtual void Trigger()
   {
     AudioChannel::Trigger();

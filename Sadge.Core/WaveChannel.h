@@ -46,9 +46,10 @@ public:
 
   inline void OutputCurrentSample()
   {
-    uint8_t level = GetVolume() == 0 ? 0 : current_sample >> (GetVolume() - 1);
-
-    ch_out = Dac(level, dc_offset);
+    uint8_t shift = GetVolume() == 0 ? 4 : GetVolume() - 1;
+    uint8_t level = current_sample >> shift;
+    int scale = shift == 4 ? 1 : 1 << shift;
+    ch_out = Dac(level, dc_offset/scale);
   }
 
   inline void UpdateChOut()
@@ -59,7 +60,7 @@ public:
     int wave_address = wave_form_index / 2;
 
     current_sample = wave_form_index % 2 == 0 ? wave_ram[wave_address] >> 4
-      : wave_ram[wave_address] & 0xF;
+                                              : wave_ram[wave_address] & 0xF;
 
     OutputCurrentSample();
   }

@@ -46,25 +46,25 @@ public:
   inline void PressActionButton(JoypadButtonBitMask button)
   {
     m_action_buttons &= ~static_cast<uint8_t>(button);
-    //TriggerInterrupt();
+    TriggerInterrupt();
   }
 
   inline void ReleaseActionButton(JoypadButtonBitMask button)
   {
     m_action_buttons |= static_cast<uint8_t>(button);
-    //TriggerInterrupt();
+    TriggerInterrupt();
   }
 
   inline void PressDirectionButton(JoypadButtonBitMask button)
   {
     m_direction_buttons &= ~static_cast<uint8_t>(button);
-    //TriggerInterrupt();
+    TriggerInterrupt();
   }
 
   inline void ReleaseDirectionButton(JoypadButtonBitMask button)
   {
     m_direction_buttons |= static_cast<uint8_t>(button);
-    //TriggerInterrupt();
+    TriggerInterrupt();
   }
 
 private:
