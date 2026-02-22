@@ -224,14 +224,16 @@ void AudioInputCallback(void* buffer, unsigned int frames)
 {
 	std::lock_guard<std::mutex> lock(audio_buffer_lock);
 
-	short* short_buffer = (short*)buffer;
+	short* short_buffer = reinterpret_cast<short*>(buffer);
 
-	auto num_frames = audio_buffer.size() > frames ? frames : audio_buffer.size();
-	for (unsigned int i = 0; i < num_frames; i++)
-		short_buffer[i] = audio_buffer[i];
+	auto num_frames = (audio_buffer.size() / 2) > frames ? frames : (audio_buffer.size() / 2);
+	for (uint64_t frame_num = 0; frame_num < num_frames * 2; frame_num++)
+		short_buffer[frame_num] = audio_buffer[frame_num];
 
 	if (num_frames > 0)
-		audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + num_frames);
+		audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + num_frames * 2);
+
+	std::cout << "Erased: " << num_frames*2 << " " << " Size: " << audio_buffer.size() << std::endl;
 }
 
 void PlayAudio(std::vector<short>& subsample_buffer)
@@ -239,6 +241,8 @@ void PlayAudio(std::vector<short>& subsample_buffer)
 	std::lock_guard<std::mutex> lock(audio_buffer_lock);
 
 	audio_buffer.insert(audio_buffer.end(), subsample_buffer.begin(), subsample_buffer.end());
+
+	std::cout << "Inserted: " << subsample_buffer.size() << std::endl;
 
 	if (!stream_playing)
 	{

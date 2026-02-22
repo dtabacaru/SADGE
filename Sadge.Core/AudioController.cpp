@@ -7,13 +7,15 @@ void AudioController::Init()
 
 void AudioController::ClearSamples()
 {
-  m_samples_buffer.clear();
+  m_left_samples_buffer.clear();
+  m_right_samples_buffer.clear();
   m_cycle_count = 0;
 }
 
 AudioController::AudioController()
 {
-  m_samples_buffer.reserve(NUM_CYCLES_TO_BUFFER);
+  m_left_samples_buffer.reserve(NUM_CYCLES_TO_BUFFER);
+  m_right_samples_buffer.reserve(NUM_CYCLES_TO_BUFFER);
 }
 
 AudioController::~AudioController() 
@@ -189,7 +191,8 @@ void AudioController::HandleWrite(uint16_t address, uint8_t val)
 
 void AudioController::Reset()
 {
-  m_samples_buffer.clear();
+  m_left_samples_buffer.clear();
+  m_right_samples_buffer.clear();
   m_cycle_count = {};
   m_ch3.wave_form_index = {};
   m_nr50 = {};
@@ -211,37 +214,19 @@ void AudioController::HandleNr52Write(uint8_t val)
     Reset();
 }
 
-void AudioController::CheckPanning()
-{
-  if (!(m_nr51 & (1 << 4)) && !(m_nr51 & (1 << 0)))
-  {
-    m_ch1.ch_out = 0;
-  }
-  else if (!(m_nr51 & (1 << 5)) && !(m_nr51 & (1 << 1)))
-  {
-    m_ch2.ch_out = 0;
-  }
-  else if (!(m_nr51 & (1 << 6)) && !(m_nr51 & (1 << 2)))
-  {
-    m_ch3.ch_out = 0;
-  }
-  else if (!(m_nr51 & (1 << 7)) && !(m_nr51 & (1 << 3)))
-  {
-    m_ch4.ch_out = 0;
-  }
-}
-
 void AudioController::SubSample()
 {
-  uint64_t count  = static_cast<uint64_t>(m_samples_buffer.size() * AUDIO_FREQUENCY / M_RATE);
+  uint64_t count  = static_cast<uint64_t>(m_left_samples_buffer.size() * AUDIO_FREQUENCY / M_RATE);
   double sample_idx_step = M_RATE / AUDIO_FREQUENCY;
-  m_subsample_buffer.resize(count);
+  m_subsample_buffer.resize(count * 2);
 
   double samples_idx_f = 0;
-  int      samples_idx = 0;
-  for (int i = 0; i < count; i += 1)
+  int    samples_idx = 0;
+  for (int i = 0; i < count*2; i += 2)
   {
-    m_subsample_buffer[i] = static_cast<short>(m_samples_buffer[samples_idx] * SHRT_MAX);
+    m_subsample_buffer[i + 0] = static_cast<short>(m_left_samples_buffer[samples_idx] * SHRT_MAX);
+    m_subsample_buffer[i + 1] = static_cast<short>(m_right_samples_buffer[samples_idx] * SHRT_MAX);
+
     samples_idx_f += sample_idx_step;
     samples_idx = static_cast<int>(round(samples_idx_f));
   }
@@ -250,7 +235,8 @@ void AudioController::SubSample()
     m_audio_callback(m_subsample_buffer);
 
   m_subsample_buffer.clear();
-  m_samples_buffer.clear();
+  m_left_samples_buffer.clear();
+  m_right_samples_buffer.clear();
 }
 
 void AudioController::Update()
@@ -259,8 +245,10 @@ void AudioController::Update()
   {
     UpdateApu();
 
-    double out = Mixer();
-    m_samples_buffer.push_back(out);
+    double left{}, right{};
+    Mixer(left, right);
+    m_left_samples_buffer.push_back(left);
+    m_right_samples_buffer.push_back(right);
 
     m_cycle_count += 4;
 

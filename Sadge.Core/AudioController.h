@@ -11,8 +11,8 @@ constexpr static uint32_t AUDIO_FREQUENCY = 48000;
 constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536; // TODO: Non-integer cycles
 constexpr static double   T_RATE = (1 << 22);
 constexpr static double   M_RATE = (1 << 20);
-constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = (NUM_CYCLES_TO_BUFFER / 2) * (AUDIO_FREQUENCY / T_RATE);
-constexpr static uint8_t  AUDIO_CHANNELS = 1; // TODO: Stereo
+constexpr static uint8_t  AUDIO_CHANNELS = 2;
+constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 2) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
 
 class AudioController
 {
@@ -112,11 +112,28 @@ public:
       m_ch4.Update();
   }
 
-  inline double Mixer()
+  inline void Mixer(double& left, double& right)
   {
-    CheckPanning();
+    if (m_nr51 & (1 << 4))
+      left += m_ch1.ch_out;
+    if (m_nr51 & (1 << 5))
+      left += m_ch2.ch_out;
+    if (m_nr51 & (1 << 6))
+      left += m_ch3.ch_out;
+    if (m_nr51 & (1 << 7))
+      left += m_ch4.ch_out;
 
-    return (m_ch1.ch_out + m_ch2.ch_out + m_ch3.ch_out + m_ch4.ch_out) / 4.0;
+    if (m_nr51 & (1 << 0))
+      right += m_ch1.ch_out;
+    if (m_nr51 & (1 << 1))
+      right += m_ch2.ch_out;
+    if (m_nr51 & (1 << 2))
+      right += m_ch3.ch_out;
+    if (m_nr51 & (1 << 3))
+      right += m_ch4.ch_out;
+
+    left  /= 4.0;
+    right /= 4.0;
   }
 
   uint8_t HandleRead(uint16_t address) const;
@@ -130,11 +147,12 @@ private:
   }
 
   void HandleNr52Write(uint8_t val);
-  void CheckPanning();
   void SubSample();
   void Reset();
   
-  std::vector<double> m_samples_buffer;
+  std::vector<double> m_left_samples_buffer;
+  std::vector<double> m_right_samples_buffer;
+
   std::vector<short>  m_subsample_buffer;
   uint64_t m_cycle_count{};
 
