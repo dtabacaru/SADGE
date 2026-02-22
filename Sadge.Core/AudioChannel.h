@@ -27,17 +27,17 @@ public:
     PERIOD_UPPER = 0b00000111
   };
 
-  inline virtual constexpr uint8_t GetNrx1BitMask(Nrx1BitMask bit_mask)
+  inline virtual constexpr uint8_t GetNrx1BitMask(Nrx1BitMask bit_mask) const
   {
     return static_cast<uint8_t>(bit_mask);
   }
 
-  inline constexpr uint8_t GetNrx2BitMask(Nrx2BitMask bit_mask)
+  inline constexpr uint8_t GetNrx2BitMask(Nrx2BitMask bit_mask) const
   {
     return static_cast<uint8_t>(bit_mask);
   }
 
-  inline constexpr uint8_t GetNrx4BitMask(Nrx4BitMask bit_mask)
+  inline constexpr uint8_t GetNrx4BitMask(Nrx4BitMask bit_mask) const
   {
     return static_cast<uint8_t>(bit_mask);
   }
@@ -64,11 +64,32 @@ public:
 
   inline bool DacEnabled() const
   {
-    return nrx2 & (static_cast<uint8_t>(Nrx2BitMask::INIT_VOL) | static_cast<uint8_t>(Nrx2BitMask::ENV_DIR));
+    return nrx2 & (GetNrx2BitMask(Nrx2BitMask::INIT_VOL) | GetNrx2BitMask(Nrx2BitMask::ENV_DIR));
+  }
+
+  void ZombieMode(uint8_t val)
+  {
+    uint8_t old_dir = nrx2 & static_cast<uint8_t>(Nrx2BitMask::ENV_DIR);
+    uint8_t new_dir = val & static_cast<uint8_t>(Nrx2BitMask::ENV_DIR);
+
+    uint8_t old_pace = nrx2 & static_cast<uint8_t>(Nrx2BitMask::SWEEP_PACE);
+
+    if (old_pace == 0 && !envelope_saturated)
+      volume += 1;
+    else if (!old_dir)
+      volume += 2;
+
+    if (old_dir != new_dir)
+      volume = 16 - volume;
+
+    volume &= 0xF;
   }
 
   inline void HandleNrx2Write(uint8_t val)
   {
+    if (enabled)
+      ZombieMode(val);
+
     nrx2 = val;
 
     if (!DacEnabled())
@@ -115,11 +136,23 @@ public:
     if (!DacEnabled())
       return;
 
+    envelope_saturated = false;
     enabled = true;
     vol_sweep_pace_tick = 0;
     volume = GetVolume();
     double dc_offset = volume / 2;
     ch_out = Dac(0, dc_offset);
+  }
+
+  inline void TickVolSweep()
+  {
+    bool direction = nrx2 & GetNrx2BitMask(Nrx2BitMask::ENV_DIR);
+    if (direction && volume < 0xF)
+      volume += 1;
+    else if (!direction && volume > 0)
+      volume -= 1;
+    else
+      envelope_saturated = true;
   }
 
   inline virtual void TickSoundLength()
@@ -161,6 +194,8 @@ public:
     nrx2={};
     nrx3={};
     nrx4={};
+    envelope_tick={};
+    envelope_saturated={};
   }
 
   virtual int MaxLengthTick() const { return 64; }
@@ -174,6 +209,8 @@ public:
   double   ch_out{};
   int      length_timer_tick{};
   int      sound_length_tick{};
+  int      envelope_tick{};
+  bool     envelope_saturated{};
 
   uint8_t nrx1{};
   uint8_t nrx2{};

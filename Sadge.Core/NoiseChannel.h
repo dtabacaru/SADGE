@@ -70,19 +70,6 @@ public:
     ch_out = Dac(level, dc_offset);
   }
 
-  inline void TickVolSweep()
-  {
-    bool direction = nrx2 & GetNrx2BitMask(Nrx2BitMask::ENV_DIR);
-    if (direction && volume < 0xF)
-    {
-      volume += 1;
-    }
-    else if (!direction && volume > 0) // TODO: >1?
-    {
-      volume -= 1;
-    }
-  }
-
   inline virtual void ApuDivTick()
   {
     AudioChannel::ApuDivTick();
@@ -107,7 +94,6 @@ public:
   {
     AudioChannel::Trigger();
     lfsr = 0xFFFF;
-    envelope_tick = 0;
   }
 
   inline virtual void Disable()
@@ -119,12 +105,10 @@ public:
   inline virtual void Reset()
   {
     AudioChannel::Reset();
-    envelope_tick = {};
     lfsr_tick = {};
     lfsr = {0xFFFF};
   }
 
-  int envelope_tick{};
   uint32_t lfsr_tick{};
   uint16_t lfsr{0xFFFF};
 };

@@ -364,7 +364,8 @@ int main(int num_args, char* args[])
 		texture_buffer = LoadTextureFromImage(image_buffer);
 
 		InitAudioDevice();
-		SetAudioStreamBufferSizeDefault(375);
+
+		SetAudioStreamBufferSizeDefault(AUDIO_STREAM_BUFFER_SIZE);
 		audio_stream = LoadAudioStream(AUDIO_FREQUENCY, AUDIO_BITS, AUDIO_CHANNELS);
 		SetAudioStreamCallback(audio_stream, AudioInputCallback);
 

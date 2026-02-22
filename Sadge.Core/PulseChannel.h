@@ -64,15 +64,6 @@ public:
     ch_out = Dac(level, dc_offset);
   }
 
-  inline void TickVolSweep()
-  {
-    bool direction = nrx2 & GetNrx2BitMask(Nrx2BitMask::ENV_DIR);
-    if (direction && volume < 0xF)
-      volume += 1;
-    else if (!direction && volume > 0) // TODO: >1?
-      volume -= 1;
-  }
-
   inline virtual void ApuDivTick()
   {
     AudioChannel::ApuDivTick();
@@ -103,21 +94,17 @@ public:
   {
     AudioChannel::Trigger();
     period_counter = GetPeriodCounter();
-    envelope_tick = 0;
   }
 
   inline virtual void Reset()
   {
     AudioChannel::Reset();
-
     period_counter = {};
     wave_form_index = {};
-    envelope_tick = {};
   }
 
   int period_counter{};
   int wave_form_index{};
-  int envelope_tick{};
 
   constexpr static std::array<uint8_t, 8> DUTY_12_5_WAVE_FORM{0, 0, 0, 0, 0, 0, 0, 1};
   constexpr static std::array<uint8_t, 8> DUTY_25_WAVE_FORM  {1, 0, 0, 0, 0, 0, 0, 1};

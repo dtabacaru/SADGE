@@ -6,9 +6,12 @@
 
 #include <vector>
 
-constexpr static uint32_t AUDIO_FREQUENCY = 48000;
-constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 32768;
 constexpr static uint32_t AUDIO_BITS = 16;
+constexpr static uint32_t AUDIO_FREQUENCY = 192000;
+constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536; // TODO: Non-integer cycles
+constexpr static double   T_RATE = (1 << 22);
+constexpr static double   M_RATE = (1 << 20);
+constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = (NUM_CYCLES_TO_BUFFER / 2) * (AUDIO_FREQUENCY / T_RATE);
 constexpr static uint8_t  AUDIO_CHANNELS = 1; // TODO: Stereo
 
 class AudioController
@@ -121,10 +124,6 @@ public:
   void Update();
 
 private:
-  constexpr static auto     AUDIO_DT = (1.0 / AUDIO_FREQUENCY);
-  constexpr static double   T_RATE = (1 << 22);
-  constexpr static double   M_RATE = (1 << 20);
-
   inline uint8_t GetChOnBits() const
   {
     return (static_cast<int>(m_ch4.enabled) << 3) | (static_cast<int>(m_ch3.enabled) << 2) | (static_cast<int>(m_ch2.enabled) << 1) | static_cast<int>(m_ch1.enabled);
@@ -135,8 +134,8 @@ private:
   void SubSample();
   void Reset();
   
-  std::vector<AudioSample> m_samples_buffer;
-  std::vector<short>       m_subsample_buffer;
+  std::vector<double> m_samples_buffer;
+  std::vector<short>  m_subsample_buffer;
   uint64_t m_cycle_count{};
 
   PulseSweepChannel m_ch1;
