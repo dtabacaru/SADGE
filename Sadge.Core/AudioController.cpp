@@ -1,5 +1,8 @@
 #include "AudioController.h"
 
+#include <fstream>
+std::ofstream pcm_out("pcm_out.wav", std::ios_base::binary);
+
 void AudioController::Init()
 {
 
@@ -224,12 +227,14 @@ void AudioController::SubSample()
   int    samples_idx = 0;
   for (int i = 0; i < count*2; i += 2)
   {
-    m_subsample_buffer[i + 0] = static_cast<short>(m_left_samples_buffer[samples_idx] * SHRT_MAX);
+    m_subsample_buffer[i + 0] = static_cast<short>(m_left_samples_buffer[samples_idx]  * SHRT_MAX);
     m_subsample_buffer[i + 1] = static_cast<short>(m_right_samples_buffer[samples_idx] * SHRT_MAX);
 
     samples_idx_f += sample_idx_step;
     samples_idx = static_cast<int>(round(samples_idx_f));
   }
+
+  pcm_out.write(reinterpret_cast<char*>(m_subsample_buffer.data()), m_subsample_buffer.size() * sizeof(short));
 
   if(m_audio_callback)
     m_audio_callback(m_subsample_buffer);

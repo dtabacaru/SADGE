@@ -123,13 +123,16 @@ private:
   uint16_t m_sp{};
   uint16_t m_pc{};
 
-  void OutputRegisters()
+std::string OutputRegisters()
   {
-    std::cout << std::dec << m_total_cycle_count;
-    std::cout << std::hex << std::uppercase << std::setfill('0');
-    std::cout << " AF: " << std::setw(4) << m_af.hl << " BC: " << std::setw(4) << m_bc.hl << " DE: " << std::setw(4) << m_de.hl << " HL: " << std::setw(4) << m_hl.hl << " SP: " << std::setw(4) << m_sp << " PC: " << std::setw(4) << m_pc;
-    std::cout << " IME: " << std::dec << (int)m_interrupt_controller.m_ime << " IE: " << (int)m_interrupt_controller.m_ie << " IF: " << (int)m_interrupt_controller.m_if;
-    std::cout << std::endl;
+    std::ostringstream ss;
+
+    ss << std::dec << m_total_cycle_count;
+    ss << std::hex << std::uppercase << std::setfill('0');
+    ss << " AF: " << std::setw(4) << m_af.hl << " BC: " << std::setw(4) << m_bc.hl << " DE: " << std::setw(4) << m_de.hl << " HL: " << std::setw(4) << m_hl.hl << " SP: " << std::setw(4) << m_sp << " PC: " << std::setw(4) << m_pc << " op: " << std::setw(2) << (int)m_opcode;
+    ss << " IME: " << std::dec << (int)m_interrupt_controller.m_ime << " IE: " << (int)m_interrupt_controller.m_ie << " IF: " << (int)m_interrupt_controller.m_if;
+
+    return ss.str();
   }
 
 #pragma endregion

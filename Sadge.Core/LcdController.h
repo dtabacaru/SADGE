@@ -201,9 +201,10 @@ private:
   {
     if (!m_lcd_enabled && (val & GetLcdcBitMask(LcdcBitMask::ENABLE)))
     {
+      m_mode_transition_cycles = 76;
       m_delay_frame = true;
       m_disabled_cycle_count = 0;
-      m_cycle_count = 0;
+      m_cycle_count = 4;
       m_wly = 0;
       m_ly = 0;
       CheckLyc();
@@ -338,7 +339,7 @@ private:
     } 
 
     CheckStatInterrupt(StatBitMask::MODE0_INT_SELECT);
-    TriggerInterrupt(InterruptBitMask::VBLANK);
+    m_vblank_interrupt_queued = true;
 
     m_wly = 0;
     m_next_mode = Modes::MODE_2_OAM;
@@ -424,9 +425,16 @@ private:
       CheckLyc();
     }
 
+    if (m_vblank_interrupt_queued)
+    {
+      TriggerInterrupt(InterruptBitMask::VBLANK);
+      m_vblank_interrupt_queued = false;
+    }
+
     if (m_mode_transition_cycles == 0)
     {
       Transition();
+
       return m_current_mode == Modes::MODE_1_VBLANK;
     }
 
@@ -442,6 +450,8 @@ private:
   Modes m_current_mode = Modes::MODE_2_OAM;
   Modes m_next_mode    = Modes::MODE_3_DRAW;
   uint32_t m_mode_transition_cycles = 80;
+
+  bool m_vblank_interrupt_queued = false;
 
   std::array<uint8_t, SCREEN_WIDTH> m_line{};
   std::array<Pixel, SCREEN_WIDTH* SCREEN_HEIGHT> m_frame{};

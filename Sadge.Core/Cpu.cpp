@@ -806,6 +806,8 @@ void Cpu::Main()
 {
   int cycle_count = 0;
 
+  if (m_pc == 0x046E)
+    int a = 1;
 
   if (m_halt_requested)                                 cycle_count += HaltHandler();
   else if (m_stop_requested)                            cycle_count += StopHandler();

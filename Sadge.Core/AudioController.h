@@ -17,6 +17,7 @@ constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_
 class AudioController
 {
 public:
+  constexpr static uint8_t NUM_CHANNELS = 4;
   constexpr static uint8_t DEFAULT_READ = 0xFF;
 
   struct AudioSample
@@ -132,8 +133,14 @@ public:
     if (m_nr51 & (1 << 3))
       right += m_ch4.ch_out;
 
-    left  /= 4.0;
-    right /= 4.0;
+    uint8_t left_vol  = (m_nr50 >> 4) & 0x7;
+    uint8_t right_vol = (m_nr50 >> 0) & 0x7;
+
+    double left_scale  = ((left_vol  + 1) / 8.0) / NUM_CHANNELS; 
+    double right_scale = ((right_vol + 1) / 8.0) / NUM_CHANNELS;
+
+    left  *= left_scale;
+    right *= right_scale;
   }
 
   uint8_t HandleRead(uint16_t address) const;
