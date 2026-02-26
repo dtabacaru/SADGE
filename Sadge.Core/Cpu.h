@@ -24,6 +24,12 @@ struct Palettes
   std::array<Pixel, 4> obj1;
 };
 
+enum class EdgeType : uint8_t
+{
+  FALLING = 0,
+  RISING = 1
+};
+
 class Cpu
 {
 public:
@@ -39,11 +45,31 @@ public:
   Cpu();
   ~Cpu();
 
+  //EdgeType m_t_edge{EdgeType::FALLING};
+  //uint64_t m_t_edge_count{-1};
+
+  //EdgeType m_m_edge{EdgeType::FALLING};
+  //uint64_t m_m_edge_count{-1};
+
+  //inline void TickClock()
+  //{
+  //  m_t_edge = m_t_edge == EdgeType::FALLING ? EdgeType::RISING : EdgeType::FALLING;
+  //  m_t_edge_count += 1;
+  //}
+
+  //inline void TickMachineClock()
+  //{
+  //  if(m_t_edge_count)
+  //}
+
   Status SetRom(const std::filesystem::path& rom_path, std::vector<uint8_t> rom);
   void Main();
+  //void MainGranular();
 
   void RunUntil(uint64_t cycle_count);
   void Run();
+
+  //void RunGranular();
 
   inline void Stop()
   {

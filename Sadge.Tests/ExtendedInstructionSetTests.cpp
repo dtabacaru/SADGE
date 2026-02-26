@@ -5,7 +5,7 @@
 
 #include <fstream>
 
-//#define ENABLED
+#define ENABLED
 
 // Cpu tests require flat ram
 class CpuInstructionTest : public Cpu

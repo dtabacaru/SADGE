@@ -806,9 +806,6 @@ void Cpu::Main()
 {
   int cycle_count = 0;
 
-  if (m_pc == 0x046E)
-    int a = 1;
-
   if (m_halt_requested)                                 cycle_count += HaltHandler();
   else if (m_stop_requested)                            cycle_count += StopHandler();
   else if (m_interrupt_controller.InterruptRequested()) cycle_count += InterruptHandler();
@@ -817,6 +814,31 @@ void Cpu::Main()
   Update(cycle_count);
 }
 
+
+
+//void Cpu::MainGranular()
+//{
+//  TickClock();
+//
+//  //bool m_edge = TickMachineClock();
+//
+//  //if (m_edge)
+//  //{
+//  //  TickCpu();
+//  //}
+//
+//  //if(m_edge_count)
+//  //TickCpu();
+//  //TickInterruptController();
+//  //TickDMA();
+//  //TickLcd();
+//  //TickTimer();
+//  //TickApu();
+//
+//  //if (frame_ready)
+//  //  WaitFrame();
+//}
+
 void Cpu::RunUntil(uint64_t cycle_count)
 {
   Init();
@@ -824,6 +846,14 @@ void Cpu::RunUntil(uint64_t cycle_count)
   while (m_total_cycle_count < cycle_count)
     Main();
 }
+
+//void Cpu::RunGranular()
+//{
+//  Init();
+//
+//  while (!m_stopped)
+//    MainGranular();
+//}
 
 void Cpu::Run()
 {
