@@ -5,7 +5,7 @@
 
 #include <fstream>
 
-#define ENABLED
+//#define ENABLED
 
 // Cpu tests require flat ram
 class CpuInstructionTest : public Cpu
@@ -26,7 +26,7 @@ private:
   std::vector<uint8_t> m_test_ram = std::vector<uint8_t>(64 * 1024);
 };
 
-void TestOpcode(uint8_t opcode)
+static void TestOpcode(uint8_t opcode)
 {
   std::string test_file_path = std::format("sm83-main\\v1\\{:02x}.json", opcode);
   std::ifstream file(test_file_path, std::ifstream::binary);

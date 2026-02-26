@@ -102,8 +102,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="acid.cpp" />
+    <ClCompile Include="blargg.cpp" />
+    <ClCompile Include="ExtendedInstructionSetTests.cpp" />
     <ClCompile Include="InstructionSetTests.cpp" />
-    <ClCompile Include="test.cpp" />
+    <ClCompile Include="mooneye_timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Sadge.Core\Sadge.Core.vcxproj">

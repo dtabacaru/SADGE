@@ -2248,3 +2248,48 @@ uint8_t Cpu::ReadAddress(uint16_t address)
     return m_rom_banks[0][address];
   }
 }
+
+void Cpu::SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie)
+{
+  ime;
+  ie;
+
+  m_pc = pc;
+  m_sp = sp;
+  m_af.h = a;
+  m_bc.h = b;
+  m_bc.l = c;
+  m_de.h = d;
+  m_de.l = e;
+  m_af.l = f;
+  m_hl.h = h;
+  m_hl.l = l;
+}
+
+bool Cpu::CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
+{
+  ime;
+
+  if (pc != m_pc)
+    return false;
+  else if (sp != m_sp)
+    return false;
+  else if (a != m_af.h)
+    return false;
+  else if (b != m_bc.h)
+    return false;
+  else if (c != m_bc.l)
+    return false;
+  else if (d != m_de.h)
+    return false;
+  else if (e != m_de.l)
+    return false;
+  else if (f != m_af.l)
+    return false;
+  else if (h != m_hl.h)
+    return false;
+  else if (l != m_hl.l)
+    return false;
+  else
+    return true;
+}

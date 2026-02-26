@@ -100,6 +100,10 @@ public:
 
   Palettes GetPalettes(std::string title);
   uint8_t  GetTitleHash(std::string title);
+
+  inline void TestExecute() { Execute(Fetch()); }
+  void SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
+  bool CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
 #pragma endregion
 
 private:

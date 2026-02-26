@@ -195,18 +195,17 @@ public:
   uint8_t HandleRead(uint16_t address) const;
   void HandleWrite(uint16_t address, uint8_t val);
 
+  std::array<Pixel, SCREEN_SIZE>& GetCurrentFrameBuffer()
+  {
+    return m_frame;
+  }
+
 private:
 
   inline void HandleLcdcWrite(uint8_t val)
   {
     if (!m_lcd_enabled && (val & GetLcdcBitMask(LcdcBitMask::ENABLE)))
     {
-      m_mode_transition_cycles = 76;
-      m_delay_frame = true;
-      m_disabled_cycle_count = 0;
-      m_cycle_count = 4;
-      m_wly = 0;
-      m_ly = 0;
       CheckLyc();
     }
 
@@ -217,8 +216,13 @@ private:
     {
       SetStatMode(Modes::MODE_0_HBLANK);
       m_current_mode = Modes::MODE_0_HBLANK;
-      m_mode_transition_cycles = 76;
       m_next_mode = Modes::MODE_3_DRAW;
+      m_mode_transition_cycles = 76;
+      m_cycle_count = 4;
+      m_wly = 0;
+      m_ly = 0;
+      m_delay_frame = true;
+      m_disabled_cycle_count = 0;
     }
   }
 
@@ -331,7 +335,8 @@ private:
   {
     if (!m_delay_frame)
     {
-      m_frame_callback(m_frame, m_frame_time);
+      if(m_frame_callback)
+        m_frame_callback(m_frame, m_frame_time);
     }
     else
     {
@@ -397,7 +402,9 @@ private:
     if (m_disabled_cycle_count == 4560)
     {
       m_frame.fill(m_bg_palette[0]);
-      m_frame_callback(m_frame, m_frame_time);
+
+      if(m_frame_callback)
+        m_frame_callback(m_frame, m_frame_time);
 
       return true;
     }
@@ -447,14 +454,14 @@ private:
 
   FrameCallback m_frame_callback = nullptr;
 
-  Modes m_current_mode = Modes::MODE_2_OAM;
+  Modes m_current_mode = Modes::MODE_0_HBLANK;
   Modes m_next_mode    = Modes::MODE_3_DRAW;
-  uint32_t m_mode_transition_cycles = 80;
+  uint32_t m_mode_transition_cycles = 76;
 
   bool m_vblank_interrupt_queued = false;
 
   std::array<uint8_t, SCREEN_WIDTH> m_line{};
-  std::array<Pixel, SCREEN_WIDTH* SCREEN_HEIGHT> m_frame{};
+  std::array<Pixel, SCREEN_SIZE> m_frame{};
   std::array<uint8_t, OAM_SIZE> m_oam{};
   std::array<uint8_t, VRAM_SIZE> m_vram{};
   std::array<Object, OBJECT_LIMIT> m_objects{};
@@ -474,9 +481,9 @@ private:
   
   bool     m_lcd_enabled{};
   double   m_frame_time = 0;
-  uint32_t m_cycle_count = 0;
+  uint32_t m_cycle_count = 4;
   uint32_t m_disabled_cycle_count = 0;
-  bool     m_delay_frame = false;
+  bool     m_delay_frame = true;
   bool     m_frame_ready = false;
   uint8_t  m_wly = 0;
 
