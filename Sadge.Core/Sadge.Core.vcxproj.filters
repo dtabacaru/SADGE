@@ -66,6 +66,9 @@
     <ClCompile Include="RomHeaderEnums.cpp">
       <Filter>Source Files\RomHeader</Filter>
     </ClCompile>
+    <ClCompile Include="InstructionSetGranular.cpp">
+      <Filter>Source Files\Instructions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cpu.h">

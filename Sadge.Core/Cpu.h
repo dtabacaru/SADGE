@@ -30,6 +30,18 @@ enum class EdgeType : uint8_t
   RISING = 1
 };
 
+enum class LevelType : uint8_t
+{
+  LOW = 0,
+  HIGH = 1
+};
+
+struct TestCycle
+{
+  uint16_t address_bus;
+  uint8_t  data_bus;
+};
+
 class Cpu
 {
 public:
@@ -45,31 +57,44 @@ public:
   Cpu();
   ~Cpu();
 
-  //EdgeType m_t_edge{EdgeType::FALLING};
-  //uint64_t m_t_edge_count{-1};
+  constexpr static auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22)) * 1;
+  constexpr static auto MACHINE_CLOCK_DIV = 4;
 
-  //EdgeType m_m_edge{EdgeType::FALLING};
-  //uint64_t m_m_edge_count{-1};
+  // Presumably, cycles start at rising edges, and the system powers on triggering a rising edge
+  // Initialize these as falling/low/-1 such that the very first cycle mimics the behaviour
+  // of powering on a DMG
+  EdgeType  _tEdge{EdgeType::FALLING};
+  LevelType _tLevel{LevelType::LOW};
+  uint64_t  _tEdgeCount{static_cast<uint64_t>(-1)};
 
-  //inline void TickClock()
-  //{
-  //  m_t_edge = m_t_edge == EdgeType::FALLING ? EdgeType::RISING : EdgeType::FALLING;
-  //  m_t_edge_count += 1;
-  //}
+  EdgeType  _mEdge{EdgeType::FALLING};
+  LevelType _mLevel{LevelType::LOW};
+  uint64_t  _mEdgeCount{static_cast<uint64_t>(-1)};
 
-  //inline void TickMachineClock()
-  //{
-  //  if(m_t_edge_count)
-  //}
+  inline void TickEdge(EdgeType& edge, LevelType& level, uint64_t& count)
+  {
+    edge  = edge == EdgeType::FALLING ? EdgeType::RISING : EdgeType::FALLING;
+    level = edge == EdgeType::FALLING ? LevelType::LOW : LevelType::HIGH;
+    count += 1;
+  }
+
+  void RisingTEvent();
+  void FallingTEvent();
+  void RisingMEvent();
+  void FallingMEvent();
+
+  uint64_t _op_cycle{0};
+  uint16_t _addressBus{0};
+  uint8_t  _dataBus{0};
+
+  void TickExecution();
+  std::vector<TestCycle> _test_cycles;
 
   Status SetRom(const std::filesystem::path& rom_path, std::vector<uint8_t> rom);
   void Main();
-  //void MainGranular();
 
   void RunUntil(uint64_t cycle_count);
   void Run();
-
-  //void RunGranular();
 
   inline void Stop()
   {
@@ -77,6 +102,11 @@ public:
   }
 
   StopWatch m_execution_stopwatch;
+
+  inline std::vector<TestCycle> GetTestCycles()
+  {
+    return _test_cycles;
+  }
 
   inline AudioController&  GetAudioController()  { return m_audio_controller; }
   inline LcdController&    GetLcdController()    { return m_lcd_controller; }
@@ -127,7 +157,7 @@ public:
   Palettes GetPalettes(std::string title);
   uint8_t  GetTitleHash(std::string title);
 
-  inline void TestExecute() { Execute(Fetch()); }
+  void TestExecute();
   void SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
   bool CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
 #pragma endregion
@@ -339,23 +369,9 @@ std::string OutputRegisters()
   uint8_t ReadIo(uint16_t address);
   void WriteIo(uint16_t address, uint8_t val);
 
-  inline uint16_t ReadNextUint16()
-  {
-    uint8_t l = ReadAddress(m_pc);
-    m_pc += 1;
-    uint8_t h = ReadAddress(m_pc);
-    m_pc += 1;
+  uint16_t ReadNextUint16();
 
-    return (h << 8) | l;
-  }
-
-  inline uint8_t ReadNextUint8()
-  {
-    uint8_t val = ReadAddress(m_pc);
-    m_pc += 1;
-
-    return val;
-  }
+  uint8_t ReadNextUint8();
 
   inline int8_t ReadNextInt8()
   {
@@ -386,22 +402,15 @@ std::string OutputRegisters()
     m_pc -= 1;
     PUSH_RR(m_pc);
     m_pc = isr;
-    m_opcode = Fetch();
+    //m_opcode = Fetch();
 
     return 20;
   }
 
-  inline int ExecutionHandler()
+  void Fetch()
   {
-    int cycle_count = Execute(m_opcode);
-    m_opcode = Fetch();
-
-    return cycle_count;
-  }
-
-  inline uint8_t Fetch()
-  {
-    return ReadNextUint8();
+    _dataBus = ReadNextUint8();
+    m_opcode = _dataBus;
   }
 
   double m_frame_time = 0;
@@ -409,7 +418,6 @@ std::string OutputRegisters()
   virtual void WaitFrame();
   void Init();
 
-  int Execute(uint8_t opcode);
   int ExecuteCb(uint8_t opcode);
   void Update(int cycle_count);
 #pragma endregion
@@ -439,17 +447,9 @@ std::string OutputRegisters()
     RST7 = 0x0038
   };
 
-  inline int Op0x00()
-  {
-    // Crickets
-    return 4;
-  }
+  void Op0x00();
 
-  inline int Op0x01()
-  {
-    LD_RR_dd(m_bc.hl);
-    return 12;
-  }
+  void Op0x01();
 
   inline int Op0x02()
   {
@@ -541,11 +541,7 @@ std::string OutputRegisters()
     return 4;
   }
 
-  inline int Op0x11()
-  {
-    LD_RR_dd(m_de.hl);
-    return 12;
-  }
+  void Op0x11();
 
   inline int Op0x12()
   {
@@ -637,11 +633,7 @@ std::string OutputRegisters()
     return !ReadFlag(FlagBitMask::Zero) ? 12 : 8;
   }
 
-  inline int Op0x21()
-  {
-    LD_RR_dd(m_hl.hl);
-    return 12;
-  }
+  void Op0x21();
 
   inline int Op0x22()
   {
@@ -733,11 +725,7 @@ std::string OutputRegisters()
     return !ReadFlag(FlagBitMask::Carry) ? 12 : 8;
   }
 
-  inline int Op0x31()
-  {
-    LD_RR_dd(m_sp);
-    return 12;
-  }
+  void Op0x31();
 
   inline int Op0x32()
   {
@@ -2035,10 +2023,7 @@ std::string OutputRegisters()
   }
 
   // Flags: - - - -
-  inline void LD_RR_dd(uint16_t& RR)
-  {
-    RR = ReadNextUint16();
-  }
+  void LD_RR_dd(uint16_t& RR);
 
   // Flags: - - - -
   inline void LD__RR_R(uint16_t RR, uint8_t R)

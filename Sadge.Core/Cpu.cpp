@@ -772,7 +772,36 @@ void Cpu::Update(int cycle_count)
   }
 }
 
-constexpr auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22)) * 1;
+void Cpu::FallingTEvent()
+{
+}
+
+void Cpu::RisingMEvent()
+{
+  TickExecution();
+  Fetch();
+
+  m_timer_controller.Update();
+}
+
+void Cpu::FallingMEvent()
+{
+}
+
+void Cpu::RisingTEvent()
+{
+  if (_tEdgeCount % MACHINE_CLOCK_DIV == 0)
+  {
+    TickEdge(_mEdge, _mLevel, _mEdgeCount);
+
+    _mEdge == EdgeType::RISING ? RisingMEvent() : FallingMEvent();
+  }
+
+  // TODO: Make T cycle updates
+  //m_audio_controller.Update();
+  // Tick APU
+  // Tick PPU
+}
 
 void Cpu::WaitFrame()
 {
@@ -804,40 +833,552 @@ void Cpu::Init()
 
 void Cpu::Main()
 {
-  int cycle_count = 0;
+  TickEdge(_tEdge, _tLevel, _tEdgeCount);
 
-  if (m_halt_requested)                                 cycle_count += HaltHandler();
-  else if (m_stop_requested)                            cycle_count += StopHandler();
-  else if (m_interrupt_controller.InterruptRequested()) cycle_count += InterruptHandler();
-  else                                                  cycle_count += ExecutionHandler();
-
-  Update(cycle_count);
+  _tEdge == EdgeType::RISING ? RisingTEvent() : FallingTEvent();
 }
 
+uint8_t Cpu::ReadNextUint8()
+{
+  _addressBus = m_pc;
+  uint8_t val = ReadAddress(_addressBus);
+  m_pc += 1;
 
+  return val;
+}
 
-//void Cpu::MainGranular()
-//{
-//  TickClock();
-//
-//  //bool m_edge = TickMachineClock();
-//
-//  //if (m_edge)
-//  //{
-//  //  TickCpu();
-//  //}
-//
-//  //if(m_edge_count)
-//  //TickCpu();
-//  //TickInterruptController();
-//  //TickDMA();
-//  //TickLcd();
-//  //TickTimer();
-//  //TickApu();
-//
-//  //if (frame_ready)
-//  //  WaitFrame();
-//}
+void Cpu::TestExecute() 
+{ 
+  _test_cycles.clear();
+  Fetch();
+
+  do
+  {
+    _test_cycles.push_back({_addressBus, _dataBus});
+    TickExecution();
+  } while (_op_cycle > 0);
+}
+
+void Cpu::TickExecution()
+{
+  switch (m_opcode)
+  {
+    case 0x00:
+      Op0x00(); break;
+    case 0x01:
+      Op0x01(); break;
+    case 0x02:
+      Op0x02(); break;
+    case 0x03:
+      Op0x03(); break;
+    case 0x04:
+      Op0x04(); break;
+    case 0x05:
+      Op0x05(); break;
+    case 0x06:
+      Op0x06(); break;
+    case 0x07:
+      Op0x07(); break;
+    case 0x08:
+      Op0x08(); break;
+    case 0x09:
+      Op0x09(); break;
+    case 0x0A:
+      Op0x0A(); break;
+    case 0x0B:
+      Op0x0B(); break;
+    case 0x0C:
+      Op0x0C(); break;
+    case 0x0D:
+      Op0x0D(); break;
+    case 0x0E:
+      Op0x0E(); break;
+    case 0x0F:
+      Op0x0F(); break;
+    case 0x10:
+      Op0x10(); break;
+    case 0x11:
+      Op0x11(); break;
+    case 0x12:
+      Op0x12(); break;
+    case 0x13:
+      Op0x13(); break;
+    case 0x14:
+      Op0x14(); break;
+    case 0x15:
+      Op0x15(); break;
+    case 0x16:
+      Op0x16(); break;
+    case 0x17:
+      Op0x17(); break;
+    case 0x18:
+      Op0x18(); break;
+    case 0x19:
+      Op0x19(); break;
+    case 0x1A:
+      Op0x1A(); break;
+    case 0x1B:
+      Op0x1B(); break;
+    case 0x1C:
+      Op0x1C(); break;
+    case 0x1D:
+      Op0x1D(); break;
+    case 0x1E:
+      Op0x1E(); break;
+    case 0x1F:
+      Op0x1F(); break;
+    case 0x20:
+      Op0x20(); break;
+    case 0x21:
+      Op0x21(); break;
+    case 0x22:
+      Op0x22(); break;
+    case 0x23:
+      Op0x23(); break;
+    case 0x24:
+      Op0x24(); break;
+    case 0x25:
+      Op0x25(); break;
+    case 0x26:
+      Op0x26(); break;
+    case 0x27:
+      Op0x27(); break;
+    case 0x28:
+      Op0x28(); break;
+    case 0x29:
+      Op0x29(); break;
+    case 0x2A:
+      Op0x2A(); break;
+    case 0x2B:
+      Op0x2B(); break;
+    case 0x2C:
+      Op0x2C(); break;
+    case 0x2D:
+      Op0x2D(); break;
+    case 0x2E:
+      Op0x2E(); break;
+    case 0x2F:
+      Op0x2F(); break;
+    case 0x30:
+      Op0x30(); break;
+    case 0x31:
+      Op0x31(); break;
+    case 0x32:
+      Op0x32(); break;
+    case 0x33:
+      Op0x33(); break;
+    case 0x34:
+      Op0x34(); break;
+    case 0x35:
+      Op0x35(); break;
+    case 0x36:
+      Op0x36(); break;
+    case 0x37:
+      Op0x37(); break;
+    case 0x38:
+      Op0x38(); break;
+    case 0x39:
+      Op0x39(); break;
+    case 0x3A:
+      Op0x3A(); break;
+    case 0x3B:
+      Op0x3B(); break;
+    case 0x3C:
+      Op0x3C(); break;
+    case 0x3D:
+      Op0x3D(); break;
+    case 0x3E:
+      Op0x3E(); break;
+    case 0x3F:
+      Op0x3F(); break;
+    case 0x40:
+      Op0x40(); break;
+    case 0x41:
+      Op0x41(); break;
+    case 0x42:
+      Op0x42(); break;
+    case 0x43:
+      Op0x43(); break;
+    case 0x44:
+      Op0x44(); break;
+    case 0x45:
+      Op0x45(); break;
+    case 0x46:
+      Op0x46(); break;
+    case 0x47:
+      Op0x47(); break;
+    case 0x48:
+      Op0x48(); break;
+    case 0x49:
+      Op0x49(); break;
+    case 0x4A:
+      Op0x4A(); break;
+    case 0x4B:
+      Op0x4B(); break;
+    case 0x4C:
+      Op0x4C(); break;
+    case 0x4D:
+      Op0x4D(); break;
+    case 0x4E:
+      Op0x4E(); break;
+    case 0x4F:
+      Op0x4F(); break;
+    case 0x50:
+      Op0x50(); break;
+    case 0x51:
+      Op0x51(); break;
+    case 0x52:
+      Op0x52(); break;
+    case 0x53:
+      Op0x53(); break;
+    case 0x54:
+      Op0x54(); break;
+    case 0x55:
+      Op0x55(); break;
+    case 0x56:
+      Op0x56(); break;
+    case 0x57:
+      Op0x57(); break;
+    case 0x58:
+      Op0x58(); break;
+    case 0x59:
+      Op0x59(); break;
+    case 0x5A:
+      Op0x5A(); break;
+    case 0x5B:
+      Op0x5B(); break;
+    case 0x5C:
+      Op0x5C(); break;
+    case 0x5D:
+      Op0x5D(); break;
+    case 0x5E:
+      Op0x5E(); break;
+    case 0x5F:
+      Op0x5F(); break;
+    case 0x60:
+      Op0x60(); break;
+    case 0x61:
+      Op0x61(); break;
+    case 0x62:
+      Op0x62(); break;
+    case 0x63:
+      Op0x63(); break;
+    case 0x64:
+      Op0x64(); break;
+    case 0x65:
+      Op0x65(); break;
+    case 0x66:
+      Op0x66(); break;
+    case 0x67:
+      Op0x67(); break;
+    case 0x68:
+      Op0x68(); break;
+    case 0x69:
+      Op0x69(); break;
+    case 0x6A:
+      Op0x6A(); break;
+    case 0x6B:
+      Op0x6B(); break;
+    case 0x6C:
+      Op0x6C(); break;
+    case 0x6D:
+      Op0x6D(); break;
+    case 0x6E:
+      Op0x6E(); break;
+    case 0x6F:
+      Op0x6F(); break;
+    case 0x70:
+      Op0x70(); break;
+    case 0x71:
+      Op0x71(); break;
+    case 0x72:
+      Op0x72(); break;
+    case 0x73:
+      Op0x73(); break;
+    case 0x74:
+      Op0x74(); break;
+    case 0x75:
+      Op0x75(); break;
+    case 0x76:
+      Op0x76(); break;
+    case 0x77:
+      Op0x77(); break;
+    case 0x78:
+      Op0x78(); break;
+    case 0x79:
+      Op0x79(); break;
+    case 0x7A:
+      Op0x7A(); break;
+    case 0x7B:
+      Op0x7B(); break;
+    case 0x7C:
+      Op0x7C(); break;
+    case 0x7D:
+      Op0x7D(); break;
+    case 0x7E:
+      Op0x7E(); break;
+    case 0x7F:
+      Op0x7F(); break;
+    case 0x80:
+      Op0x80(); break;
+    case 0x81:
+      Op0x81(); break;
+    case 0x82:
+      Op0x82(); break;
+    case 0x83:
+      Op0x83(); break;
+    case 0x84:
+      Op0x84(); break;
+    case 0x85:
+      Op0x85(); break;
+    case 0x86:
+      Op0x86(); break;
+    case 0x87:
+      Op0x87(); break;
+    case 0x88:
+      Op0x88(); break;
+    case 0x89:
+      Op0x89(); break;
+    case 0x8A:
+      Op0x8A(); break;
+    case 0x8B:
+      Op0x8B(); break;
+    case 0x8C:
+      Op0x8C(); break;
+    case 0x8D:
+      Op0x8D(); break;
+    case 0x8E:
+      Op0x8E(); break;
+    case 0x8F:
+      Op0x8F(); break;
+    case 0x90:
+      Op0x90(); break;
+    case 0x91:
+      Op0x91(); break;
+    case 0x92:
+      Op0x92(); break;
+    case 0x93:
+      Op0x93(); break;
+    case 0x94:
+      Op0x94(); break;
+    case 0x95:
+      Op0x95(); break;
+    case 0x96:
+      Op0x96(); break;
+    case 0x97:
+      Op0x97(); break;
+    case 0x98:
+      Op0x98(); break;
+    case 0x99:
+      Op0x99(); break;
+    case 0x9A:
+      Op0x9A(); break;
+    case 0x9B:
+      Op0x9B(); break;
+    case 0x9C:
+      Op0x9C(); break;
+    case 0x9D:
+      Op0x9D(); break;
+    case 0x9E:
+      Op0x9E(); break;
+    case 0x9F:
+      Op0x9F(); break;
+    case 0xA0:
+      Op0xA0(); break;
+    case 0xA1:
+      Op0xA1(); break;
+    case 0xA2:
+      Op0xA2(); break;
+    case 0xA3:
+      Op0xA3(); break;
+    case 0xA4:
+      Op0xA4(); break;
+    case 0xA5:
+      Op0xA5(); break;
+    case 0xA6:
+      Op0xA6(); break;
+    case 0xA7:
+      Op0xA7(); break;
+    case 0xA8:
+      Op0xA8(); break;
+    case 0xA9:
+      Op0xA9(); break;
+    case 0xAA:
+      Op0xAA(); break;
+    case 0xAB:
+      Op0xAB(); break;
+    case 0xAC:
+      Op0xAC(); break;
+    case 0xAD:
+      Op0xAD(); break;
+    case 0xAE:
+      Op0xAE(); break;
+    case 0xAF:
+      Op0xAF(); break;
+    case 0xB0:
+      Op0xB0(); break;
+    case 0xB1:
+      Op0xB1(); break;
+    case 0xB2:
+      Op0xB2(); break;
+    case 0xB3:
+      Op0xB3(); break;
+    case 0xB4:
+      Op0xB4(); break;
+    case 0xB5:
+      Op0xB5(); break;
+    case 0xB6:
+      Op0xB6(); break;
+    case 0xB7:
+      Op0xB7(); break;
+    case 0xB8:
+      Op0xB8(); break;
+    case 0xB9:
+      Op0xB9(); break;
+    case 0xBA:
+      Op0xBA(); break;
+    case 0xBB:
+      Op0xBB(); break;
+    case 0xBC:
+      Op0xBC(); break;
+    case 0xBD:
+      Op0xBD(); break;
+    case 0xBE:
+      Op0xBE(); break;
+    case 0xBF:
+      Op0xBF(); break;
+    case 0xC0:
+      Op0xC0(); break;
+    case 0xC1:
+      Op0xC1(); break;
+    case 0xC2:
+      Op0xC2(); break;
+    case 0xC3:
+      Op0xC3(); break;
+    case 0xC4:
+      Op0xC4(); break;
+    case 0xC5:
+      Op0xC5(); break;
+    case 0xC6:
+      Op0xC6(); break;
+    case 0xC7:
+      Op0xC7(); break;
+    case 0xC8:
+      Op0xC8(); break;
+    case 0xC9:
+      Op0xC9(); break;
+    case 0xCA:
+      Op0xCA(); break;
+    case 0xCB:
+      Op0xCB(); break;
+    case 0xCC:
+      Op0xCC(); break;
+    case 0xCD:
+      Op0xCD(); break;
+    case 0xCE:
+      Op0xCE(); break;
+    case 0xCF:
+      Op0xCF(); break;
+    case 0xD0:
+      Op0xD0(); break;
+    case 0xD1:
+      Op0xD1(); break;
+    case 0xD2:
+      Op0xD2(); break;
+    case 0xD3:
+      Op0xD3(); break;
+    case 0xD4:
+      Op0xD4(); break;
+    case 0xD5:
+      Op0xD5(); break;
+    case 0xD6:
+      Op0xD6(); break;
+    case 0xD7:
+      Op0xD7(); break;
+    case 0xD8:
+      Op0xD8(); break;
+    case 0xD9:
+      Op0xD9(); break;
+    case 0xDA:
+      Op0xDA(); break;
+    case 0xDB:
+      Op0xDB(); break;
+    case 0xDC:
+      Op0xDC(); break;
+    case 0xDD:
+      Op0xDD(); break;
+    case 0xDE:
+      Op0xDE(); break;
+    case 0xDF:
+      Op0xDF(); break;
+    case 0xE0:
+      Op0xE0(); break;
+    case 0xE1:
+      Op0xE1(); break;
+    case 0xE2:
+      Op0xE2(); break;
+    case 0xE3:
+      Op0xE3(); break;
+    case 0xE4:
+      Op0xE4(); break;
+    case 0xE5:
+      Op0xE5(); break;
+    case 0xE6:
+      Op0xE6(); break;
+    case 0xE7:
+      Op0xE7(); break;
+    case 0xE8:
+      Op0xE8(); break;
+    case 0xE9:
+      Op0xE9(); break;
+    case 0xEA:
+      Op0xEA(); break;
+    case 0xEB:
+      Op0xEB(); break;
+    case 0xEC:
+      Op0xEC(); break;
+    case 0xED:
+      Op0xED(); break;
+    case 0xEE:
+      Op0xEE(); break;
+    case 0xEF:
+      Op0xEF(); break;
+    case 0xF0:
+      Op0xF0(); break;
+    case 0xF1:
+      Op0xF1(); break;
+    case 0xF2:
+      Op0xF2(); break;
+    case 0xF3:
+      Op0xF3(); break;
+    case 0xF4:
+      Op0xF4(); break;
+    case 0xF5:
+      Op0xF5(); break;
+    case 0xF6:
+      Op0xF6(); break;
+    case 0xF7:
+      Op0xF7(); break;
+    case 0xF8:
+      Op0xF8(); break;
+    case 0xF9:
+      Op0xF9(); break;
+    case 0xFA:
+      Op0xFA(); break;
+    case 0xFB:
+      Op0xFB(); break;
+    case 0xFC:
+      Op0xFC(); break;
+    case 0xFD:
+      Op0xFD(); break;
+    case 0xFE:
+      Op0xFE(); break;
+    case 0xFF:
+      Op0xFF(); break;
+    default:
+      break;
+  }
+}
 
 void Cpu::RunUntil(uint64_t cycle_count)
 {
@@ -847,541 +1388,12 @@ void Cpu::RunUntil(uint64_t cycle_count)
     Main();
 }
 
-//void Cpu::RunGranular()
-//{
-//  Init();
-//
-//  while (!m_stopped)
-//    MainGranular();
-//}
-
 void Cpu::Run()
 {
   Init();
 
   while (!m_stopped)
     Main();
-}
-
-int Cpu::Execute(uint8_t opcode)
-{
-  switch (opcode)
-  {
-    case 0x00:
-      return Op0x00();
-    case 0x01:
-      return Op0x01();
-    case 0x02:
-      return Op0x02();
-    case 0x03:
-      return Op0x03();
-    case 0x04:
-      return Op0x04();
-    case 0x05:
-      return Op0x05();
-    case 0x06:
-      return Op0x06();
-    case 0x07:
-      return Op0x07();
-    case 0x08:
-      return Op0x08();
-    case 0x09:
-      return Op0x09();
-    case 0x0A:
-      return Op0x0A();
-    case 0x0B:
-      return Op0x0B();
-    case 0x0C:
-      return Op0x0C();
-    case 0x0D:
-      return Op0x0D();
-    case 0x0E:
-      return Op0x0E();
-    case 0x0F:
-      return Op0x0F();
-    case 0x10:
-      return Op0x10();
-    case 0x11:
-      return Op0x11();
-    case 0x12:
-      return Op0x12();
-    case 0x13:
-      return Op0x13();
-    case 0x14:
-      return Op0x14();
-    case 0x15:
-      return Op0x15();
-    case 0x16:
-      return Op0x16();
-    case 0x17:
-      return Op0x17();
-    case 0x18:
-      return Op0x18();
-    case 0x19:
-      return Op0x19();
-    case 0x1A:
-      return Op0x1A();
-    case 0x1B:
-      return Op0x1B();
-    case 0x1C:
-      return Op0x1C();
-    case 0x1D:
-      return Op0x1D();
-    case 0x1E:
-      return Op0x1E();
-    case 0x1F:
-      return Op0x1F();
-    case 0x20:
-      return Op0x20();
-    case 0x21:
-      return Op0x21();
-    case 0x22:
-      return Op0x22();
-    case 0x23:
-      return Op0x23();
-    case 0x24:
-      return Op0x24();
-    case 0x25:
-      return Op0x25();
-    case 0x26:
-      return Op0x26();
-    case 0x27:
-      return Op0x27();
-    case 0x28:
-      return Op0x28();
-    case 0x29:
-      return Op0x29();
-    case 0x2A:
-      return Op0x2A();
-    case 0x2B:
-      return Op0x2B();
-    case 0x2C:
-      return Op0x2C();
-    case 0x2D:
-      return Op0x2D();
-    case 0x2E:
-      return Op0x2E();
-    case 0x2F:
-      return Op0x2F();
-    case 0x30:
-      return Op0x30();
-    case 0x31:
-      return Op0x31();
-    case 0x32:
-      return Op0x32();
-    case 0x33:
-      return Op0x33();
-    case 0x34:
-      return Op0x34();
-    case 0x35:
-      return Op0x35();
-    case 0x36:
-      return Op0x36();
-    case 0x37:
-      return Op0x37();
-    case 0x38:
-      return Op0x38();
-    case 0x39:
-      return Op0x39();
-    case 0x3A:
-      return Op0x3A();
-    case 0x3B:
-      return Op0x3B();
-    case 0x3C:
-      return Op0x3C();
-    case 0x3D:
-      return Op0x3D();
-    case 0x3E:
-      return Op0x3E();
-    case 0x3F:
-      return Op0x3F();
-    case 0x40:
-      return Op0x40();
-    case 0x41:
-      return Op0x41();
-    case 0x42:
-      return Op0x42();
-    case 0x43:
-      return Op0x43();
-    case 0x44:
-      return Op0x44();
-    case 0x45:
-      return Op0x45();
-    case 0x46:
-      return Op0x46();
-    case 0x47:
-      return Op0x47();
-    case 0x48:
-      return Op0x48();
-    case 0x49:
-      return Op0x49();
-    case 0x4A:
-      return Op0x4A();
-    case 0x4B:
-      return Op0x4B();
-    case 0x4C:
-      return Op0x4C();
-    case 0x4D:
-      return Op0x4D();
-    case 0x4E:
-      return Op0x4E();
-    case 0x4F:
-      return Op0x4F();
-    case 0x50:
-      return Op0x50();
-    case 0x51:
-      return Op0x51();
-    case 0x52:
-      return Op0x52();
-    case 0x53:
-      return Op0x53();
-    case 0x54:
-      return Op0x54();
-    case 0x55:
-      return Op0x55();
-    case 0x56:
-      return Op0x56();
-    case 0x57:
-      return Op0x57();
-    case 0x58:
-      return Op0x58();
-    case 0x59:
-      return Op0x59();
-    case 0x5A:
-      return Op0x5A();
-    case 0x5B:
-      return Op0x5B();
-    case 0x5C:
-      return Op0x5C();
-    case 0x5D:
-      return Op0x5D();
-    case 0x5E:
-      return Op0x5E();
-    case 0x5F:
-      return Op0x5F();
-    case 0x60:
-      return Op0x60();
-    case 0x61:
-      return Op0x61();
-    case 0x62:
-      return Op0x62();
-    case 0x63:
-      return Op0x63();
-    case 0x64:
-      return Op0x64();
-    case 0x65:
-      return Op0x65();
-    case 0x66:
-      return Op0x66();
-    case 0x67:
-      return Op0x67();
-    case 0x68:
-      return Op0x68();
-    case 0x69:
-      return Op0x69();
-    case 0x6A:
-      return Op0x6A();
-    case 0x6B:
-      return Op0x6B();
-    case 0x6C:
-      return Op0x6C();
-    case 0x6D:
-      return Op0x6D();
-    case 0x6E:
-      return Op0x6E();
-    case 0x6F:
-      return Op0x6F();
-    case 0x70:
-      return Op0x70();
-    case 0x71:
-      return Op0x71();
-    case 0x72:
-      return Op0x72();
-    case 0x73:
-      return Op0x73();
-    case 0x74:
-      return Op0x74();
-    case 0x75:
-      return Op0x75();
-    case 0x76:
-      return Op0x76();
-    case 0x77:
-      return Op0x77();
-    case 0x78:
-      return Op0x78();
-    case 0x79:
-      return Op0x79();
-    case 0x7A:
-      return Op0x7A();
-    case 0x7B:
-      return Op0x7B();
-    case 0x7C:
-      return Op0x7C();
-    case 0x7D:
-      return Op0x7D();
-    case 0x7E:
-      return Op0x7E();
-    case 0x7F:
-      return Op0x7F();
-    case 0x80:
-      return Op0x80();
-    case 0x81:
-      return Op0x81();
-    case 0x82:
-      return Op0x82();
-    case 0x83:
-      return Op0x83();
-    case 0x84:
-      return Op0x84();
-    case 0x85:
-      return Op0x85();
-    case 0x86:
-      return Op0x86();
-    case 0x87:
-      return Op0x87();
-    case 0x88:
-      return Op0x88();
-    case 0x89:
-      return Op0x89();
-    case 0x8A:
-      return Op0x8A();
-    case 0x8B:
-      return Op0x8B();
-    case 0x8C:
-      return Op0x8C();
-    case 0x8D:
-      return Op0x8D();
-    case 0x8E:
-      return Op0x8E();
-    case 0x8F:
-      return Op0x8F();
-    case 0x90:
-      return Op0x90();
-    case 0x91:
-      return Op0x91();
-    case 0x92:
-      return Op0x92();
-    case 0x93:
-      return Op0x93();
-    case 0x94:
-      return Op0x94();
-    case 0x95:
-      return Op0x95();
-    case 0x96:
-      return Op0x96();
-    case 0x97:
-      return Op0x97();
-    case 0x98:
-      return Op0x98();
-    case 0x99:
-      return Op0x99();
-    case 0x9A:
-      return Op0x9A();
-    case 0x9B:
-      return Op0x9B();
-    case 0x9C:
-      return Op0x9C();
-    case 0x9D:
-      return Op0x9D();
-    case 0x9E:
-      return Op0x9E();
-    case 0x9F:
-      return Op0x9F();
-    case 0xA0:
-      return Op0xA0();
-    case 0xA1:
-      return Op0xA1();
-    case 0xA2:
-      return Op0xA2();
-    case 0xA3:
-      return Op0xA3();
-    case 0xA4:
-      return Op0xA4();
-    case 0xA5:
-      return Op0xA5();
-    case 0xA6:
-      return Op0xA6();
-    case 0xA7:
-      return Op0xA7();
-    case 0xA8:
-      return Op0xA8();
-    case 0xA9:
-      return Op0xA9();
-    case 0xAA:
-      return Op0xAA();
-    case 0xAB:
-      return Op0xAB();
-    case 0xAC:
-      return Op0xAC();
-    case 0xAD:
-      return Op0xAD();
-    case 0xAE:
-      return Op0xAE();
-    case 0xAF:
-      return Op0xAF();
-    case 0xB0:
-      return Op0xB0();
-    case 0xB1:
-      return Op0xB1();
-    case 0xB2:
-      return Op0xB2();
-    case 0xB3:
-      return Op0xB3();
-    case 0xB4:
-      return Op0xB4();
-    case 0xB5:
-      return Op0xB5();
-    case 0xB6:
-      return Op0xB6();
-    case 0xB7:
-      return Op0xB7();
-    case 0xB8:
-      return Op0xB8();
-    case 0xB9:
-      return Op0xB9();
-    case 0xBA:
-      return Op0xBA();
-    case 0xBB:
-      return Op0xBB();
-    case 0xBC:
-      return Op0xBC();
-    case 0xBD:
-      return Op0xBD();
-    case 0xBE:
-      return Op0xBE();
-    case 0xBF:
-      return Op0xBF();
-    case 0xC0:
-      return Op0xC0();
-    case 0xC1:
-      return Op0xC1();
-    case 0xC2:
-      return Op0xC2();
-    case 0xC3:
-      return Op0xC3();
-    case 0xC4:
-      return Op0xC4();
-    case 0xC5:
-      return Op0xC5();
-    case 0xC6:
-      return Op0xC6();
-    case 0xC7:
-      return Op0xC7();
-    case 0xC8:
-      return Op0xC8();
-    case 0xC9:
-      return Op0xC9();
-    case 0xCA:
-      return Op0xCA();
-    case 0xCB:
-      return Op0xCB();
-    case 0xCC:
-      return Op0xCC();
-    case 0xCD:
-      return Op0xCD();
-    case 0xCE:
-      return Op0xCE();
-    case 0xCF:
-      return Op0xCF();
-    case 0xD0:
-      return Op0xD0();
-    case 0xD1:
-      return Op0xD1();
-    case 0xD2:
-      return Op0xD2();
-    case 0xD3:
-      return Op0xD3();
-    case 0xD4:
-      return Op0xD4();
-    case 0xD5:
-      return Op0xD5();
-    case 0xD6:
-      return Op0xD6();
-    case 0xD7:
-      return Op0xD7();
-    case 0xD8:
-      return Op0xD8();
-    case 0xD9:
-      return Op0xD9();
-    case 0xDA:
-      return Op0xDA();
-    case 0xDB:
-      return Op0xDB();
-    case 0xDC:
-      return Op0xDC();
-    case 0xDD:
-      return Op0xDD();
-    case 0xDE:
-      return Op0xDE();
-    case 0xDF:
-      return Op0xDF();
-    case 0xE0:
-      return Op0xE0();
-    case 0xE1:
-      return Op0xE1();
-    case 0xE2:
-      return Op0xE2();
-    case 0xE3:
-      return Op0xE3();
-    case 0xE4:
-      return Op0xE4();
-    case 0xE5:
-      return Op0xE5();
-    case 0xE6:
-      return Op0xE6();
-    case 0xE7:
-      return Op0xE7();
-    case 0xE8:
-      return Op0xE8();
-    case 0xE9:
-      return Op0xE9();
-    case 0xEA:
-      return Op0xEA();
-    case 0xEB:
-      return Op0xEB();
-    case 0xEC:
-      return Op0xEC();
-    case 0xED:
-      return Op0xED();
-    case 0xEE:
-      return Op0xEE();
-    case 0xEF:
-      return Op0xEF();
-    case 0xF0:
-      return Op0xF0();
-    case 0xF1:
-      return Op0xF1();
-    case 0xF2:
-      return Op0xF2();
-    case 0xF3:
-      return Op0xF3();
-    case 0xF4:
-      return Op0xF4();
-    case 0xF5:
-      return Op0xF5();
-    case 0xF6:
-      return Op0xF6();
-    case 0xF7:
-      return Op0xF7();
-    case 0xF8:
-      return Op0xF8();
-    case 0xF9:
-      return Op0xF9();
-    case 0xFA:
-      return Op0xFA();
-    case 0xFB:
-      return Op0xFB();
-    case 0xFC:
-      return Op0xFC();
-    case 0xFD:
-      return Op0xFD();
-    case 0xFE:
-      return Op0xFE();
-    case 0xFF:
-      return Op0xFF();
-    default:
-      return 0;
-  }
 }
 
 int Cpu::ExecuteCb(uint8_t opcode)
