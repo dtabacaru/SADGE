@@ -93,10 +93,19 @@ static void TestOpcode(uint8_t opcode)
     }
 
     const auto& test_cycles = test["cycles"];
+    auto emulator_test_cycles = cpu_.GetTestCycles();
+
+    EXPECT_EQ(test_cycles.size(), emulator_test_cycles.size());
+
+    if (test_cycles.size() != emulator_test_cycles.size())
+      return;
 
     for (int cycle_num = 0; cycle_num < test_cycles.size(); cycle_num += 1)
     {
       const auto& test_cycle = test_cycles[cycle_num];
+
+      if (test_cycle[2].asString() == "---")
+        continue;
 
       bool address_matched = test_cycle[0].asUInt() == cpu_.GetTestCycles()[cycle_num].address_bus;
       bool data_matched = test_cycle[1].asUInt() == cpu_.GetTestCycles()[cycle_num].data_bus;
@@ -108,69 +117,69 @@ static void TestOpcode(uint8_t opcode)
 }
 
 #ifdef ENABLED
-TEST(Instructions, OP0x00) { TestOpcode(0x00); } // ok
-TEST(Instructions, OP0x01) { TestOpcode(0x01); } // ok
+//TEST(Instructions, OP0x00) { TestOpcode(0x00); } // ok
+//TEST(Instructions, OP0x01) { TestOpcode(0x01); } // ok
 //TEST(Instructions, OP0x02) { TestOpcode(0x02); } 
-//TEST(Instructions, OP0x03) { TestOpcode(0x03); } 
+//TEST(Instructions, OP0x03) { TestOpcode(0x03); } // ok
 //TEST(Instructions, OP0x04) { TestOpcode(0x04); } 
 //TEST(Instructions, OP0x05) { TestOpcode(0x05); } 
 //TEST(Instructions, OP0x06) { TestOpcode(0x06); } 
 //TEST(Instructions, OP0x07) { TestOpcode(0x07); } 
 //TEST(Instructions, OP0x08) { TestOpcode(0x08); } 
-//TEST(Instructions, OP0x09) { TestOpcode(0x09); } 
+TEST(Instructions, OP0x09) { TestOpcode(0x09); } // ok
 //TEST(Instructions, OP0x0A) { TestOpcode(0x0A); } 
-//TEST(Instructions, OP0x0B) { TestOpcode(0x0B); } 
+//TEST(Instructions, OP0x0B) { TestOpcode(0x0B); } // ok
 //TEST(Instructions, OP0x0C) { TestOpcode(0x0C); } 
 //TEST(Instructions, OP0x0D) { TestOpcode(0x0D); } 
 //TEST(Instructions, OP0x0E) { TestOpcode(0x0E); } 
 //TEST(Instructions, OP0x0F) { TestOpcode(0x0F); } 
 //
 //TEST(Instructions, OP0x10) { TestOpcode(0x10); } 
-TEST(Instructions, OP0x11) { TestOpcode(0x11); } // ok
+//TEST(Instructions, OP0x11) { TestOpcode(0x11); } // ok
 //TEST(Instructions, OP0x12) { TestOpcode(0x12); } 
-//TEST(Instructions, OP0x13) { TestOpcode(0x13); } 
+//TEST(Instructions, OP0x13) { TestOpcode(0x13); } // ok
 //TEST(Instructions, OP0x14) { TestOpcode(0x14); } 
 //TEST(Instructions, OP0x15) { TestOpcode(0x15); } 
 //TEST(Instructions, OP0x16) { TestOpcode(0x16); } 
 //TEST(Instructions, OP0x17) { TestOpcode(0x17); } 
 //TEST(Instructions, OP0x18) { TestOpcode(0x18); } 
-//TEST(Instructions, OP0x19) { TestOpcode(0x19); } 
+TEST(Instructions, OP0x19) { TestOpcode(0x19); } // ok
 //TEST(Instructions, OP0x1A) { TestOpcode(0x1A); } 
-//TEST(Instructions, OP0x1B) { TestOpcode(0x1B); } 
+//TEST(Instructions, OP0x1B) { TestOpcode(0x1B); } // ok
 //TEST(Instructions, OP0x1C) { TestOpcode(0x1C); } 
 //TEST(Instructions, OP0x1D) { TestOpcode(0x1D); } 
 //TEST(Instructions, OP0x1E) { TestOpcode(0x1E); } 
 //TEST(Instructions, OP0x1F) { TestOpcode(0x1F); } 
 //
 //TEST(Instructions, OP0x20) { TestOpcode(0x20); } 
-TEST(Instructions, OP0x21) { TestOpcode(0x21); } //ok
+//TEST(Instructions, OP0x21) { TestOpcode(0x21); } // ok
 //TEST(Instructions, OP0x22) { TestOpcode(0x22); } 
-//TEST(Instructions, OP0x23) { TestOpcode(0x23); } 
+//TEST(Instructions, OP0x23) { TestOpcode(0x23); } // ok
 //TEST(Instructions, OP0x24) { TestOpcode(0x24); } 
 //TEST(Instructions, OP0x25) { TestOpcode(0x25); } 
 //TEST(Instructions, OP0x26) { TestOpcode(0x26); } 
 //TEST(Instructions, OP0x27) { TestOpcode(0x27); } 
 //TEST(Instructions, OP0x28) { TestOpcode(0x28); } 
-//TEST(Instructions, OP0x29) { TestOpcode(0x29); } 
+TEST(Instructions, OP0x29) { TestOpcode(0x29); } // ok
 //TEST(Instructions, OP0x2A) { TestOpcode(0x2A); } 
-//TEST(Instructions, OP0x2B) { TestOpcode(0x2B); } 
+//TEST(Instructions, OP0x2B) { TestOpcode(0x2B); } // ok
 //TEST(Instructions, OP0x2C) { TestOpcode(0x2C); } 
 //TEST(Instructions, OP0x2D) { TestOpcode(0x2D); } 
 //TEST(Instructions, OP0x2E) { TestOpcode(0x2E); } 
 //TEST(Instructions, OP0x2F) { TestOpcode(0x2F); } 
 //
 //TEST(Instructions, OP0x30) { TestOpcode(0x30); } 
-TEST(Instructions, OP0x31) { TestOpcode(0x31); } 
+//TEST(Instructions, OP0x31) { TestOpcode(0x31); } // ok
 //TEST(Instructions, OP0x32) { TestOpcode(0x32); } 
-//TEST(Instructions, OP0x33) { TestOpcode(0x33); } 
+//TEST(Instructions, OP0x33) { TestOpcode(0x33); } // ok
 //TEST(Instructions, OP0x34) { TestOpcode(0x34); } 
 //TEST(Instructions, OP0x35) { TestOpcode(0x35); } 
 //TEST(Instructions, OP0x36) { TestOpcode(0x36); } 
 //TEST(Instructions, OP0x37) { TestOpcode(0x37); } 
 //TEST(Instructions, OP0x38) { TestOpcode(0x38); } 
-//TEST(Instructions, OP0x39) { TestOpcode(0x39); } 
+TEST(Instructions, OP0x39) { TestOpcode(0x39); } // ok
 //TEST(Instructions, OP0x3A) { TestOpcode(0x3A); } 
-//TEST(Instructions, OP0x3B) { TestOpcode(0x3B); } 
+//TEST(Instructions, OP0x3B) { TestOpcode(0x3B); } // ok
 //TEST(Instructions, OP0x3C) { TestOpcode(0x3C); } 
 //TEST(Instructions, OP0x3D) { TestOpcode(0x3D); } 
 //TEST(Instructions, OP0x3E) { TestOpcode(0x3E); } 

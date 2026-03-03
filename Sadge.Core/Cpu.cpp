@@ -779,7 +779,9 @@ void Cpu::FallingTEvent()
 void Cpu::RisingMEvent()
 {
   TickExecution();
-  Fetch();
+
+  if(_opcycle == 0)
+    Fetch();
 
   m_timer_controller.Update();
 }
@@ -840,9 +842,9 @@ void Cpu::Main()
 
 uint8_t Cpu::ReadNextUint8()
 {
-  _addressBus = m_pc;
+  _addressBus = _pc.hl;
   uint8_t val = ReadAddress(_addressBus);
-  m_pc += 1;
+  _pc.hl += 1;
 
   return val;
 }
@@ -856,12 +858,12 @@ void Cpu::TestExecute()
   {
     _test_cycles.push_back({_addressBus, _dataBus});
     TickExecution();
-  } while (_op_cycle > 0);
+  } while (_opcycle > 0);
 }
 
 void Cpu::TickExecution()
 {
-  switch (m_opcode)
+  switch (_opcode)
   {
     case 0x00:
       Op0x00(); break;
@@ -2191,6 +2193,17 @@ void Cpu::Mbc3_5FFF(uint8_t val)
   m_ram_bank = val & 0b11;
 }
 
+uint16_t Cpu::ReadNextUint16()
+{
+  _addressBus = _pc.hl;
+  uint8_t l = ReadAddress(_pc.hl);
+  _pc.hl += 1;
+  uint8_t h = ReadAddress(_pc.hl);
+  _pc.hl += 1;
+
+  return (h << 8) | l;
+}
+
 void Cpu::Mbc3_3FFF(uint8_t val)
 {
   m_rom_bank = val & 0x7F;
@@ -2296,41 +2309,41 @@ void Cpu::SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c
   ime;
   ie;
 
-  m_pc = pc;
-  m_sp = sp;
-  m_af.h = a;
-  m_bc.h = b;
-  m_bc.l = c;
-  m_de.h = d;
-  m_de.l = e;
-  m_af.l = f;
-  m_hl.h = h;
-  m_hl.l = l;
+  _pc.hl = pc;
+  _sp.hl = sp;
+  _af.h = a;
+  _bc.h = b;
+  _bc.l = c;
+  _de.h = d;
+  _de.l = e;
+  _af.l = f;
+  _hl.h = h;
+  _hl.l = l;
 }
 
 bool Cpu::CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
 {
   ime;
 
-  if (pc != m_pc)
+  if (pc != _pc.hl)
     return false;
-  else if (sp != m_sp)
+  else if (sp != _sp.hl)
     return false;
-  else if (a != m_af.h)
+  else if (a != _af.h)
     return false;
-  else if (b != m_bc.h)
+  else if (b != _bc.h)
     return false;
-  else if (c != m_bc.l)
+  else if (c != _bc.l)
     return false;
-  else if (d != m_de.h)
+  else if (d != _de.h)
     return false;
-  else if (e != m_de.l)
+  else if (e != _de.l)
     return false;
-  else if (f != m_af.l)
+  else if (f != _af.l)
     return false;
-  else if (h != m_hl.h)
+  else if (h != _hl.h)
     return false;
-  else if (l != m_hl.l)
+  else if (l != _hl.l)
     return false;
   else
     return true;

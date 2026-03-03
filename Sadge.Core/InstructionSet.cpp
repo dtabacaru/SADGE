@@ -1,29 +1,87 @@
 #include "Cpu.h"
 
-void Cpu::LD_RR_dd(uint16_t& RR)
+// Flags: - - - -
+void Cpu::LD_rr_nn(Register& rr)
 {
-  static uint8_t l{};
-  static uint8_t h{};
-
-  switch (_op_cycle)
+  switch (_opcycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      l = _dataBus;
+      _nn.l, _dataBus = ReadNextUint8();
+      _opcycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      h = _dataBus;
+      _nn.h, _dataBus = ReadNextUint8();
+      _opcycle += 1;
       break;
     case 2:
-      RR = (h << 8) | l;
-      _op_cycle = 0;
-      return;
+      rr = _nn;
+      break;
     default:
       break;
   }
+}
 
-  _op_cycle += 1;
+// Flags: - - - -
+void Cpu::ADD_rr(Register& rr, int val)
+{
+  switch (_opcycle)
+  {
+    case 0:
+      _addressBus = rr.hl;
+      rr.hl += val;
+      _opcycle += 1;
+      break;
+    case 1:
+      _opcycle = 0;
+      break;
+    default:
+      break;
+  }
+}
+
+// Flags: - 0 H C
+void Cpu::ADD_HL_rr(Register rr)
+{
+  int result{};
+
+  switch (_opcycle)
+  {
+    case 0:
+      _addressBus = 0x0000;
+      //result = _hl.l + RR.l;
+      //ResetFlag(FlagBitMask::Subtract);
+      //SetHalfCarryFlag(_hl.l, RR.l);
+      //SetCarry8Bit(result);
+      //_hl.l = result;
+      _opcycle += 1;
+      break;
+    case 1:
+      //result = _hl.h + RR.h + ReadFlag(FlagBitMask::Carry);
+      //ResetFlag(FlagBitMask::Subtract);
+      //SetHalfCarryFlag(_hl.h, RR.h, ReadFlag(FlagBitMask::Carry));
+      //SetCarry8Bit(result);
+      //_hl.h = result;
+      result = _hl.hl + rr.hl;
+      ResetFlag(FlagBitMask::Subtract);
+      SetHalfCarryFlag(_hl.hl, rr.hl);
+      SetCarry16Bit(result);
+      _hl.hl = result;
+      _opcycle = 0;
+      break;
+    default:
+      break;
+  }
+}
+
+void Cpu::INC_rr(Register& rr)
+{
+  ADD_rr(rr, 1);
+}
+
+// Flags: - - - -
+void Cpu::DEC_rr(Register& rr)
+{
+  ADD_rr(rr, -1);
 }
 
 void Cpu::Op0x00()
@@ -33,31 +91,80 @@ void Cpu::Op0x00()
 
 void Cpu::Op0x01()
 {
-  LD_RR_dd(m_bc.hl);
+  LD_rr_nn(_bc);
+}
+
+void Cpu::Op0x03()
+{
+  INC_rr(_bc);
+}
+
+void Cpu::Op0x09()
+{
+  ADD_HL_rr(_bc);
+}
+
+void Cpu::Op0x0B()
+{
+  DEC_rr(_bc);
 }
 
 void Cpu::Op0x11()
 {
-  LD_RR_dd(m_de.hl);
+  LD_rr_nn(_de);
+}
+
+void Cpu::Op0x13()
+{
+  INC_rr(_de);
+}
+
+void Cpu::Op0x19()
+{
+  ADD_HL_rr(_de);
+}
+
+void Cpu::Op0x1B()
+{
+  DEC_rr(_de);
 }
 
 void Cpu::Op0x21()
 {
-  LD_RR_dd(m_hl.hl);
+  LD_rr_nn(_hl);
+}
+
+void Cpu::Op0x23()
+{
+  INC_rr(_hl);
+}
+
+void Cpu::Op0x29()
+{
+  ADD_HL_rr(_hl);
+}
+
+void Cpu::Op0x2B()
+{
+  DEC_rr(_hl);
 }
 
 void Cpu::Op0x31()
 {
-  LD_RR_dd(m_sp);
+  LD_rr_nn(_sp);
 }
 
-uint16_t Cpu::ReadNextUint16()
+void Cpu::Op0x33()
 {
-  _addressBus = m_pc;
-  uint8_t l = ReadAddress(m_pc);
-  m_pc += 1;
-  uint8_t h = ReadAddress(m_pc);
-  m_pc += 1;
+  INC_rr(_sp);
+}
 
-  return (h << 8) | l;
+void Cpu::Op0x39()
+{
+  ADD_HL_rr(_sp);
+}
+
+void Cpu::Op0x3B()
+{
+  DEC_rr(_sp);
 }

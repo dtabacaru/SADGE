@@ -83,7 +83,7 @@ public:
   void RisingMEvent();
   void FallingMEvent();
 
-  uint64_t _op_cycle{0};
+  uint64_t _opcycle{0};
   uint16_t _addressBus{0};
   uint8_t  _dataBus{0};
 
@@ -175,13 +175,16 @@ private:
     uint16_t hl{};
   };
 
-  Register m_af{};
-  Register m_bc{};
-  Register m_de{};
-  Register m_hl{};
+  Register _af{};
+  Register _bc{};
+  Register _de{};
+  Register _hl{};
 
-  uint16_t m_sp{};
-  uint16_t m_pc{};
+  Register _sp{};
+  Register _pc{};
+
+  Register _nn{};
+  uint8_t   _n{};
 
 std::string OutputRegisters()
   {
@@ -189,7 +192,7 @@ std::string OutputRegisters()
 
     ss << std::dec << m_total_cycle_count;
     ss << std::hex << std::uppercase << std::setfill('0');
-    ss << " AF: " << std::setw(4) << m_af.hl << " BC: " << std::setw(4) << m_bc.hl << " DE: " << std::setw(4) << m_de.hl << " HL: " << std::setw(4) << m_hl.hl << " SP: " << std::setw(4) << m_sp << " PC: " << std::setw(4) << m_pc << " op: " << std::setw(2) << (int)m_opcode;
+    ss << " AF: " << std::setw(4) << _af.hl << " BC: " << std::setw(4) << _bc.hl << " DE: " << std::setw(4) << _de.hl << " HL: " << std::setw(4) << _hl.hl << " SP: " << std::setw(4) << _sp.hl << " PC: " << std::setw(4) << _pc.hl << " op: " << std::setw(2) << (int)_opcode;
     ss << " IME: " << std::dec << (int)m_interrupt_controller.m_ime << " IE: " << (int)m_interrupt_controller.m_ie << " IF: " << (int)m_interrupt_controller.m_if;
 
     return ss.str();
@@ -206,38 +209,38 @@ std::string OutputRegisters()
     Zero = 0b10000000
   };
 
-  inline void SetHalfCarryFlagBit3To4(uint8_t val1, int val2)
+  inline void SetHalfCarryFlag(uint8_t val1, int val2)
   {
     bool bit_4_set = val2 < 0 ? ((val1 & 0xF) - (-val2 & 0xF)) & 0x10
-      : ((val1 & 0xF) + (+val2 & 0xF)) & 0x10;
+                              : ((val1 & 0xF) + (+val2 & 0xF)) & 0x10;
 
     bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
   }
 
-  inline void SetHalfCarryFlagBit3To4Fc(uint8_t val1, int val2, int carry)
+  inline void SetHalfCarryFlag(uint8_t val1, int val2, int carry)
   {
-    bool bit_4_set = val2 < 0 || carry < 0 ? ((val1 & 0xF) - (-val2 & 0xF) - (-carry & 0xF)) & 0x10
-      : ((val1 & 0xF) + (+val2 & 0xF) + (+carry & 0xF)) & 0x10;
+    bool bit_4_set = val2 < 0 ? ((val1 & 0xF) - (-val2 & 0xF) - (-carry & 0xF)) & 0x10
+                              : ((val1 & 0xF) + (+val2 & 0xF) + (+carry & 0xF)) & 0x10;
 
     bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
   }
 
-  inline void SetHalfCarryFlagBit11To12(uint16_t val1, int val2)
+  inline void SetHalfCarryFlag(uint16_t val1, int val2)
   {
     bool bit_12_set = val2 < 0 ? ((val1 & 0xFFF) - (-val2 & 0xFFF)) & 0x1000
-      : ((val1 & 0xFFF) + (+val2 & 0xFFF)) & 0x1000;
+                               : ((val1 & 0xFFF) + (+val2 & 0xFFF)) & 0x1000;
 
     bit_12_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
   }
 
-  inline void SetCarry16Bit(int val)
+  inline void SetCarry16Bit(int result)
   {
-    (val > 0xFFFF || val < 0) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+    (result > 0xFFFF || result < 0) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
   }
 
-  inline void SetCarry8Bit(int val)
+  inline void SetCarry8Bit(int result)
   {
-    (val > 0xFF || val < 0) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+    (result > 0xFF || result < 0) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
   }
 
   inline void SetZeroFlag(uint8_t val)
@@ -252,17 +255,17 @@ std::string OutputRegisters()
 
   inline void SetFlag(FlagBitMask flag)
   {
-    m_af.l |= static_cast<uint8_t>(flag);
+    _af.l |= static_cast<uint8_t>(flag);
   }
 
   inline void ResetFlag(FlagBitMask flag)
   {
-    m_af.l &= ~static_cast<uint8_t>(flag);
+    _af.l &= ~static_cast<uint8_t>(flag);
   }
 
   inline bool ReadFlag(FlagBitMask flag) const
   {
-    return m_af.l & static_cast<uint8_t>(flag);
+    return _af.l & static_cast<uint8_t>(flag);
   }
 #pragma endregion
 
@@ -356,7 +359,8 @@ std::string OutputRegisters()
   double m_compensation_time = 0;
   uint64_t m_frame_cycles = 0;
 
-  uint8_t m_opcode = 0x00;
+  uint8_t _opcode = 0x00;
+  bool _op
 
   bool m_boot_complete = false;
   bool m_interrupt_enabled_requested = false;
@@ -375,8 +379,8 @@ std::string OutputRegisters()
 
   inline int8_t ReadNextInt8()
   {
-    uint8_t val = ReadAddress(m_pc);
-    m_pc += 1;
+    uint8_t val = ReadAddress(_pc.hl);
+    _pc.hl += 1;
 
     return static_cast<int8_t>(val);
   }
@@ -399,10 +403,10 @@ std::string OutputRegisters()
   inline int InterruptHandler()
   {
     uint16_t isr = m_interrupt_controller.HandleInterrupt();
-    m_pc -= 1;
-    PUSH_RR(m_pc);
-    m_pc = isr;
-    //m_opcode = Fetch();
+    _pc.hl -= 1;
+    PUSH_RR(_pc.hl);
+    _pc.hl = isr;
+    Fetch();
 
     return 20;
   }
@@ -410,7 +414,7 @@ std::string OutputRegisters()
   void Fetch()
   {
     _dataBus = ReadNextUint8();
-    m_opcode = _dataBus;
+    _opcode  = _dataBus;
   }
 
   double m_frame_time = 0;
@@ -453,31 +457,27 @@ std::string OutputRegisters()
 
   inline int Op0x02()
   {
-    LD__RR_A(m_bc.hl);
+    LD__RR_A(_bc.hl);
     return 8;
   }
 
-  inline int Op0x03()
-  {
-    INC_RR(m_bc.hl);
-    return 8;
-  }
+  void Op0x03();
 
   inline int Op0x04()
   {
-    INC_R(m_bc.h);
+    INC_R(_bc.h);
     return 4;
   }
 
   inline int Op0x05()
   {
-    DEC_R(m_bc.h);
+    DEC_R(_bc.h);
     return 4;
   }
 
   inline int Op0x06()
   {
-    LD_R_d(m_bc.h);
+    LD_R_d(_bc.h);
     return 8;
   }
 
@@ -489,43 +489,35 @@ std::string OutputRegisters()
 
   inline int Op0x08()
   {
-    LD__dd_RR(m_sp);
+    LD__dd_RR(_sp.hl);
     return 20;
   }
 
-  inline int Op0x09()
-  {
-    ADD_HL_RR(m_bc.hl);
-    return 8;
-  }
+  void Op0x09();
 
   inline int Op0x0A()
   {
-    LD_A__RR(m_bc.hl);
+    LD_A__RR(_bc.hl);
     return 8;
   }
 
-  inline int Op0x0B()
-  {
-    DEC_RR(m_bc.hl);
-    return 8;
-  }
+  void Op0x0B();
 
   inline int Op0x0C()
   {
-    INC_R(m_bc.l);
+    INC_R(_bc.l);
     return 4;
   }
 
   inline int Op0x0D()
   {
-    DEC_R(m_bc.l);
+    DEC_R(_bc.l);
     return 4;
   }
 
   inline int Op0x0E()
   {
-    LD_R_d(m_bc.l);
+    LD_R_d(_bc.l);
     return 8;
   }
 
@@ -545,31 +537,27 @@ std::string OutputRegisters()
 
   inline int Op0x12()
   {
-    LD__RR_A(m_de.hl);
+    LD__RR_A(_de.hl);
     return 8;
   }
 
-  inline int Op0x13()
-  {
-    INC_RR(m_de.hl);
-    return 8;
-  }
+  void Op0x13();
 
   inline int Op0x14()
   {
-    INC_R(m_de.h);
+    INC_R(_de.h);
     return 4;
   }
 
   inline int Op0x15()
   {
-    DEC_R(m_de.h);
+    DEC_R(_de.h);
     return 4;
   }
 
   inline int Op0x16()
   {
-    LD_R_d(m_de.h);
+    LD_R_d(_de.h);
     return 8;
   }
 
@@ -585,39 +573,31 @@ std::string OutputRegisters()
     return 12;
   }
 
-  inline int Op0x19()
-  {
-    ADD_HL_RR(m_de.hl);
-    return 8;
-  }
+  void Op0x19();
 
   inline int Op0x1A()
   {
-    LD_A__RR(m_de.hl);
+    LD_A__RR(_de.hl);
     return 8;
   }
 
-  inline int Op0x1B()
-  {
-    DEC_RR(m_de.hl);
-    return 8;
-  }
+  void Op0x1B();
 
   inline int Op0x1C()
   {
-    INC_R(m_de.l);
+    INC_R(_de.l);
     return 4;
   }
 
   inline int Op0x1D()
   {
-    DEC_R(m_de.l);
+    DEC_R(_de.l);
     return 4;
   }
 
   inline int Op0x1E()
   {
-    LD_R_d(m_de.l);
+    LD_R_d(_de.l);
     return 8;
   }
 
@@ -637,31 +617,27 @@ std::string OutputRegisters()
 
   inline int Op0x22()
   {
-    LD__RR_A(m_hl.hl++);
+    LD__RR_A(_hl.hl++);
     return 8;
   }
 
-  inline int Op0x23()
-  {
-    INC_RR(m_hl.hl);
-    return 8;
-  }
+  void Op0x23();
 
   inline int Op0x24()
   {
-    INC_R(m_hl.h);
+    INC_R(_hl.h);
     return 4;
   }
 
   inline int Op0x25()
   {
-    DEC_R(m_hl.h);
+    DEC_R(_hl.h);
     return 4;
   }
 
   inline int Op0x26()
   {
-    LD_R_d(m_hl.h);
+    LD_R_d(_hl.h);
     return 8;
   }
 
@@ -677,39 +653,31 @@ std::string OutputRegisters()
     return ReadFlag(FlagBitMask::Zero) ? 12 : 8;
   }
 
-  inline int Op0x29()
-  {
-    ADD_HL_RR(m_hl.hl);
-    return 8;
-  }
+  void Op0x29();
 
   inline int Op0x2A()
   {
-    LD_A__RR(m_hl.hl++);
+    LD_A__RR(_hl.hl++);
     return 8;
   }
 
-  inline int Op0x2B()
-  {
-    DEC_RR(m_hl.hl);
-    return 8;
-  }
+  void Op0x2B();
 
   inline int Op0x2C()
   {
-    INC_R(m_hl.l);
+    INC_R(_hl.l);
     return 4;
   }
 
   inline int Op0x2D()
   {
-    DEC_R(m_hl.l);
+    DEC_R(_hl.l);
     return 4;
   }
 
   inline int Op0x2E()
   {
-    LD_R_d(m_hl.l);
+    LD_R_d(_hl.l);
     return 8;
   }
 
@@ -729,31 +697,27 @@ std::string OutputRegisters()
 
   inline int Op0x32()
   {
-    LD__RR_A(m_hl.hl--);
+    LD__RR_A(_hl.hl--);
     return 8;
   }
 
-  inline int Op0x33()
-  {
-    INC_RR(m_sp);
-    return 8;
-  }
+  void Op0x33();
 
   inline int Op0x34()
   {
-    INC__RR(m_hl.hl);
+    INC__RR(_hl.hl);
     return 12;
   }
 
   inline int Op0x35()
   {
-    DEC__RR(m_hl.hl);
+    DEC__RR(_hl.hl);
     return 12;
   }
 
   inline int Op0x36()
   {
-    WriteAddress(m_hl.hl, ReadNextUint8());
+    WriteAddress(_hl.hl, ReadNextUint8());
     return 12;
   }
 
@@ -769,39 +733,31 @@ std::string OutputRegisters()
     return ReadFlag(FlagBitMask::Carry) ? 12 : 8;
   }
 
-  inline int Op0x39()
-  {
-    ADD_HL_RR(m_sp);
-    return 8;
-  }
+  void Op0x39();
 
   inline int Op0x3A()
   {
-    LD_A__RR(m_hl.hl--);
+    LD_A__RR(_hl.hl--);
     return 8;
   }
 
-  inline int Op0x3B()
-  {
-    DEC_RR(m_sp);
-    return 8;
-  }
+  void Op0x3B();
 
   inline int Op0x3C()
   {
-    INC_R(m_af.h);
+    INC_R(_af.h);
     return 4;
   }
 
   inline int Op0x3D()
   {
-    DEC_R(m_af.h);
+    DEC_R(_af.h);
     return 4;
   }
 
   inline int Op0x3E()
   {
-    LD_R_d(m_af.h);
+    LD_R_d(_af.h);
     return 8;
   }
 
@@ -813,322 +769,322 @@ std::string OutputRegisters()
 
   inline int Op0x40()
   {
-    LD_R_X(m_bc.h, m_bc.h);
+    LD_R_X(_bc.h, _bc.h);
     return 4;
   }
 
   inline int Op0x41()
   {
-    LD_R_X(m_bc.h, m_bc.l);
+    LD_R_X(_bc.h, _bc.l);
     return 4;
   }
 
   inline int Op0x42()
   {
-    LD_R_X(m_bc.h, m_de.h);
+    LD_R_X(_bc.h, _de.h);
     return 4;
   }
 
   inline int Op0x43()
   {
-    LD_R_X(m_bc.h, m_de.l);
+    LD_R_X(_bc.h, _de.l);
     return 4;
   }
 
   inline int Op0x44()
   {
-    LD_R_X(m_bc.h, m_hl.h);
+    LD_R_X(_bc.h, _hl.h);
     return 4;
   }
 
   inline int Op0x45()
   {
-    LD_R_X(m_bc.h, m_hl.l);
+    LD_R_X(_bc.h, _hl.l);
     return 4;
   }
 
   inline int Op0x46()
   {
-    LD_R__HL(m_bc.h);
+    LD_R__HL(_bc.h);
     return 8;
   }
 
   inline int Op0x47()
   {
-    LD_R_X(m_bc.h, m_af.h);
+    LD_R_X(_bc.h, _af.h);
     return 4;
   }
 
   inline int Op0x48()
   {
-    LD_R_X(m_bc.l, m_bc.h);
+    LD_R_X(_bc.l, _bc.h);
     return 4;
   }
 
   inline int Op0x49()
   {
-    LD_R_X(m_bc.l, m_bc.l);
+    LD_R_X(_bc.l, _bc.l);
     return 4;
   }
 
   inline int Op0x4A()
   {
-    LD_R_X(m_bc.l, m_de.h);
+    LD_R_X(_bc.l, _de.h);
     return 4;
   }
 
   inline int Op0x4B()
   {
-    LD_R_X(m_bc.l, m_de.l);
+    LD_R_X(_bc.l, _de.l);
     return 4;
   }
 
   inline int Op0x4C()
   {
-    LD_R_X(m_bc.l, m_hl.h);
+    LD_R_X(_bc.l, _hl.h);
     return 4;
   }
 
   inline int Op0x4D()
   {
-    LD_R_X(m_bc.l, m_hl.l);
+    LD_R_X(_bc.l, _hl.l);
     return 4;
   }
 
   inline int Op0x4E()
   {
-    LD_R__HL(m_bc.l);
+    LD_R__HL(_bc.l);
     return 8;
   }
 
   inline int Op0x4F()
   {
-    LD_R_X(m_bc.l, m_af.h);
+    LD_R_X(_bc.l, _af.h);
     return 4;
   }
 
   inline int Op0x50()
   {
-    LD_R_X(m_de.h, m_bc.h);
+    LD_R_X(_de.h, _bc.h);
     return 4;
   }
 
   inline int Op0x51()
   {
-    LD_R_X(m_de.h, m_bc.l);
+    LD_R_X(_de.h, _bc.l);
     return 4;
   }
 
   inline int Op0x52()
   {
-    LD_R_X(m_de.h, m_de.h);
+    LD_R_X(_de.h, _de.h);
     return 4;
   }
 
   inline int Op0x53()
   {
-    LD_R_X(m_de.h, m_de.l);
+    LD_R_X(_de.h, _de.l);
     return 4;
   }
 
   inline int Op0x54()
   {
-    LD_R_X(m_de.h, m_hl.h);
+    LD_R_X(_de.h, _hl.h);
     return 4;
   }
 
   inline int Op0x55()
   {
-    LD_R_X(m_de.h, m_hl.l);
+    LD_R_X(_de.h, _hl.l);
     return 4;
   }
 
   inline int Op0x56()
   {
-    LD_R__HL(m_de.h);
+    LD_R__HL(_de.h);
     return 8;
   }
 
   inline int Op0x57()
   {
-    LD_R_X(m_de.h, m_af.h);
+    LD_R_X(_de.h, _af.h);
     return 4;
   }
 
   inline int Op0x58()
   {
-    LD_R_X(m_de.l, m_bc.h);
+    LD_R_X(_de.l, _bc.h);
     return 4;
   }
 
   inline int Op0x59()
   {
-    LD_R_X(m_de.l, m_bc.l);
+    LD_R_X(_de.l, _bc.l);
     return 4;
   }
 
   inline int Op0x5A()
   {
-    LD_R_X(m_de.l, m_de.h);
+    LD_R_X(_de.l, _de.h);
     return 4;
   }
 
   inline int Op0x5B()
   {
-    LD_R_X(m_de.l, m_de.l);
+    LD_R_X(_de.l, _de.l);
     return 4;
   }
 
   inline int Op0x5C()
   {
-    LD_R_X(m_de.l, m_hl.h);
+    LD_R_X(_de.l, _hl.h);
     return 4;
   }
   inline int Op0x5D()
   {
-    LD_R_X(m_de.l, m_hl.l);
+    LD_R_X(_de.l, _hl.l);
     return 4;
   }
   inline int Op0x5E()
   {
-    LD_R__HL(m_de.l);
+    LD_R__HL(_de.l);
     return 8;
   }
   inline int Op0x5F()
   {
-    LD_R_X(m_de.l, m_af.h);
+    LD_R_X(_de.l, _af.h);
     return 4;
   }
 
   inline int Op0x60()
   {
-    LD_R_X(m_hl.h, m_bc.h);
+    LD_R_X(_hl.h, _bc.h);
     return 4;
   }
 
   inline int Op0x61()
   {
-    LD_R_X(m_hl.h, m_bc.l);
+    LD_R_X(_hl.h, _bc.l);
     return 4;
   }
 
   inline int Op0x62()
   {
-    LD_R_X(m_hl.h, m_de.h);
+    LD_R_X(_hl.h, _de.h);
     return 4;
   }
 
   inline int Op0x63()
   {
-    LD_R_X(m_hl.h, m_de.l);
+    LD_R_X(_hl.h, _de.l);
     return 4;
   }
 
   inline int Op0x64()
   {
-    LD_R_X(m_hl.h, m_hl.h);
+    LD_R_X(_hl.h, _hl.h);
     return 4;
   }
 
   inline int Op0x65()
   {
-    LD_R_X(m_hl.h, m_hl.l);
+    LD_R_X(_hl.h, _hl.l);
     return 4;
   }
 
   inline int Op0x66()
   {
-    LD_R__HL(m_hl.h);
+    LD_R__HL(_hl.h);
     return 8;
   }
 
   inline int Op0x67()
   {
-    LD_R_X(m_hl.h, m_af.h);
+    LD_R_X(_hl.h, _af.h);
     return 4;
   }
 
   inline int Op0x68()
   {
-    LD_R_X(m_hl.l, m_bc.h);
+    LD_R_X(_hl.l, _bc.h);
     return 4;
   }
 
   inline int Op0x69()
   {
-    LD_R_X(m_hl.l, m_bc.l);
+    LD_R_X(_hl.l, _bc.l);
     return 4;
   }
 
   inline int Op0x6A()
   {
-    LD_R_X(m_hl.l, m_de.h);
+    LD_R_X(_hl.l, _de.h);
     return 4;
   }
 
   inline int Op0x6B()
   {
-    LD_R_X(m_hl.l, m_de.l);
+    LD_R_X(_hl.l, _de.l);
     return 4;
   }
 
   inline int Op0x6C()
   {
-    LD_R_X(m_hl.l, m_hl.h);
+    LD_R_X(_hl.l, _hl.h);
     return 4;
   }
 
   inline int Op0x6D()
   {
-    LD_R_X(m_hl.l, m_hl.l);
+    LD_R_X(_hl.l, _hl.l);
     return 4;
   }
 
   inline int Op0x6E()
   {
-    LD_R__HL(m_hl.l);
+    LD_R__HL(_hl.l);
     return 8;
   }
 
   inline int Op0x6F()
   {
-    LD_R_X(m_hl.l, m_af.h);
+    LD_R_X(_hl.l, _af.h);
     return 4;
   }
 
   inline int Op0x70()
   {
-    LD__RR_R(m_hl.hl, m_bc.h);
+    LD__RR_R(_hl.hl, _bc.h);
     return 8;
   }
 
   inline int Op0x71()
   {
-    LD__RR_R(m_hl.hl, m_bc.l);
+    LD__RR_R(_hl.hl, _bc.l);
     return 8;
   }
 
   inline int Op0x72()
   {
-    LD__RR_R(m_hl.hl, m_de.h);
+    LD__RR_R(_hl.hl, _de.h);
     return 8;
   }
 
   inline int Op0x73()
   {
-    LD__RR_R(m_hl.hl, m_de.l);
+    LD__RR_R(_hl.hl, _de.l);
     return 8;
   }
 
   inline int Op0x74()
   {
-    LD__RR_R(m_hl.hl, m_hl.h);
+    LD__RR_R(_hl.hl, _hl.h);
     return 8;
   }
 
   inline int Op0x75()
   {
-    LD__RR_R(m_hl.hl, m_hl.l);
+    LD__RR_R(_hl.hl, _hl.l);
     return 8;
   }
 
@@ -1140,439 +1096,439 @@ std::string OutputRegisters()
 
   inline int Op0x77()
   {
-    LD__RR_R(m_hl.hl, m_af.h);
+    LD__RR_R(_hl.hl, _af.h);
     return 8;
   }
 
   inline int Op0x78()
   {
-    LD_R_X(m_af.h, m_bc.h);
+    LD_R_X(_af.h, _bc.h);
     return 4;
   }
 
   inline int Op0x79()
   {
-    LD_R_X(m_af.h, m_bc.l);
+    LD_R_X(_af.h, _bc.l);
     return 4;
   }
 
   inline int Op0x7A()
   {
-    LD_R_X(m_af.h, m_de.h);
+    LD_R_X(_af.h, _de.h);
     return 4;
   }
 
   inline int Op0x7B()
   {
-    LD_R_X(m_af.h, m_de.l);
+    LD_R_X(_af.h, _de.l);
     return 4;
   }
 
   inline int Op0x7C()
   {
-    LD_R_X(m_af.h, m_hl.h);
+    LD_R_X(_af.h, _hl.h);
     return 4;
   }
 
   inline int Op0x7D()
   {
-    LD_R_X(m_af.h, m_hl.l);
+    LD_R_X(_af.h, _hl.l);
     return 4;
   }
 
   inline int Op0x7E()
   {
-    LD_R__HL(m_af.h);
+    LD_R__HL(_af.h);
     return 8;
   }
 
   inline int Op0x7F()
   {
-    LD_R_X(m_af.h, m_af.h);
+    LD_R_X(_af.h, _af.h);
     return 4;
   }
 
   inline int Op0x80()
   {
-    ADD_A_X(m_bc.h);
+    ADD_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0x81()
   {
-    ADD_A_X(m_bc.l);
+    ADD_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0x82()
   {
-    ADD_A_X(m_de.h);
+    ADD_A_X(_de.h);
     return 4;
   }
 
   inline int Op0x83()
   {
-    ADD_A_X(m_de.l);
+    ADD_A_X(_de.l);
     return 4;
   }
 
   inline int Op0x84()
   {
-    ADD_A_X(m_hl.h);
+    ADD_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0x85()
   {
-    ADD_A_X(m_hl.l);
+    ADD_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0x86()
   {
-    ADD_A_X(ReadAddress(m_hl.hl));
+    ADD_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0x87()
   {
-    ADD_A_X(m_af.h);
+    ADD_A_X(_af.h);
     return 4;
   }
 
   inline int Op0x88()
   {
-    ADC_A_X(m_bc.h);
+    ADC_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0x89()
   {
-    ADC_A_X(m_bc.l);
+    ADC_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0x8A()
   {
-    ADC_A_X(m_de.h);
+    ADC_A_X(_de.h);
     return 4;
   }
 
   inline int Op0x8B()
   {
-    ADC_A_X(m_de.l);
+    ADC_A_X(_de.l);
     return 4;
   }
 
   inline int Op0x8C()
   {
-    ADC_A_X(m_hl.h);
+    ADC_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0x8D()
   {
-    ADC_A_X(m_hl.l);
+    ADC_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0x8E()
   {
-    ADC_A_X(ReadAddress(m_hl.hl));
+    ADC_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0x8F()
   {
-    ADC_A_X(m_af.h);
+    ADC_A_X(_af.h);
     return 4;
   }
 
   inline int Op0x90()
   {
-    SUB_A_X(m_bc.h);
+    SUB_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0x91()
   {
-    SUB_A_X(m_bc.l);
+    SUB_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0x92()
   {
-    SUB_A_X(m_de.h);
+    SUB_A_X(_de.h);
     return 4;
   }
 
   inline int Op0x93()
   {
-    SUB_A_X(m_de.l);
+    SUB_A_X(_de.l);
     return 4;
   }
 
   inline int Op0x94()
   {
-    SUB_A_X(m_hl.h);
+    SUB_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0x95()
   {
-    SUB_A_X(m_hl.l);
+    SUB_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0x96()
   {
-    SUB_A_X(ReadAddress(m_hl.hl));
+    SUB_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0x97()
   {
-    SUB_A_X(m_af.h);
+    SUB_A_X(_af.h);
     return 4;
   }
 
   inline int Op0x98()
   {
-    SBC_A_X(m_bc.h);
+    SBC_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0x99()
   {
-    SBC_A_X(m_bc.l);
+    SBC_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0x9A()
   {
-    SBC_A_X(m_de.h);
+    SBC_A_X(_de.h);
     return 4;
   }
 
   inline int Op0x9B()
   {
-    SBC_A_X(m_de.l);
+    SBC_A_X(_de.l);
     return 4;
   }
 
   inline int Op0x9C()
   {
-    SBC_A_X(m_hl.h);
+    SBC_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0x9D()
   {
-    SBC_A_X(m_hl.l);
+    SBC_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0x9E()
   {
-    SBC_A_X(ReadAddress(m_hl.hl));
+    SBC_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0x9F()
   {
-    SBC_A_X(m_af.h);
+    SBC_A_X(_af.h);
     return 4;
   }
 
   inline int Op0xA0()
   {
-    AND_A_X(m_bc.h);
+    AND_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0xA1()
   {
-    AND_A_X(m_bc.l);
+    AND_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0xA2()
   {
-    AND_A_X(m_de.h);
+    AND_A_X(_de.h);
     return 4;
   }
 
   inline int Op0xA3()
   {
-    AND_A_X(m_de.l);
+    AND_A_X(_de.l);
     return 4;
   }
 
   inline int Op0xA4()
   {
-    AND_A_X(m_hl.h);
+    AND_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0xA5()
   {
-    AND_A_X(m_hl.l);
+    AND_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0xA6()
   {
-    AND_A_X(ReadAddress(m_hl.hl));
+    AND_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0xA7()
   {
-    AND_A_X(m_af.h);
+    AND_A_X(_af.h);
     return 4;
   }
 
   inline int Op0xA8()
   {
-    XOR_A_X(m_bc.h);
+    XOR_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0xA9()
   {
-    XOR_A_X(m_bc.l);
+    XOR_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0xAA()
   {
-    XOR_A_X(m_de.h);
+    XOR_A_X(_de.h);
     return 4;
   }
 
   inline int Op0xAB()
   {
-    XOR_A_X(m_de.l);
+    XOR_A_X(_de.l);
     return 4;
   }
 
   inline int Op0xAC()
   {
-    XOR_A_X(m_hl.h);
+    XOR_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0xAD()
   {
-    XOR_A_X(m_hl.l);
+    XOR_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0xAE()
   {
-    XOR_A_X(ReadAddress(m_hl.hl));
+    XOR_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0xAF()
   {
-    XOR_A_X(m_af.h);
+    XOR_A_X(_af.h);
     return 4;
   }
 
   inline int Op0xB0()
   {
-    OR_A_X(m_bc.h);
+    OR_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0xB1()
   {
-    OR_A_X(m_bc.l);
+    OR_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0xB2()
   {
-    OR_A_X(m_de.h);
+    OR_A_X(_de.h);
     return 4;
   }
 
   inline int Op0xB3()
   {
-    OR_A_X(m_de.l);
+    OR_A_X(_de.l);
     return 4;
   }
 
   inline int Op0xB4()
   {
-    OR_A_X(m_hl.h);
+    OR_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0xB5()
   {
-    OR_A_X(m_hl.l);
+    OR_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0xB6()
   {
-    OR_A_X(ReadAddress(m_hl.hl));
+    OR_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0xB7()
   {
-    OR_A_X(m_af.h);
+    OR_A_X(_af.h);
     return 4;
   }
 
   inline int Op0xB8()
   {
-    CP_A_X(m_bc.h);
+    CP_A_X(_bc.h);
     return 4;
   }
 
   inline int Op0xB9()
   {
-    CP_A_X(m_bc.l);
+    CP_A_X(_bc.l);
     return 4;
   }
 
   inline int Op0xBA()
   {
-    CP_A_X(m_de.h);
+    CP_A_X(_de.h);
     return 4;
   }
 
   inline int Op0xBB()
   {
-    CP_A_X(m_de.l);
+    CP_A_X(_de.l);
     return 4;
   }
 
   inline int Op0xBC()
   {
-    CP_A_X(m_hl.h);
+    CP_A_X(_hl.h);
     return 4;
   }
 
   inline int Op0xBD()
   {
-    CP_A_X(m_hl.l);
+    CP_A_X(_hl.l);
     return 4;
   }
 
   inline int Op0xBE()
   {
-    CP_A_X(ReadAddress(m_hl.hl));
+    CP_A_X(ReadAddress(_hl.hl));
     return 8;
   }
 
   inline int Op0xBF()
   {
-    CP_A_X(m_af.h);
+    CP_A_X(_af.h);
     return 4;
   }
 
@@ -1584,7 +1540,7 @@ std::string OutputRegisters()
 
   inline int Op0xC1()
   {
-    POP_RR(m_bc.hl);
+    POP_RR(_bc.hl);
     return 12;
   }
 
@@ -1608,7 +1564,7 @@ std::string OutputRegisters()
 
   inline int Op0xC5()
   {
-    PUSH_RR(m_bc.hl);
+    PUSH_RR(_bc.hl);
     return 16;
   }
 
@@ -1681,7 +1637,7 @@ std::string OutputRegisters()
 
   inline int Op0xD1()
   {
-    POP_RR(m_de.hl);
+    POP_RR(_de.hl);
     return 12;
   }
 
@@ -1704,7 +1660,7 @@ std::string OutputRegisters()
 
   inline int Op0xD5()
   {
-    PUSH_RR(m_de.hl);
+    PUSH_RR(_de.hl);
     return 16;
   }
 
@@ -1774,13 +1730,13 @@ std::string OutputRegisters()
 
   inline int Op0xE1()
   {
-    POP_RR(m_hl.hl);
+    POP_RR(_hl.hl);
     return 12;
   }
 
   inline int Op0xE2()
   {
-    LD__R_A_IO(m_bc.l);
+    LD__R_A_IO(_bc.l);
     return 8;
   }
 
@@ -1796,7 +1752,7 @@ std::string OutputRegisters()
 
   inline int Op0xE5()
   {
-    PUSH_RR(m_hl.hl);
+    PUSH_RR(_hl.hl);
     return 16;
   }
 
@@ -1820,7 +1776,7 @@ std::string OutputRegisters()
 
   inline int Op0xE9()
   {
-    m_pc = m_hl.hl;
+    _pc.hl = _hl.hl;
     return 4;
   }
 
@@ -1871,7 +1827,7 @@ std::string OutputRegisters()
 
   inline int Op0xF2()
   {
-    LD_A__R_IO(m_bc.l);
+    LD_A__R_IO(_bc.l);
     return 8;
   }
 
@@ -1888,7 +1844,7 @@ std::string OutputRegisters()
 
   inline int Op0xF5()
   {
-    PUSH_RR(m_af.hl);
+    PUSH_RR(_af.hl);
     return 16;
   }
 
@@ -1912,13 +1868,13 @@ std::string OutputRegisters()
 
   inline int Op0xF9()
   {
-    m_sp = m_hl.hl;
+    _sp.hl = _hl.hl;
     return 8;
   }
 
   inline int Op0xFA()
   {
-    LD_R_X(m_af.h, ReadAddress(ReadNextUint16()));
+    LD_R_X(_af.h, ReadAddress(ReadNextUint16()));
     return 16;
   }
 
@@ -1999,7 +1955,7 @@ std::string OutputRegisters()
   // Flags: - - - -
   inline void LD_R__HL(uint8_t& R)
   {
-    R = ReadAddress(m_hl.hl);
+    R = ReadAddress(_hl.hl);
   }
 
   // Flags: - - - -
@@ -2011,7 +1967,7 @@ std::string OutputRegisters()
   // Flags: - - - -
   inline void LD_A__RR(uint16_t RR)
   {
-    m_af.h = ReadAddress(RR);
+    _af.h = ReadAddress(RR);
   }
 
   // Flags: - - - -
@@ -2022,8 +1978,7 @@ std::string OutputRegisters()
     WriteAddress(address + 1, RR >> 8);
   }
 
-  // Flags: - - - -
-  void LD_RR_dd(uint16_t& RR);
+  void LD_rr_nn(Register& RR);
 
   // Flags: - - - -
   inline void LD__RR_R(uint16_t RR, uint8_t R)
@@ -2034,71 +1989,62 @@ std::string OutputRegisters()
   // Flags: - - - -
   inline void LD__RR_A(uint16_t RR)
   {
-    LD__RR_R(RR, m_af.h);
+    LD__RR_R(RR, _af.h);
   }
 
   // Flags: - - - -
   inline void LD__R_A_IO(uint8_t R)
   {
-    WriteAddress(static_cast<uint16_t>(ExecutionAddress::IO) + R, m_af.h);
+    WriteAddress(static_cast<uint16_t>(ExecutionAddress::IO) + R, _af.h);
   }
 
   // Flags: - - - -
   inline void LD_A__R_IO(uint8_t R)
   {
-    m_af.h = ReadAddress(static_cast<uint16_t>(ExecutionAddress::IO) + R);
+    _af.h = ReadAddress(static_cast<uint16_t>(ExecutionAddress::IO) + R);
   }
 
   // Flags: 0 0 H C
   inline void LD_HL_SP_s()
   {
     int8_t val = ReadNextInt8();
-    int result = m_sp + val;
+    int result = _sp.hl + val;
     ResetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlagBit3To4(static_cast<uint8_t>(m_sp), static_cast<uint8_t>(val));
-    SetCarry8Bit(static_cast<uint8_t>(m_sp) + static_cast<uint8_t>(val));
-    m_hl.hl = static_cast<uint16_t>(result);
+    SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
+    SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
+    _hl.hl = static_cast<uint16_t>(result);
   }
 
   // Flags: 0 0 H C
   inline void ADD_SP_s()
   {
     int8_t val = ReadNextInt8();
-    int result = m_sp + val;
+    int result = _sp.hl + val;
     ResetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlagBit3To4(static_cast<uint8_t>(m_sp), static_cast<uint8_t>(val));
-    SetCarry8Bit(static_cast<uint8_t>(m_sp) + static_cast<uint8_t>(val));
-    m_sp = static_cast<uint16_t>(result);
+    SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
+    SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
+    _sp.hl = static_cast<uint16_t>(result);
   }
 
   // Flags: - - - -
-  inline void ADD_RR(uint16_t& RR, int val)
-  {
-    RR += val;
-  }
+  void ADD_rr(Register& RR, int val);
 
   // Flags: - - - -
-  inline void INC_RR(uint16_t& RR)
-  {
-    ADD_RR(RR, 1);
-  }
+  void INC_rr(Register& RR);
 
   // Flags: - - - -
-  inline void DEC_RR(uint16_t& RR)
-  {
-    ADD_RR(RR, -1);
-  }
+  void DEC_rr(Register& RR);
 
   // Flags: Z 0 H C
   inline void ADC_A_X(int val)
   {
     int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-    int result = m_af.h + val + carry;
-    SetHalfCarryFlagBit3To4Fc(m_af.h, val, carry);
-    m_af.h = result;
-    SetZeroFlag(m_af.h);
+    int result = _af.h + val + carry;
+    SetHalfCarryFlag(_af.h, val, carry);
+    _af.h = result;
+    SetZeroFlag(_af.h);
     ResetFlag(FlagBitMask::Subtract);
     SetCarry8Bit(result);
   }
@@ -2106,7 +2052,7 @@ std::string OutputRegisters()
   // Flags: Z 0 H C
   inline void ADD_A_X(int val)
   {
-    ADD_X(m_af.h, val, true);
+    ADD_X(_af.h, val, true);
     ResetFlag(FlagBitMask::Subtract);
   }
 
@@ -2114,10 +2060,10 @@ std::string OutputRegisters()
   inline void SBC_A_X(int val)
   {
     int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-    int result = m_af.h - val - carry;
-    SetHalfCarryFlagBit3To4Fc(m_af.h, -val, -carry);
-    m_af.h = result;
-    SetZeroFlag(m_af.h);
+    int result = _af.h - val - carry;
+    SetHalfCarryFlag(_af.h, -val, -carry);
+    _af.h = result;
+    SetZeroFlag(_af.h);
     SetFlag(FlagBitMask::Subtract);
     SetCarry8Bit(result);
   }
@@ -2125,7 +2071,7 @@ std::string OutputRegisters()
   // Flags: Z 1 H C
   inline void SUB_A_X(int val)
   {
-    ADD_X(m_af.h, -val, true);
+    ADD_X(_af.h, -val, true);
     SetFlag(FlagBitMask::Subtract);
   }
 
@@ -2133,7 +2079,7 @@ std::string OutputRegisters()
   inline void ADD_X(uint8_t& R, int val, bool set_carry = false)
   {
     int result = R + val;
-    SetHalfCarryFlagBit3To4(R, val);
+    SetHalfCarryFlag(R, val);
     R = result;
     SetZeroFlag(R);
     if (set_carry) SetCarry8Bit(result);
@@ -2143,7 +2089,7 @@ std::string OutputRegisters()
   inline void ADD__RR(uint16_t RR, int val)
   {
     uint8_t curr_val = ReadAddress(RR);
-    SetHalfCarryFlagBit3To4(curr_val, val);
+    SetHalfCarryFlag(curr_val, val);
     uint8_t result = curr_val + val;
     SetZeroFlag(result);
     SetSubtractionFlag(val);
@@ -2151,20 +2097,16 @@ std::string OutputRegisters()
   }
 
   // Flags: - 0 H C
-  inline void ADD_HL_RR(uint16_t RR)
-  {
-    int result = m_hl.hl + RR;
-    ResetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlagBit11To12(m_hl.hl, RR);
-    SetCarry16Bit(result);
-    m_hl.hl = static_cast<uint16_t>(result);
-  }
+  void ADD_HL_rr(Register RR);
+
+  // Flags: - 0 H C
+  void ADD_HL_rr(uint16_t RR);
 
   // Flags: Z 0 1 0
   inline void AND_A_X(uint8_t val)
   {
-    m_af.h &= val;
-    SetZeroFlag(m_af.h);
+    _af.h &= val;
+    SetZeroFlag(_af.h);
     ResetFlag(FlagBitMask::Subtract);
     SetFlag(FlagBitMask::HalfCarry);
     ResetFlag(FlagBitMask::Carry);
@@ -2173,8 +2115,8 @@ std::string OutputRegisters()
   // Flags: Z 0 0 0
   inline void XOR_A_X(uint8_t val)
   {
-    m_af.h ^= val;
-    SetZeroFlag(m_af.h);
+    _af.h ^= val;
+    SetZeroFlag(_af.h);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
     ResetFlag(FlagBitMask::Carry);
@@ -2183,8 +2125,8 @@ std::string OutputRegisters()
   // Flags: Z 0 0 0
   inline void OR_A_X(uint8_t val)
   {
-    m_af.h |= val;
-    SetZeroFlag(m_af.h);
+    _af.h |= val;
+    SetZeroFlag(_af.h);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
     ResetFlag(FlagBitMask::Carry);
@@ -2193,18 +2135,18 @@ std::string OutputRegisters()
   // Flags: Z 1 H C
   inline void CP_A_X(uint8_t val)
   {
-    int result = m_af.h - val;
+    int result = _af.h - val;
     SetZeroFlag(result);
     SetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlagBit3To4(m_af.h, -val);
+    SetHalfCarryFlag(_af.h, -val);
     SetCarry8Bit(result);
   }
 
   // Flags: 0 0 0 A7
   inline void RLCA()
   {
-    m_af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    m_af.h = m_af.h << 1 | m_af.h >> 7;
+    _af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+    _af.h = _af.h << 1 | _af.h >> 7;
     ResetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
@@ -2214,8 +2156,8 @@ std::string OutputRegisters()
   inline void RLA()
   {
     uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    m_af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    m_af.h = m_af.h << 1 | carry_bit;
+    _af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+    _af.h = _af.h << 1 | carry_bit;
     ResetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
@@ -2224,8 +2166,8 @@ std::string OutputRegisters()
   // Flags: 0 0 0 A0
   inline void RRCA()
   {
-    m_af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    m_af.h = m_af.h >> 1 | m_af.h << 7;
+    _af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+    _af.h = _af.h >> 1 | _af.h << 7;
     ResetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
@@ -2235,8 +2177,8 @@ std::string OutputRegisters()
   inline void RRA()
   {
     uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    m_af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    m_af.h = m_af.h >> 1 | carry_bit << 7;
+    _af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+    _af.h = _af.h >> 1 | carry_bit << 7;
     ResetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
@@ -2245,7 +2187,7 @@ std::string OutputRegisters()
   // Flags: - 1 1 -
   inline void CPL()
   {
-    m_af.h = ~m_af.h;
+    _af.h = ~_af.h;
     SetFlag(FlagBitMask::Subtract);
     SetFlag(FlagBitMask::HalfCarry);
   }
@@ -2256,16 +2198,16 @@ std::string OutputRegisters()
   {
     if (!ReadFlag(FlagBitMask::Subtract))
     {
-      if (ReadFlag(FlagBitMask::Carry)     ||  m_af.h         > 0x99) { m_af.h += 0x60; SetFlag(FlagBitMask::Carry); }
-      if (ReadFlag(FlagBitMask::HalfCarry) || (m_af.h & 0x0f) > 0x09)   m_af.h += 0x06;
+      if (ReadFlag(FlagBitMask::Carry)     ||  _af.h         > 0x99) { _af.h += 0x60; SetFlag(FlagBitMask::Carry); }
+      if (ReadFlag(FlagBitMask::HalfCarry) || (_af.h & 0x0f) > 0x09)   _af.h += 0x06;
     }
     else
     {
-      if (ReadFlag(FlagBitMask::Carry))     m_af.h -= 0x60;
-      if (ReadFlag(FlagBitMask::HalfCarry)) m_af.h -= 0x06;
+      if (ReadFlag(FlagBitMask::Carry))     _af.h -= 0x60;
+      if (ReadFlag(FlagBitMask::HalfCarry)) _af.h -= 0x06;
     }
 
-    SetZeroFlag(m_af.h);
+    SetZeroFlag(_af.h);
     ResetFlag(FlagBitMask::HalfCarry);
   }
 
@@ -2313,25 +2255,25 @@ std::string OutputRegisters()
 
   inline void PUSH_RR(uint16_t RR)
   {
-    m_sp -= 2;
-    WriteAddress(m_sp, RR & 0xFF);
-    WriteAddress(m_sp + 1, RR >> 8);
+    _sp.hl -= 2;
+    WriteAddress(_sp.hl, RR & 0xFF);
+    WriteAddress(_sp.hl + 1, RR >> 8);
   }
 
   // Flags: - - - -
   inline void JR(bool jump)
   {
     int8_t steps = ReadNextInt8();
-    if (jump) m_pc += steps;
+    if (jump) _pc.hl += steps;
   }
 
   // Flags: - - - -
   inline void POP_RR(uint16_t& RR)
   {
-    uint8_t l = ReadAddress(m_sp);
-    m_sp += 1;
-    uint8_t h = ReadAddress(m_sp);
-    m_sp += 1;
+    uint8_t l = ReadAddress(_sp.hl);
+    _sp.hl += 1;
+    uint8_t h = ReadAddress(_sp.hl);
+    _sp.hl += 1;
 
     RR = (h << 8) | l;
   }
@@ -2339,19 +2281,19 @@ std::string OutputRegisters()
   // Flags: - - - -
   inline void POP_AF()
   {
-    uint8_t l = ReadAddress(m_sp);
-    m_sp += 1;
-    uint8_t h = ReadAddress(m_sp);
-    m_sp += 1;
+    uint8_t l = ReadAddress(_sp.hl);
+    _sp.hl += 1;
+    uint8_t h = ReadAddress(_sp.hl);
+    _sp.hl += 1;
 
-    m_af.hl = (h << 8) | l;
-    m_af.l &= 0xF0;
+    _af.hl = (h << 8) | l;
+    _af.l &= 0xF0;
   }
 
   // Flags: - - - -
   inline void RET(bool ret)
   {
-    if (ret) POP_RR(m_pc);
+    if (ret) POP_RR(_pc.hl);
   }
 
   // Flags: - - - -
@@ -2365,58 +2307,58 @@ std::string OutputRegisters()
   inline void JP(bool jump)
   {
     uint16_t address = ReadNextUint16();
-    if (jump) m_pc = address;
+    if (jump) _pc.hl = address;
   }
 
   // Flags: - - - -
   inline void CALL(bool call)
   {
     uint16_t func = ReadNextUint16();
-    if (call) { PUSH_RR(m_pc); m_pc = func; }
+    if (call) { PUSH_RR(_pc.hl); _pc.hl = func; }
   }
 
   // Flags: - - - -
   inline void RST(RestartVector rst_vec)
   {
-    PUSH_RR(m_pc);
-    m_pc = static_cast<uint16_t>(rst_vec);
+    PUSH_RR(_pc.hl);
+    _pc.hl = static_cast<uint16_t>(rst_vec);
   }
 #pragma endregion
 
 #pragma region EXTENDED INSTRUCTIONS
   inline int OpCb0x00()
   {
-    RLC_R(m_bc.h);
+    RLC_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x01()
   {
-    RLC_R(m_bc.l);
+    RLC_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x02()
   {
-    RLC_R(m_de.h);
+    RLC_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x03()
   {
-    RLC_R(m_de.l);
+    RLC_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x04()
   {
-    RLC_R(m_hl.h);
+    RLC_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x05()
   {
-    RLC_R(m_hl.l);
+    RLC_R(_hl.l);
     return 8;
   }
 
@@ -2428,43 +2370,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x07()
   {
-    RLC_R(m_af.h);
+    RLC_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x08()
   {
-    RRC_R(m_bc.h);
+    RRC_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x09()
   {
-    RRC_R(m_bc.l);
+    RRC_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x0A()
   {
-    RRC_R(m_de.h);
+    RRC_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x0B()
   {
-    RRC_R(m_de.l);
+    RRC_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x0C()
   {
-    RRC_R(m_hl.h);
+    RRC_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x0D()
   {
-    RRC_R(m_hl.l);
+    RRC_R(_hl.l);
     return 8;
   }
 
@@ -2476,43 +2418,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x0F()
   {
-    RRC_R(m_af.h);
+    RRC_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x10()
   {
-    RL_R(m_bc.h);
+    RL_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x11()
   {
-    RL_R(m_bc.l);
+    RL_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x12()
   {
-    RL_R(m_de.h);
+    RL_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x13()
   {
-    RL_R(m_de.l);
+    RL_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x14()
   {
-    RL_R(m_hl.h);
+    RL_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x15()
   {
-    RL_R(m_hl.l);
+    RL_R(_hl.l);
     return 8;
   }
 
@@ -2524,43 +2466,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x17()
   {
-    RL_R(m_af.h);
+    RL_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x18()
   {
-    RR_R(m_bc.h);
+    RR_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x19()
   {
-    RR_R(m_bc.l);
+    RR_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x1A()
   {
-    RR_R(m_de.h);
+    RR_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x1B()
   {
-    RR_R(m_de.l);
+    RR_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x1C()
   {
-    RR_R(m_hl.h);
+    RR_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x1D()
   {
-    RR_R(m_hl.l);
+    RR_R(_hl.l);
     return 8;
   }
 
@@ -2572,43 +2514,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x1F()
   {
-    RR_R(m_af.h);
+    RR_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x20()
   {
-    SLA_R(m_bc.h);
+    SLA_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x21()
   {
-    SLA_R(m_bc.l);
+    SLA_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x22()
   {
-    SLA_R(m_de.h);
+    SLA_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x23()
   {
-    SLA_R(m_de.l);
+    SLA_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x24()
   {
-    SLA_R(m_hl.h);
+    SLA_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x25()
   {
-    SLA_R(m_hl.l);
+    SLA_R(_hl.l);
     return 8;
   }
 
@@ -2620,43 +2562,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x27()
   {
-    SLA_R(m_af.h);
+    SLA_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x28()
   {
-    SRA_R(m_bc.h);
+    SRA_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x29()
   {
-    SRA_R(m_bc.l);
+    SRA_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x2A()
   {
-    SRA_R(m_de.h);
+    SRA_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x2B()
   {
-    SRA_R(m_de.l);
+    SRA_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x2C()
   {
-    SRA_R(m_hl.h);
+    SRA_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x2D()
   {
-    SRA_R(m_hl.l);
+    SRA_R(_hl.l);
     return 8;
   }
 
@@ -2668,43 +2610,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x2F()
   {
-    SRA_R(m_af.h);
+    SRA_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x30()
   {
-    SWAP_R(m_bc.h);
+    SWAP_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x31()
   {
-    SWAP_R(m_bc.l);
+    SWAP_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x32()
   {
-    SWAP_R(m_de.h);
+    SWAP_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x33()
   {
-    SWAP_R(m_de.l);
+    SWAP_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x34()
   {
-    SWAP_R(m_hl.h);
+    SWAP_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x35()
   {
-    SWAP_R(m_hl.l);
+    SWAP_R(_hl.l);
     return 8;
   }
 
@@ -2716,43 +2658,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x37()
   {
-    SWAP_R(m_af.h);
+    SWAP_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x38()
   {
-    SRL_R(m_bc.h);
+    SRL_R(_bc.h);
     return 8;
   }
 
   inline int OpCb0x39()
   {
-    SRL_R(m_bc.l);
+    SRL_R(_bc.l);
     return 8;
   }
 
   inline int OpCb0x3A()
   {
-    SRL_R(m_de.h);
+    SRL_R(_de.h);
     return 8;
   }
 
   inline int OpCb0x3B()
   {
-    SRL_R(m_de.l);
+    SRL_R(_de.l);
     return 8;
   }
 
   inline int OpCb0x3C()
   {
-    SRL_R(m_hl.h);
+    SRL_R(_hl.h);
     return 8;
   }
 
   inline int OpCb0x3D()
   {
-    SRL_R(m_hl.l);
+    SRL_R(_hl.l);
     return 8;
   }
 
@@ -2764,43 +2706,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x3F()
   {
-    SRL_R(m_af.h);
+    SRL_R(_af.h);
     return 8;
   }
 
   inline int OpCb0x40()
   {
-    BIT_R(0b00000001, m_bc.h);
+    BIT_R(0b00000001, _bc.h);
     return 8;
   }
 
   inline int OpCb0x41()
   {
-    BIT_R(0b00000001, m_bc.l);
+    BIT_R(0b00000001, _bc.l);
     return 8;
   }
 
   inline int OpCb0x42()
   {
-    BIT_R(0b00000001, m_de.h);
+    BIT_R(0b00000001, _de.h);
     return 8;
   }
 
   inline int OpCb0x43()
   {
-    BIT_R(0b00000001, m_de.l);
+    BIT_R(0b00000001, _de.l);
     return 8;
   }
 
   inline int OpCb0x44()
   {
-    BIT_R(0b00000001, m_hl.h);
+    BIT_R(0b00000001, _hl.h);
     return 8;
   }
 
   inline int OpCb0x45()
   {
-    BIT_R(0b00000001, m_hl.l);
+    BIT_R(0b00000001, _hl.l);
     return 8;
   }
 
@@ -2812,43 +2754,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x47()
   {
-    BIT_R(0b00000001, m_af.h);
+    BIT_R(0b00000001, _af.h);
     return 8;
   }
 
   inline int OpCb0x48()
   {
-    BIT_R(0b00000010, m_bc.h);
+    BIT_R(0b00000010, _bc.h);
     return 8;
   }
 
   inline int OpCb0x49()
   {
-    BIT_R(0b00000010, m_bc.l);
+    BIT_R(0b00000010, _bc.l);
     return 8;
   }
 
   inline int OpCb0x4A()
   {
-    BIT_R(0b00000010, m_de.h);
+    BIT_R(0b00000010, _de.h);
     return 8;
   }
 
   inline int OpCb0x4B()
   {
-    BIT_R(0b00000010, m_de.l);
+    BIT_R(0b00000010, _de.l);
     return 8;
   }
 
   inline int OpCb0x4C()
   {
-    BIT_R(0b00000010, m_hl.h);
+    BIT_R(0b00000010, _hl.h);
     return 8;
   }
 
   inline int OpCb0x4D()
   {
-    BIT_R(0b00000010, m_hl.l);
+    BIT_R(0b00000010, _hl.l);
     return 8;
   }
 
@@ -2860,43 +2802,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x4F()
   {
-    BIT_R(0b00000010, m_af.h);
+    BIT_R(0b00000010, _af.h);
     return 8;
   }
 
   inline int OpCb0x50()
   {
-    BIT_R(0b00000100, m_bc.h);
+    BIT_R(0b00000100, _bc.h);
     return 8;
   }
 
   inline int OpCb0x51()
   {
-    BIT_R(0b00000100, m_bc.l);
+    BIT_R(0b00000100, _bc.l);
     return 8;
   }
 
   inline int OpCb0x52()
   {
-    BIT_R(0b00000100, m_de.h);
+    BIT_R(0b00000100, _de.h);
     return 8;
   }
 
   inline int OpCb0x53()
   {
-    BIT_R(0b00000100, m_de.l);
+    BIT_R(0b00000100, _de.l);
     return 8;
   }
 
   inline int OpCb0x54()
   {
-    BIT_R(0b00000100, m_hl.h);
+    BIT_R(0b00000100, _hl.h);
     return 8;
   }
 
   inline int OpCb0x55()
   {
-    BIT_R(0b00000100, m_hl.l);
+    BIT_R(0b00000100, _hl.l);
     return 8;
   }
 
@@ -2908,43 +2850,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x57()
   {
-    BIT_R(0b00000100, m_af.h);
+    BIT_R(0b00000100, _af.h);
     return 8;
   }
 
   inline int OpCb0x58()
   {
-    BIT_R(0b00001000, m_bc.h);
+    BIT_R(0b00001000, _bc.h);
     return 8;
   }
 
   inline int OpCb0x59()
   {
-    BIT_R(0b00001000, m_bc.l);
+    BIT_R(0b00001000, _bc.l);
     return 8;
   }
 
   inline int OpCb0x5A()
   {
-    BIT_R(0b00001000, m_de.h);
+    BIT_R(0b00001000, _de.h);
     return 8;
   }
 
   inline int OpCb0x5B()
   {
-    BIT_R(0b00001000, m_de.l);
+    BIT_R(0b00001000, _de.l);
     return 8;
   }
 
   inline int OpCb0x5C()
   {
-    BIT_R(0b00001000, m_hl.h);
+    BIT_R(0b00001000, _hl.h);
     return 8;
   }
 
   inline int OpCb0x5D()
   {
-    BIT_R(0b00001000, m_hl.l);
+    BIT_R(0b00001000, _hl.l);
     return 8;
   }
 
@@ -2956,43 +2898,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x5F()
   {
-    BIT_R(0b00001000, m_af.h);
+    BIT_R(0b00001000, _af.h);
     return 8;
   }
 
   inline int OpCb0x60()
   {
-    BIT_R(0b00010000, m_bc.h);
+    BIT_R(0b00010000, _bc.h);
     return 8;
   }
 
   inline int OpCb0x61()
   {
-    BIT_R(0b00010000, m_bc.l);
+    BIT_R(0b00010000, _bc.l);
     return 8;
   }
 
   inline int OpCb0x62()
   {
-    BIT_R(0b00010000, m_de.h);
+    BIT_R(0b00010000, _de.h);
     return 8;
   }
 
   inline int OpCb0x63()
   {
-    BIT_R(0b00010000, m_de.l);
+    BIT_R(0b00010000, _de.l);
     return 8;
   }
 
   inline int OpCb0x64()
   {
-    BIT_R(0b00010000, m_hl.h);
+    BIT_R(0b00010000, _hl.h);
     return 8;
   }
 
   inline int OpCb0x65()
   {
-    BIT_R(0b00010000, m_hl.l);
+    BIT_R(0b00010000, _hl.l);
     return 8;
   }
 
@@ -3004,43 +2946,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x67()
   {
-    BIT_R(0b00010000, m_af.h);
+    BIT_R(0b00010000, _af.h);
     return 8;
   }
 
   inline int OpCb0x68()
   {
-    BIT_R(0b00100000, m_bc.h);
+    BIT_R(0b00100000, _bc.h);
     return 8;
   }
 
   inline int OpCb0x69()
   {
-    BIT_R(0b00100000, m_bc.l);
+    BIT_R(0b00100000, _bc.l);
     return 8;
   }
 
   inline int OpCb0x6A()
   {
-    BIT_R(0b00100000, m_de.h);
+    BIT_R(0b00100000, _de.h);
     return 8;
   }
 
   inline int OpCb0x6B()
   {
-    BIT_R(0b00100000, m_de.l);
+    BIT_R(0b00100000, _de.l);
     return 8;
   }
 
   inline int OpCb0x6C()
   {
-    BIT_R(0b00100000, m_hl.h);
+    BIT_R(0b00100000, _hl.h);
     return 8;
   }
 
   inline int OpCb0x6D()
   {
-    BIT_R(0b00100000, m_hl.l);
+    BIT_R(0b00100000, _hl.l);
     return 8;
   }
 
@@ -3052,43 +2994,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x6F()
   {
-    BIT_R(0b00100000, m_af.h);
+    BIT_R(0b00100000, _af.h);
     return 8;
   }
 
   inline int OpCb0x70()
   {
-    BIT_R(0b01000000, m_bc.h);
+    BIT_R(0b01000000, _bc.h);
     return 8;
   }
 
   inline int OpCb0x71()
   {
-    BIT_R(0b01000000, m_bc.l);
+    BIT_R(0b01000000, _bc.l);
     return 8;
   }
 
   inline int OpCb0x72()
   {
-    BIT_R(0b01000000, m_de.h);
+    BIT_R(0b01000000, _de.h);
     return 8;
   }
 
   inline int OpCb0x73()
   {
-    BIT_R(0b01000000, m_de.l);
+    BIT_R(0b01000000, _de.l);
     return 8;
   }
 
   inline int OpCb0x74()
   {
-    BIT_R(0b01000000, m_hl.h);
+    BIT_R(0b01000000, _hl.h);
     return 8;
   }
 
   inline int OpCb0x75()
   {
-    BIT_R(0b01000000, m_hl.l);
+    BIT_R(0b01000000, _hl.l);
     return 8;
   }
 
@@ -3100,43 +3042,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x77()
   {
-    BIT_R(0b01000000, m_af.h);
+    BIT_R(0b01000000, _af.h);
     return 8;
   }
 
   inline int OpCb0x78()
   {
-    BIT_R(0b10000000, m_bc.h);
+    BIT_R(0b10000000, _bc.h);
     return 8;
   }
 
   inline int OpCb0x79()
   {
-    BIT_R(0b10000000, m_bc.l);
+    BIT_R(0b10000000, _bc.l);
     return 8;
   }
 
   inline int OpCb0x7A()
   {
-    BIT_R(0b10000000, m_de.h);
+    BIT_R(0b10000000, _de.h);
     return 8;
   }
 
   inline int OpCb0x7B()
   {
-    BIT_R(0b10000000, m_de.l);
+    BIT_R(0b10000000, _de.l);
     return 8;
   }
 
   inline int OpCb0x7C()
   {
-    BIT_R(0b10000000, m_hl.h);
+    BIT_R(0b10000000, _hl.h);
     return 8;
   }
 
   inline int OpCb0x7D()
   {
-    BIT_R(0b10000000, m_hl.l);
+    BIT_R(0b10000000, _hl.l);
     return 8;
   }
 
@@ -3148,43 +3090,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x7F()
   {
-    BIT_R(0b10000000, m_af.h);
+    BIT_R(0b10000000, _af.h);
     return 8;
   }
 
   inline int OpCb0x80()
   {
-    RES_R(0b00000001, m_bc.h);
+    RES_R(0b00000001, _bc.h);
     return 8;
   }
 
   inline int OpCb0x81()
   {
-    RES_R(0b00000001, m_bc.l);
+    RES_R(0b00000001, _bc.l);
     return 8;
   }
 
   inline int OpCb0x82()
   {
-    RES_R(0b00000001, m_de.h);
+    RES_R(0b00000001, _de.h);
     return 8;
   }
 
   inline int OpCb0x83()
   {
-    RES_R(0b00000001, m_de.l);
+    RES_R(0b00000001, _de.l);
     return 8;
   }
 
   inline int OpCb0x84()
   {
-    RES_R(0b00000001, m_hl.h);
+    RES_R(0b00000001, _hl.h);
     return 8;
   }
 
   inline int OpCb0x85()
   {
-    RES_R(0b00000001, m_hl.l);
+    RES_R(0b00000001, _hl.l);
     return 8;
   }
 
@@ -3196,43 +3138,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x87()
   {
-    RES_R(0b00000001, m_af.h);
+    RES_R(0b00000001, _af.h);
     return 8;
   }
 
   inline int OpCb0x88()
   {
-    RES_R(0b00000010, m_bc.h);
+    RES_R(0b00000010, _bc.h);
     return 8;
   }
 
   inline int OpCb0x89()
   {
-    RES_R(0b00000010, m_bc.l);
+    RES_R(0b00000010, _bc.l);
     return 8;
   }
 
   inline int OpCb0x8A()
   {
-    RES_R(0b00000010, m_de.h);
+    RES_R(0b00000010, _de.h);
     return 8;
   }
 
   inline int OpCb0x8B()
   {
-    RES_R(0b00000010, m_de.l);
+    RES_R(0b00000010, _de.l);
     return 8;
   }
 
   inline int OpCb0x8C()
   {
-    RES_R(0b00000010, m_hl.h);
+    RES_R(0b00000010, _hl.h);
     return 8;
   }
 
   inline int OpCb0x8D()
   {
-    RES_R(0b00000010, m_hl.l);
+    RES_R(0b00000010, _hl.l);
     return 8;
   }
 
@@ -3244,43 +3186,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x8F()
   {
-    RES_R(0b00000010, m_af.h);
+    RES_R(0b00000010, _af.h);
     return 8;
   }
 
   inline int OpCb0x90()
   {
-    RES_R(0b00000100, m_bc.h);
+    RES_R(0b00000100, _bc.h);
     return 8;
   }
 
   inline int OpCb0x91()
   {
-    RES_R(0b00000100, m_bc.l);
+    RES_R(0b00000100, _bc.l);
     return 8;
   }
 
   inline int OpCb0x92()
   {
-    RES_R(0b00000100, m_de.h);
+    RES_R(0b00000100, _de.h);
     return 8;
   }
 
   inline int OpCb0x93()
   {
-    RES_R(0b00000100, m_de.l);
+    RES_R(0b00000100, _de.l);
     return 8;
   }
 
   inline int OpCb0x94()
   {
-    RES_R(0b00000100, m_hl.h);
+    RES_R(0b00000100, _hl.h);
     return 8;
   }
 
   inline int OpCb0x95()
   {
-    RES_R(0b00000100, m_hl.l);
+    RES_R(0b00000100, _hl.l);
     return 8;
   }
 
@@ -3292,43 +3234,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x97()
   {
-    RES_R(0b00000100, m_af.h);
+    RES_R(0b00000100, _af.h);
     return 8;
   }
 
   inline int OpCb0x98()
   {
-    RES_R(0b00001000, m_bc.h);
+    RES_R(0b00001000, _bc.h);
     return 8;
   }
 
   inline int OpCb0x99()
   {
-    RES_R(0b00001000, m_bc.l);
+    RES_R(0b00001000, _bc.l);
     return 8;
   }
 
   inline int OpCb0x9A()
   {
-    RES_R(0b00001000, m_de.h);
+    RES_R(0b00001000, _de.h);
     return 8;
   }
 
   inline int OpCb0x9B()
   {
-    RES_R(0b00001000, m_de.l);
+    RES_R(0b00001000, _de.l);
     return 8;
   }
 
   inline int OpCb0x9C()
   {
-    RES_R(0b00001000, m_hl.h);
+    RES_R(0b00001000, _hl.h);
     return 8;
   }
 
   inline int OpCb0x9D()
   {
-    RES_R(0b00001000, m_hl.l);
+    RES_R(0b00001000, _hl.l);
     return 8;
   }
 
@@ -3340,43 +3282,43 @@ std::string OutputRegisters()
 
   inline int OpCb0x9F()
   {
-    RES_R(0b00001000, m_af.h);
+    RES_R(0b00001000, _af.h);
     return 8;
   }
 
   inline int OpCb0xA0()
   {
-    RES_R(0b00010000, m_bc.h);
+    RES_R(0b00010000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xA1()
   {
-    RES_R(0b00010000, m_bc.l);
+    RES_R(0b00010000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xA2()
   {
-    RES_R(0b00010000, m_de.h);
+    RES_R(0b00010000, _de.h);
     return 8;
   }
 
   inline int OpCb0xA3()
   {
-    RES_R(0b00010000, m_de.l);
+    RES_R(0b00010000, _de.l);
     return 8;
   }
 
   inline int OpCb0xA4()
   {
-    RES_R(0b00010000, m_hl.h);
+    RES_R(0b00010000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xA5()
   {
-    RES_R(0b00010000, m_hl.l);
+    RES_R(0b00010000, _hl.l);
     return 8;
   }
 
@@ -3388,43 +3330,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xA7()
   {
-    RES_R(0b00010000, m_af.h);
+    RES_R(0b00010000, _af.h);
     return 8;
   }
 
   inline int OpCb0xA8()
   {
-    RES_R(0b00100000, m_bc.h);
+    RES_R(0b00100000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xA9()
   {
-    RES_R(0b00100000, m_bc.l);
+    RES_R(0b00100000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xAA()
   {
-    RES_R(0b00100000, m_de.h);
+    RES_R(0b00100000, _de.h);
     return 8;
   }
 
   inline int OpCb0xAB()
   {
-    RES_R(0b00100000, m_de.l);
+    RES_R(0b00100000, _de.l);
     return 8;
   }
 
   inline int OpCb0xAC()
   {
-    RES_R(0b00100000, m_hl.h);
+    RES_R(0b00100000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xAD()
   {
-    RES_R(0b00100000, m_hl.l);
+    RES_R(0b00100000, _hl.l);
     return 8;
   }
 
@@ -3436,43 +3378,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xAF()
   {
-    RES_R(0b00100000, m_af.h);
+    RES_R(0b00100000, _af.h);
     return 8;
   }
 
   inline int OpCb0xB0()
   {
-    RES_R(0b01000000, m_bc.h);
+    RES_R(0b01000000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xB1()
   {
-    RES_R(0b01000000, m_bc.l);
+    RES_R(0b01000000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xB2()
   {
-    RES_R(0b01000000, m_de.h);
+    RES_R(0b01000000, _de.h);
     return 8;
   }
 
   inline int OpCb0xB3()
   {
-    RES_R(0b01000000, m_de.l);
+    RES_R(0b01000000, _de.l);
     return 8;
   }
 
   inline int OpCb0xB4()
   {
-    RES_R(0b01000000, m_hl.h);
+    RES_R(0b01000000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xB5()
   {
-    RES_R(0b01000000, m_hl.l);
+    RES_R(0b01000000, _hl.l);
     return 8;
   }
 
@@ -3484,43 +3426,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xB7()
   {
-    RES_R(0b01000000, m_af.h);
+    RES_R(0b01000000, _af.h);
     return 8;
   }
 
   inline int OpCb0xB8()
   {
-    RES_R(0b10000000, m_bc.h);
+    RES_R(0b10000000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xB9()
   {
-    RES_R(0b10000000, m_bc.l);
+    RES_R(0b10000000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xBA()
   {
-    RES_R(0b10000000, m_de.h);
+    RES_R(0b10000000, _de.h);
     return 8;
   }
 
   inline int OpCb0xBB()
   {
-    RES_R(0b10000000, m_de.l);
+    RES_R(0b10000000, _de.l);
     return 8;
   }
 
   inline int OpCb0xBC()
   {
-    RES_R(0b10000000, m_hl.h);
+    RES_R(0b10000000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xBD()
   {
-    RES_R(0b10000000, m_hl.l);
+    RES_R(0b10000000, _hl.l);
     return 8;
   }
 
@@ -3532,43 +3474,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xBF()
   {
-    RES_R(0b10000000, m_af.h);
+    RES_R(0b10000000, _af.h);
     return 8;
   }
 
   inline int OpCb0xC0()
   {
-    SET_R(0b00000001, m_bc.h);
+    SET_R(0b00000001, _bc.h);
     return 8;
   }
 
   inline int OpCb0xC1()
   {
-    SET_R(0b00000001, m_bc.l);
+    SET_R(0b00000001, _bc.l);
     return 8;
   }
 
   inline int OpCb0xC2()
   {
-    SET_R(0b00000001, m_de.h);
+    SET_R(0b00000001, _de.h);
     return 8;
   }
 
   inline int OpCb0xC3()
   {
-    SET_R(0b00000001, m_de.l);
+    SET_R(0b00000001, _de.l);
     return 8;
   }
 
   inline int OpCb0xC4()
   {
-    SET_R(0b00000001, m_hl.h);
+    SET_R(0b00000001, _hl.h);
     return 8;
   }
 
   inline int OpCb0xC5()
   {
-    SET_R(0b00000001, m_hl.l);
+    SET_R(0b00000001, _hl.l);
     return 8;
   }
 
@@ -3580,43 +3522,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xC7()
   {
-    SET_R(0b00000001, m_af.h);
+    SET_R(0b00000001, _af.h);
     return 8;
   }
 
   inline int OpCb0xC8()
   {
-    SET_R(0b00000010, m_bc.h);
+    SET_R(0b00000010, _bc.h);
     return 8;
   }
 
   inline int OpCb0xC9()
   {
-    SET_R(0b00000010, m_bc.l);
+    SET_R(0b00000010, _bc.l);
     return 8;
   }
 
   inline int OpCb0xCA()
   {
-    SET_R(0b00000010, m_de.h);
+    SET_R(0b00000010, _de.h);
     return 8;
   }
 
   inline int OpCb0xCB()
   {
-    SET_R(0b00000010, m_de.l);
+    SET_R(0b00000010, _de.l);
     return 8;
   }
 
   inline int OpCb0xCC()
   {
-    SET_R(0b00000010, m_hl.h);
+    SET_R(0b00000010, _hl.h);
     return 8;
   }
 
   inline int OpCb0xCD()
   {
-    SET_R(0b00000010, m_hl.l);
+    SET_R(0b00000010, _hl.l);
     return 8;
   }
 
@@ -3628,43 +3570,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xCF()
   {
-    SET_R(0b00000010, m_af.h);
+    SET_R(0b00000010, _af.h);
     return 8;
   }
 
   inline int OpCb0xD0()
   {
-    SET_R(0b00000100, m_bc.h);
+    SET_R(0b00000100, _bc.h);
     return 8;
   }
 
   inline int OpCb0xD1()
   {
-    SET_R(0b00000100, m_bc.l);
+    SET_R(0b00000100, _bc.l);
     return 8;
   }
 
   inline int OpCb0xD2()
   {
-    SET_R(0b00000100, m_de.h);
+    SET_R(0b00000100, _de.h);
     return 8;
   }
 
   inline int OpCb0xD3()
   {
-    SET_R(0b00000100, m_de.l);
+    SET_R(0b00000100, _de.l);
     return 8;
   }
 
   inline int OpCb0xD4()
   {
-    SET_R(0b00000100, m_hl.h);
+    SET_R(0b00000100, _hl.h);
     return 8;
   }
 
   inline int OpCb0xD5()
   {
-    SET_R(0b00000100, m_hl.l);
+    SET_R(0b00000100, _hl.l);
     return 8;
   }
 
@@ -3676,43 +3618,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xD7()
   {
-    SET_R(0b00000100, m_af.h);
+    SET_R(0b00000100, _af.h);
     return 8;
   }
 
   inline int OpCb0xD8()
   {
-    SET_R(0b00001000, m_bc.h);
+    SET_R(0b00001000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xD9()
   {
-    SET_R(0b00001000, m_bc.l);
+    SET_R(0b00001000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xDA()
   {
-    SET_R(0b00001000, m_de.h);
+    SET_R(0b00001000, _de.h);
     return 8;
   }
 
   inline int OpCb0xDB()
   {
-    SET_R(0b00001000, m_de.l);
+    SET_R(0b00001000, _de.l);
     return 8;
   }
 
   inline int OpCb0xDC()
   {
-    SET_R(0b00001000, m_hl.h);
+    SET_R(0b00001000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xDD()
   {
-    SET_R(0b00001000, m_hl.l);
+    SET_R(0b00001000, _hl.l);
     return 8;
   }
 
@@ -3724,43 +3666,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xDF()
   {
-    SET_R(0b00001000, m_af.h);
+    SET_R(0b00001000, _af.h);
     return 8;
   }
 
   inline int OpCb0xE0()
   {
-    SET_R(0b00010000, m_bc.h);
+    SET_R(0b00010000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xE1()
   {
-    SET_R(0b00010000, m_bc.l);
+    SET_R(0b00010000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xE2()
   {
-    SET_R(0b00010000, m_de.h);
+    SET_R(0b00010000, _de.h);
     return 8;
   }
 
   inline int OpCb0xE3()
   {
-    SET_R(0b00010000, m_de.l);
+    SET_R(0b00010000, _de.l);
     return 8;
   }
 
   inline int OpCb0xE4()
   {
-    SET_R(0b00010000, m_hl.h);
+    SET_R(0b00010000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xE5()
   {
-    SET_R(0b00010000, m_hl.l);
+    SET_R(0b00010000, _hl.l);
     return 8;
   }
 
@@ -3772,42 +3714,42 @@ std::string OutputRegisters()
 
   inline int OpCb0xE7()
   {
-    SET_R(0b00010000, m_af.h);
+    SET_R(0b00010000, _af.h);
     return 8;
   }
 
   inline int OpCb0xE8()
   {
-    SET_R(0b00100000, m_bc.h);
+    SET_R(0b00100000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xE9()
   {
-    SET_R(0b00100000, m_bc.l);
+    SET_R(0b00100000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xEA()
   {
-    SET_R(0b00100000, m_de.h);
+    SET_R(0b00100000, _de.h);
     return 8;
   }
 
   inline int OpCb0xEB()
   {
-    SET_R(0b00100000, m_de.l);
+    SET_R(0b00100000, _de.l);
     return 8;
   }
   inline int OpCb0xEC()
   {
-    SET_R(0b00100000, m_hl.h);
+    SET_R(0b00100000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xED()
   {
-    SET_R(0b00100000, m_hl.l);
+    SET_R(0b00100000, _hl.l);
     return 8;
   }
 
@@ -3819,43 +3761,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xEF()
   {
-    SET_R(0b00100000, m_af.h);
+    SET_R(0b00100000, _af.h);
     return 8;
   }
 
   inline int OpCb0xF0()
   {
-    SET_R(0b01000000, m_bc.h);
+    SET_R(0b01000000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xF1()
   {
-    SET_R(0b01000000, m_bc.l);
+    SET_R(0b01000000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xF2()
   {
-    SET_R(0b01000000, m_de.h);
+    SET_R(0b01000000, _de.h);
     return 8;
   }
 
   inline int OpCb0xF3()
   {
-    SET_R(0b01000000, m_de.l);
+    SET_R(0b01000000, _de.l);
     return 8;
   }
 
   inline int OpCb0xF4()
   {
-    SET_R(0b01000000, m_hl.h);
+    SET_R(0b01000000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xF5()
   {
-    SET_R(0b01000000, m_hl.l);
+    SET_R(0b01000000, _hl.l);
     return 8;
   }
 
@@ -3867,43 +3809,43 @@ std::string OutputRegisters()
 
   inline int OpCb0xF7()
   {
-    SET_R(0b01000000, m_af.h);
+    SET_R(0b01000000, _af.h);
     return 8;
   }
 
   inline int OpCb0xF8()
   {
-    SET_R(0b10000000, m_bc.h);
+    SET_R(0b10000000, _bc.h);
     return 8;
   }
 
   inline int OpCb0xF9()
   {
-    SET_R(0b10000000, m_bc.l);
+    SET_R(0b10000000, _bc.l);
     return 8;
   }
 
   inline int OpCb0xFA()
   {
-    SET_R(0b10000000, m_de.h);
+    SET_R(0b10000000, _de.h);
     return 8;
   }
 
   inline int OpCb0xFB()
   {
-    SET_R(0b10000000, m_de.l);
+    SET_R(0b10000000, _de.l);
     return 8;
   }
 
   inline int OpCb0xFC()
   {
-    SET_R(0b10000000, m_hl.h);
+    SET_R(0b10000000, _hl.h);
     return 8;
   }
 
   inline int OpCb0xFD()
   {
-    SET_R(0b10000000, m_hl.l);
+    SET_R(0b10000000, _hl.l);
     return 8;
   }
 
@@ -3915,7 +3857,7 @@ std::string OutputRegisters()
 
   inline int OpCb0xFF()
   {
-    SET_R(0b10000000, m_af.h);
+    SET_R(0b10000000, _af.h);
     return 8;
   }
 
@@ -3925,13 +3867,13 @@ std::string OutputRegisters()
   //Flags: Z 0 0 Bit7
   inline void RLC__HL()
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val << 1 | val >> 7;
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   //Flags: Z 0 0 Bit7
@@ -3948,13 +3890,13 @@ std::string OutputRegisters()
   //Flags: Z 0 0 Bit0
   inline void RRC__HL()
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val >> 1 | val << 7;
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   //Flags: Z 0 0 Bit0
@@ -3972,13 +3914,13 @@ std::string OutputRegisters()
   inline void RL__HL()
   {
     uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val << 1 | carry_bit;
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   //Flags: Z 0 0 Bit7
@@ -3997,13 +3939,13 @@ std::string OutputRegisters()
   inline void RR__HL()
   {
     uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val >> 1 | (carry_bit << 7);
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   //Flags: Z 0 0 Bit0
@@ -4021,13 +3963,13 @@ std::string OutputRegisters()
   //Flags: Z 0 0 Bit7
   inline void SLA__HL()
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val << 1;
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   //Flags: Z 0 0 Bit7
@@ -4044,13 +3986,13 @@ std::string OutputRegisters()
   //Flags: Z 0 0 Bit0
   inline void SRA__HL()
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val >> 1 | (val & 0b10000000);
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   //Flags: Z 0 0 Bit0
@@ -4067,13 +4009,13 @@ std::string OutputRegisters()
   // Flags: Z 0 0 0
   inline void SWAP__HL()
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     uint8_t result = (val >> 4) | (val << 4);
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
     ResetFlag(FlagBitMask::Carry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   // Flags: Z 0 0 0
@@ -4090,13 +4032,13 @@ std::string OutputRegisters()
   // Flags: Z 0 0 bit0
   inline void SRL__HL()
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
     uint8_t result = val >> 1;
     SetZeroFlag(result);
     ResetFlag(FlagBitMask::Subtract);
     ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   // Flags: Z 0 0 bit0
@@ -4113,7 +4055,7 @@ std::string OutputRegisters()
   // Flags: !bit 0 1 -
   inline void BIT__HL(uint8_t bit_mask)
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     (val & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
     ResetFlag(FlagBitMask::Subtract);
     SetFlag(FlagBitMask::HalfCarry);
@@ -4130,9 +4072,9 @@ std::string OutputRegisters()
   // Flags: - - - -
   inline void RES__HL(uint8_t bit_mask)
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     uint8_t result = val & ~bit_mask;
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   // Flags: - - - -
@@ -4144,9 +4086,9 @@ std::string OutputRegisters()
   // Flags: - - - -
   inline void SET__HL(uint8_t bit_mask)
   {
-    uint8_t val = ReadAddress(m_hl.hl);
+    uint8_t val = ReadAddress(_hl.hl);
     uint8_t result = val | bit_mask;
-    WriteAddress(m_hl.hl, result);
+    WriteAddress(_hl.hl, result);
   }
 
   // Flags: - - - -
