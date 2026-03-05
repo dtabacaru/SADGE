@@ -59,6 +59,7 @@ public:
 
   constexpr static auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22)) * 1;
   constexpr static auto MACHINE_CLOCK_DIV = 4;
+  constexpr static auto INSTRUCTION_COMPLETE = 0;
 
   // Presumably, cycles start at rising edges, and the system powers on triggering a rising edge
   // Initialize these as falling/low/-1 such that the very first cycle mimics the behaviour
@@ -183,7 +184,7 @@ private:
   Register _sp{};
   Register _pc{};
 
-  Register _nn{};
+  Register _wz{};
   uint8_t   _n{};
 
 std::string OutputRegisters()
@@ -360,7 +361,6 @@ std::string OutputRegisters()
   uint64_t m_frame_cycles = 0;
 
   uint8_t _opcode = 0x00;
-  bool _op
 
   bool m_boot_complete = false;
   bool m_interrupt_enabled_requested = false;
@@ -455,117 +455,53 @@ std::string OutputRegisters()
 
   void Op0x01();
 
-  inline int Op0x02()
-  {
-    LD__RR_A(_bc.hl);
-    return 8;
-  }
+  void Op0x02();
 
   void Op0x03();
 
-  inline int Op0x04()
-  {
-    INC_R(_bc.h);
-    return 4;
-  }
+  void Op0x04();
 
-  inline int Op0x05()
-  {
-    DEC_R(_bc.h);
-    return 4;
-  }
+  void Op0x05();
 
-  inline int Op0x06()
-  {
-    LD_R_d(_bc.h);
-    return 8;
-  }
+  void Op0x06();
 
-  inline int Op0x07()
-  {
-    RLCA();
-    return 4;
-  }
+  void Op0x07();
 
   inline int Op0x08()
   {
-    LD__dd_RR(_sp.hl);
+    LD__nn_rr(_sp.hl);
     return 20;
   }
 
   void Op0x09();
 
-  inline int Op0x0A()
-  {
-    LD_A__RR(_bc.hl);
-    return 8;
-  }
+  void Op0x0A();
 
   void Op0x0B();
 
-  inline int Op0x0C()
-  {
-    INC_R(_bc.l);
-    return 4;
-  }
+  void Op0x0C();
 
-  inline int Op0x0D()
-  {
-    DEC_R(_bc.l);
-    return 4;
-  }
+  void Op0x0D();
 
-  inline int Op0x0E()
-  {
-    LD_R_d(_bc.l);
-    return 8;
-  }
+  void Op0x0E();
 
-  inline int Op0x0F()
-  {
-    RRCA();
-    return 4;
-  }
+  void Op0x0F();
 
-  inline int Op0x10()
-  {
-    m_stop_requested = true;
-    return 4;
-  }
+  void Op0x10();
 
   void Op0x11();
 
-  inline int Op0x12()
-  {
-    LD__RR_A(_de.hl);
-    return 8;
-  }
+  void Op0x12();
 
   void Op0x13();
 
-  inline int Op0x14()
-  {
-    INC_R(_de.h);
-    return 4;
-  }
+  void Op0x14();
 
-  inline int Op0x15()
-  {
-    DEC_R(_de.h);
-    return 4;
-  }
+  void Op0x15();
 
-  inline int Op0x16()
-  {
-    LD_R_d(_de.h);
-    return 8;
-  }
+  void Op0x16();
 
-  inline int Op0x17()
-  {
-    RLA();
-    return 4;
-  }
+  void Op0x17();
 
   inline int Op0x18()
   {
@@ -575,37 +511,17 @@ std::string OutputRegisters()
 
   void Op0x19();
 
-  inline int Op0x1A()
-  {
-    LD_A__RR(_de.hl);
-    return 8;
-  }
+  void Op0x1A();
 
   void Op0x1B();
 
-  inline int Op0x1C()
-  {
-    INC_R(_de.l);
-    return 4;
-  }
+  void Op0x1C();
 
-  inline int Op0x1D()
-  {
-    DEC_R(_de.l);
-    return 4;
-  }
+  void Op0x1D();
 
-  inline int Op0x1E()
-  {
-    LD_R_d(_de.l);
-    return 8;
-  }
+  void Op0x1E();
 
-  inline int Op0x1F()
-  {
-    RRA();
-    return 4;
-  }
+  void Op0x1F();
 
   inline int Op0x20()
   {
@@ -615,37 +531,17 @@ std::string OutputRegisters()
 
   void Op0x21();
 
-  inline int Op0x22()
-  {
-    LD__RR_A(_hl.hl++);
-    return 8;
-  }
+  void Op0x22();
 
   void Op0x23();
 
-  inline int Op0x24()
-  {
-    INC_R(_hl.h);
-    return 4;
-  }
+  void Op0x24();
 
-  inline int Op0x25()
-  {
-    DEC_R(_hl.h);
-    return 4;
-  }
+  void Op0x25();
 
-  inline int Op0x26()
-  {
-    LD_R_d(_hl.h);
-    return 8;
-  }
+  void Op0x26();
 
-  inline int Op0x27()
-  {
-    DAA();
-    return 4;
-  }
+  void Op0x27();
 
   inline int Op0x28()
   {
@@ -655,37 +551,17 @@ std::string OutputRegisters()
 
   void Op0x29();
 
-  inline int Op0x2A()
-  {
-    LD_A__RR(_hl.hl++);
-    return 8;
-  }
+  void Op0x2A();
 
   void Op0x2B();
 
-  inline int Op0x2C()
-  {
-    INC_R(_hl.l);
-    return 4;
-  }
+  void Op0x2C();
 
-  inline int Op0x2D()
-  {
-    DEC_R(_hl.l);
-    return 4;
-  }
+  void Op0x2D();
 
-  inline int Op0x2E()
-  {
-    LD_R_d(_hl.l);
-    return 8;
-  }
+  void Op0x2E();
 
-  inline int Op0x2F()
-  {
-    CPL();
-    return 4;
-  }
+  void Op0x2F();
 
   inline int Op0x30()
   {
@@ -695,25 +571,13 @@ std::string OutputRegisters()
 
   void Op0x31();
 
-  inline int Op0x32()
-  {
-    LD__RR_A(_hl.hl--);
-    return 8;
-  }
+  void Op0x32();
 
   void Op0x33();
 
-  inline int Op0x34()
-  {
-    INC__RR(_hl.hl);
-    return 12;
-  }
+  void Op0x34();
 
-  inline int Op0x35()
-  {
-    DEC__RR(_hl.hl);
-    return 12;
-  }
+  void Op0x35();
 
   inline int Op0x36()
   {
@@ -721,11 +585,7 @@ std::string OutputRegisters()
     return 12;
   }
 
-  inline int Op0x37()
-  {
-    SCF();
-    return 4;
-  }
+  void Op0x37();
 
   inline int Op0x38()
   {
@@ -735,454 +595,157 @@ std::string OutputRegisters()
 
   void Op0x39();
 
-  inline int Op0x3A()
-  {
-    LD_A__RR(_hl.hl--);
-    return 8;
-  }
+  void Op0x3A();
 
   void Op0x3B();
 
-  inline int Op0x3C()
-  {
-    INC_R(_af.h);
-    return 4;
-  }
-
-  inline int Op0x3D()
-  {
-    DEC_R(_af.h);
-    return 4;
-  }
-
-  inline int Op0x3E()
-  {
-    LD_R_d(_af.h);
-    return 8;
-  }
-
-  inline int Op0x3F()
-  {
-    CCF();
-    return 4;
-  }
-
-  inline int Op0x40()
-  {
-    LD_R_X(_bc.h, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x41()
-  {
-    LD_R_X(_bc.h, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x42()
-  {
-    LD_R_X(_bc.h, _de.h);
-    return 4;
-  }
-
-  inline int Op0x43()
-  {
-    LD_R_X(_bc.h, _de.l);
-    return 4;
-  }
-
-  inline int Op0x44()
-  {
-    LD_R_X(_bc.h, _hl.h);
-    return 4;
-  }
-
-  inline int Op0x45()
-  {
-    LD_R_X(_bc.h, _hl.l);
-    return 4;
-  }
-
-  inline int Op0x46()
-  {
-    LD_R__HL(_bc.h);
-    return 8;
-  }
-
-  inline int Op0x47()
-  {
-    LD_R_X(_bc.h, _af.h);
-    return 4;
-  }
-
-  inline int Op0x48()
-  {
-    LD_R_X(_bc.l, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x49()
-  {
-    LD_R_X(_bc.l, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x4A()
-  {
-    LD_R_X(_bc.l, _de.h);
-    return 4;
-  }
-
-  inline int Op0x4B()
-  {
-    LD_R_X(_bc.l, _de.l);
-    return 4;
-  }
-
-  inline int Op0x4C()
-  {
-    LD_R_X(_bc.l, _hl.h);
-    return 4;
-  }
-
-  inline int Op0x4D()
-  {
-    LD_R_X(_bc.l, _hl.l);
-    return 4;
-  }
-
-  inline int Op0x4E()
-  {
-    LD_R__HL(_bc.l);
-    return 8;
-  }
-
-  inline int Op0x4F()
-  {
-    LD_R_X(_bc.l, _af.h);
-    return 4;
-  }
-
-  inline int Op0x50()
-  {
-    LD_R_X(_de.h, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x51()
-  {
-    LD_R_X(_de.h, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x52()
-  {
-    LD_R_X(_de.h, _de.h);
-    return 4;
-  }
-
-  inline int Op0x53()
-  {
-    LD_R_X(_de.h, _de.l);
-    return 4;
-  }
-
-  inline int Op0x54()
-  {
-    LD_R_X(_de.h, _hl.h);
-    return 4;
-  }
-
-  inline int Op0x55()
-  {
-    LD_R_X(_de.h, _hl.l);
-    return 4;
-  }
-
-  inline int Op0x56()
-  {
-    LD_R__HL(_de.h);
-    return 8;
-  }
-
-  inline int Op0x57()
-  {
-    LD_R_X(_de.h, _af.h);
-    return 4;
-  }
-
-  inline int Op0x58()
-  {
-    LD_R_X(_de.l, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x59()
-  {
-    LD_R_X(_de.l, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x5A()
-  {
-    LD_R_X(_de.l, _de.h);
-    return 4;
-  }
-
-  inline int Op0x5B()
-  {
-    LD_R_X(_de.l, _de.l);
-    return 4;
-  }
-
-  inline int Op0x5C()
-  {
-    LD_R_X(_de.l, _hl.h);
-    return 4;
-  }
-  inline int Op0x5D()
-  {
-    LD_R_X(_de.l, _hl.l);
-    return 4;
-  }
-  inline int Op0x5E()
-  {
-    LD_R__HL(_de.l);
-    return 8;
-  }
-  inline int Op0x5F()
-  {
-    LD_R_X(_de.l, _af.h);
-    return 4;
-  }
-
-  inline int Op0x60()
-  {
-    LD_R_X(_hl.h, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x61()
-  {
-    LD_R_X(_hl.h, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x62()
-  {
-    LD_R_X(_hl.h, _de.h);
-    return 4;
-  }
-
-  inline int Op0x63()
-  {
-    LD_R_X(_hl.h, _de.l);
-    return 4;
-  }
-
-  inline int Op0x64()
-  {
-    LD_R_X(_hl.h, _hl.h);
-    return 4;
-  }
-
-  inline int Op0x65()
-  {
-    LD_R_X(_hl.h, _hl.l);
-    return 4;
-  }
-
-  inline int Op0x66()
-  {
-    LD_R__HL(_hl.h);
-    return 8;
-  }
-
-  inline int Op0x67()
-  {
-    LD_R_X(_hl.h, _af.h);
-    return 4;
-  }
-
-  inline int Op0x68()
-  {
-    LD_R_X(_hl.l, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x69()
-  {
-    LD_R_X(_hl.l, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x6A()
-  {
-    LD_R_X(_hl.l, _de.h);
-    return 4;
-  }
-
-  inline int Op0x6B()
-  {
-    LD_R_X(_hl.l, _de.l);
-    return 4;
-  }
-
-  inline int Op0x6C()
-  {
-    LD_R_X(_hl.l, _hl.h);
-    return 4;
-  }
-
-  inline int Op0x6D()
-  {
-    LD_R_X(_hl.l, _hl.l);
-    return 4;
-  }
-
-  inline int Op0x6E()
-  {
-    LD_R__HL(_hl.l);
-    return 8;
-  }
-
-  inline int Op0x6F()
-  {
-    LD_R_X(_hl.l, _af.h);
-    return 4;
-  }
-
-  inline int Op0x70()
-  {
-    LD__RR_R(_hl.hl, _bc.h);
-    return 8;
-  }
-
-  inline int Op0x71()
-  {
-    LD__RR_R(_hl.hl, _bc.l);
-    return 8;
-  }
-
-  inline int Op0x72()
-  {
-    LD__RR_R(_hl.hl, _de.h);
-    return 8;
-  }
-
-  inline int Op0x73()
-  {
-    LD__RR_R(_hl.hl, _de.l);
-    return 8;
-  }
-
-  inline int Op0x74()
-  {
-    LD__RR_R(_hl.hl, _hl.h);
-    return 8;
-  }
-
-  inline int Op0x75()
-  {
-    LD__RR_R(_hl.hl, _hl.l);
-    return 8;
-  }
-
-  inline int Op0x76()
-  {
-    m_halt_requested = true;
-    return 4;
-  }
-
-  inline int Op0x77()
-  {
-    LD__RR_R(_hl.hl, _af.h);
-    return 8;
-  }
-
-  inline int Op0x78()
-  {
-    LD_R_X(_af.h, _bc.h);
-    return 4;
-  }
-
-  inline int Op0x79()
-  {
-    LD_R_X(_af.h, _bc.l);
-    return 4;
-  }
-
-  inline int Op0x7A()
-  {
-    LD_R_X(_af.h, _de.h);
-    return 4;
-  }
-
-  inline int Op0x7B()
-  {
-    LD_R_X(_af.h, _de.l);
-    return 4;
-  }
-
-  inline int Op0x7C()
-  {
-    LD_R_X(_af.h, _hl.h);
-    return 4;
-  }
-
-  inline int Op0x7D()
-  {
-    LD_R_X(_af.h, _hl.l);
-    return 4;
-  }
-
-  inline int Op0x7E()
-  {
-    LD_R__HL(_af.h);
-    return 8;
-  }
-
-  inline int Op0x7F()
-  {
-    LD_R_X(_af.h, _af.h);
-    return 4;
-  }
-
-  inline int Op0x80()
-  {
-    ADD_A_X(_bc.h);
-    return 4;
-  }
-
-  inline int Op0x81()
-  {
-    ADD_A_X(_bc.l);
-    return 4;
-  }
-
-  inline int Op0x82()
-  {
-    ADD_A_X(_de.h);
-    return 4;
-  }
-
-  inline int Op0x83()
-  {
-    ADD_A_X(_de.l);
-    return 4;
-  }
-
-  inline int Op0x84()
-  {
-    ADD_A_X(_hl.h);
-    return 4;
-  }
-
-  inline int Op0x85()
-  {
-    ADD_A_X(_hl.l);
-    return 4;
-  }
+  void Op0x3C();
+
+  void Op0x3D();
+
+  void Op0x3E();
+
+  void Op0x3F();
+
+  void Op0x40();
+
+  void Op0x41();
+
+  void Op0x42();
+
+  void Op0x43();
+
+  void Op0x44();
+
+  void Op0x45();
+
+  void Op0x46();
+
+  void Op0x47();
+
+  void Op0x48();
+
+  void Op0x49();
+
+  void Op0x4A();
+
+  void Op0x4B();
+
+  void Op0x4C();
+
+  void Op0x4D();
+
+  void Op0x4E();
+
+  void Op0x4F();
+
+  void Op0x50();
+
+  void Op0x51();
+
+  void Op0x52();
+
+  void Op0x53();
+
+  void Op0x54();
+
+  void Op0x55();
+
+  void Op0x56();
+
+  void Op0x57();
+
+  void Op0x58();
+
+  void Op0x59();
+
+  void Op0x5A();
+
+  void Op0x5B();
+
+  void Op0x5C();
+
+  void Op0x5D();
+
+  void Op0x5E();
+
+  void Op0x5F();
+
+  void Op0x60();
+
+  void Op0x61();
+
+  void Op0x62();
+
+  void Op0x63();
+
+  void Op0x64();
+
+  void Op0x65();
+
+  void Op0x66();
+
+  void Op0x67();
+
+  void Op0x68();
+
+  void Op0x69();
+
+  void Op0x6A();
+
+  void Op0x6B();
+
+  void Op0x6C();
+
+  void Op0x6D();
+
+  void Op0x6E();
+
+  void Op0x6F();
+
+  void Op0x70();
+
+  void Op0x71();
+
+  void Op0x72();
+
+  void Op0x73();
+
+  void Op0x74();
+
+  void Op0x75();
+
+  void Op0x76();
+
+  void Op0x77();
+
+  void Op0x78();
+
+  void Op0x79();
+
+  void Op0x7A();
+
+  void Op0x7B();
+
+  void Op0x7C();
+
+  void Op0x7D();
+
+  void Op0x7E();
+
+  void Op0x7F();
+
+  void Op0x80();
+
+  void Op0x81();
+
+  void Op0x82();
+
+  void Op0x83();
+
+  void Op0x84();
+
+  void Op0x85();
 
   inline int Op0x86()
   {
@@ -1190,47 +753,19 @@ std::string OutputRegisters()
     return 8;
   }
 
-  inline int Op0x87()
-  {
-    ADD_A_X(_af.h);
-    return 4;
-  }
+  void Op0x87();
 
-  inline int Op0x88()
-  {
-    ADC_A_X(_bc.h);
-    return 4;
-  }
+  void Op0x88();
 
-  inline int Op0x89()
-  {
-    ADC_A_X(_bc.l);
-    return 4;
-  }
+  void Op0x89();
 
-  inline int Op0x8A()
-  {
-    ADC_A_X(_de.h);
-    return 4;
-  }
+  void Op0x8A();
 
-  inline int Op0x8B()
-  {
-    ADC_A_X(_de.l);
-    return 4;
-  }
+  void Op0x8B();
 
-  inline int Op0x8C()
-  {
-    ADC_A_X(_hl.h);
-    return 4;
-  }
+  void Op0x8C();
 
-  inline int Op0x8D()
-  {
-    ADC_A_X(_hl.l);
-    return 4;
-  }
+  void Op0x8D();
 
   inline int Op0x8E()
   {
@@ -1238,47 +773,19 @@ std::string OutputRegisters()
     return 8;
   }
 
-  inline int Op0x8F()
-  {
-    ADC_A_X(_af.h);
-    return 4;
-  }
+  void Op0x8F();
 
-  inline int Op0x90()
-  {
-    SUB_A_X(_bc.h);
-    return 4;
-  }
+  void Op0x90();
 
-  inline int Op0x91()
-  {
-    SUB_A_X(_bc.l);
-    return 4;
-  }
+  void Op0x91();
 
-  inline int Op0x92()
-  {
-    SUB_A_X(_de.h);
-    return 4;
-  }
+  void Op0x92();
 
-  inline int Op0x93()
-  {
-    SUB_A_X(_de.l);
-    return 4;
-  }
+  void Op0x93();
 
-  inline int Op0x94()
-  {
-    SUB_A_X(_hl.h);
-    return 4;
-  }
+  void Op0x94();
 
-  inline int Op0x95()
-  {
-    SUB_A_X(_hl.l);
-    return 4;
-  }
+  void Op0x95();
 
   inline int Op0x96()
   {
@@ -1286,47 +793,19 @@ std::string OutputRegisters()
     return 8;
   }
 
-  inline int Op0x97()
-  {
-    SUB_A_X(_af.h);
-    return 4;
-  }
+  void Op0x97();
 
-  inline int Op0x98()
-  {
-    SBC_A_X(_bc.h);
-    return 4;
-  }
+  void Op0x98();
 
-  inline int Op0x99()
-  {
-    SBC_A_X(_bc.l);
-    return 4;
-  }
+  void Op0x99();
 
-  inline int Op0x9A()
-  {
-    SBC_A_X(_de.h);
-    return 4;
-  }
+  void Op0x9A();
 
-  inline int Op0x9B()
-  {
-    SBC_A_X(_de.l);
-    return 4;
-  }
+  void Op0x9B();
 
-  inline int Op0x9C()
-  {
-    SBC_A_X(_hl.h);
-    return 4;
-  }
+  void Op0x9C();
 
-  inline int Op0x9D()
-  {
-    SBC_A_X(_hl.l);
-    return 4;
-  }
+  void Op0x9D();
 
   inline int Op0x9E()
   {
@@ -1334,11 +813,7 @@ std::string OutputRegisters()
     return 8;
   }
 
-  inline int Op0x9F()
-  {
-    SBC_A_X(_af.h);
-    return 4;
-  }
+  void Op0x9F();
 
   inline int Op0xA0()
   {
@@ -1782,7 +1257,7 @@ std::string OutputRegisters()
 
   inline int Op0xEA()
   {
-    LD__RR_A(ReadNextUint16());
+    //LD__RR_A(ReadNextUint16());
     return 16;
   }
 
@@ -1874,7 +1349,7 @@ std::string OutputRegisters()
 
   inline int Op0xFA()
   {
-    LD_R_X(_af.h, ReadAddress(ReadNextUint16()));
+    LD_r_x(_af.h, ReadAddress(ReadNextUint16()));
     return 16;
   }
 
@@ -1931,66 +1406,57 @@ std::string OutputRegisters()
   // Naming convention:
   //   _ denotes a register
   //  __ denotes an address
-  //   R denotes an 8-bit register
-  //  RR denotes a 16-bit register
-  //   d denotes the next 8-bit value
-  //  dd denotes the next 16-bit value
+  //   r denotes an 8-bit register
+  //  rr denotes a 16-bit register
+  //   n denotes the next 8-bit value
+  //  nn denotes the next 16-bit value
   //   s denotes the next signed 8-bit value
   //  ss denotes the next signed 16-bit value
   // 
-  //   X denotes wildcard
+  //   x denotes wildcard
   //
   //  Some functions are specific to a register.
   //  These functions will denote the register in the name.
   //
-  //  e.g. LD__RR_A -> Load the value of A into the address pointed to by RR
+  //  e.g. LD__rr_a -> Load the value of A into the address pointed to by RR
   //
 
-// Flags: - - - -
-  inline void LD_R_X(uint8_t& R, uint8_t val)
-  {
-    R = val;
-  }
+  // Flags: - - - -
+  void NOP();
 
   // Flags: - - - -
-  inline void LD_R__HL(uint8_t& R)
-  {
-    R = ReadAddress(_hl.hl);
-  }
+  void LD_r_x(uint8_t& r, uint8_t val);
 
   // Flags: - - - -
-  inline void LD_R_d(uint8_t& R)
-  {
-    R = ReadNextUint8();
-  }
+  void LD_r__HL(uint8_t& r);
 
   // Flags: - - - -
-  inline void LD_A__RR(uint16_t RR)
-  {
-    _af.h = ReadAddress(RR);
-  }
+  void LD_r_n(uint8_t& r);
 
   // Flags: - - - -
-  inline void LD__dd_RR(uint16_t RR)
+  void LD_A__RR(Register rr);
+
+  // Flags: - - - -
+  void LD_A__HLx(int val);
+
+  // Flags: - - - -
+  inline void LD__nn_rr(uint16_t RR)
   {
     uint16_t address = ReadNextUint16();
     WriteAddress(address, RR & 0xFF);
     WriteAddress(address + 1, RR >> 8);
   }
 
-  void LD_rr_nn(Register& RR);
+  // Flags: - - - -
+  void LD_rr_nn(Register& rr);
 
   // Flags: - - - -
-  inline void LD__RR_R(uint16_t RR, uint8_t R)
-  {
-    WriteAddress(RR, R);
-  }
+  void LD__rr_r(Register rr, uint8_t r);
 
   // Flags: - - - -
-  inline void LD__RR_A(uint16_t RR)
-  {
-    LD__RR_R(RR, _af.h);
-  }
+  void LD__rr_A(Register rr);
+
+  void LD__HLx_A(int val);
 
   // Flags: - - - -
   inline void LD__R_A_IO(uint8_t R)
@@ -2031,70 +1497,23 @@ std::string OutputRegisters()
   // Flags: - - - -
   void ADD_rr(Register& RR, int val);
 
-  // Flags: - - - -
-  void INC_rr(Register& RR);
-
-  // Flags: - - - -
-  void DEC_rr(Register& RR);
+  // Flags: Z 0 H C
+  void ADC_A_X(int val);
 
   // Flags: Z 0 H C
-  inline void ADC_A_X(int val)
-  {
-    int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-    int result = _af.h + val + carry;
-    SetHalfCarryFlag(_af.h, val, carry);
-    _af.h = result;
-    SetZeroFlag(_af.h);
-    ResetFlag(FlagBitMask::Subtract);
-    SetCarry8Bit(result);
-  }
-
-  // Flags: Z 0 H C
-  inline void ADD_A_X(int val)
-  {
-    ADD_X(_af.h, val, true);
-    ResetFlag(FlagBitMask::Subtract);
-  }
+  void ADD_A_X(int val);
 
   // Flags: Z 1 H C
-  inline void SBC_A_X(int val)
-  {
-    int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-    int result = _af.h - val - carry;
-    SetHalfCarryFlag(_af.h, -val, -carry);
-    _af.h = result;
-    SetZeroFlag(_af.h);
-    SetFlag(FlagBitMask::Subtract);
-    SetCarry8Bit(result);
-  }
+  void SBC_A_X(int val);
 
   // Flags: Z 1 H C
-  inline void SUB_A_X(int val)
-  {
-    ADD_X(_af.h, -val, true);
-    SetFlag(FlagBitMask::Subtract);
-  }
+  void SUB_A_X(int val);
 
   // Flags: Z - H C
-  inline void ADD_X(uint8_t& R, int val, bool set_carry = false)
-  {
-    int result = R + val;
-    SetHalfCarryFlag(R, val);
-    R = result;
-    SetZeroFlag(R);
-    if (set_carry) SetCarry8Bit(result);
-  }
+  void ADD_x(uint8_t& R, int val, bool set_carry = false);
 
   // Flags: Z N H -
-  inline void ADD__RR(uint16_t RR, int val)
-  {
-    uint8_t curr_val = ReadAddress(RR);
-    SetHalfCarryFlag(curr_val, val);
-    uint8_t result = curr_val + val;
-    SetZeroFlag(result);
-    SetSubtractionFlag(val);
-    WriteAddress(RR, result);
-  }
+  void ADD__HL(int val);
 
   // Flags: - 0 H C
   void ADD_HL_rr(Register RR);
@@ -2143,115 +1562,35 @@ std::string OutputRegisters()
   }
 
   // Flags: 0 0 0 A7
-  inline void RLCA()
-  {
-    _af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    _af.h = _af.h << 1 | _af.h >> 7;
-    ResetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void RLCA();
 
   // Flags: 0 0 0 A7
-  inline void RLA()
-  {
-    uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    _af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    _af.h = _af.h << 1 | carry_bit;
-    ResetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void RLA();
 
   // Flags: 0 0 0 A0
-  inline void RRCA()
-  {
-    _af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    _af.h = _af.h >> 1 | _af.h << 7;
-    ResetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void RRCA();
 
   // Flags: 0 0 0 A0
-  inline void RRA()
-  {
-    uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    _af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    _af.h = _af.h >> 1 | carry_bit << 7;
-    ResetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void RRA();
 
   // Flags: - 1 1 -
-  inline void CPL()
-  {
-    _af.h = ~_af.h;
-    SetFlag(FlagBitMask::Subtract);
-    SetFlag(FlagBitMask::HalfCarry);
-  }
+  void CPL();
 
   // Flags: Z - 0 C
   // https://forums.nesdev.org/viewtopic.php?t=15944#:~:text=The%20DAA%20instruction%20adjusts%20the,%2C%20lower%20nybble%2C%20or%20both.
-  inline void DAA()
-  {
-    if (!ReadFlag(FlagBitMask::Subtract))
-    {
-      if (ReadFlag(FlagBitMask::Carry)     ||  _af.h         > 0x99) { _af.h += 0x60; SetFlag(FlagBitMask::Carry); }
-      if (ReadFlag(FlagBitMask::HalfCarry) || (_af.h & 0x0f) > 0x09)   _af.h += 0x06;
-    }
-    else
-    {
-      if (ReadFlag(FlagBitMask::Carry))     _af.h -= 0x60;
-      if (ReadFlag(FlagBitMask::HalfCarry)) _af.h -= 0x06;
-    }
-
-    SetZeroFlag(_af.h);
-    ResetFlag(FlagBitMask::HalfCarry);
-  }
+  inline void DAA();
 
   // Flags: - 0 0 1
-  inline void SCF()
-  {
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    SetFlag(FlagBitMask::Carry);
-  }
+  void SCF();
 
   // Flags: - 0 0 !C
-  inline void CCF()
-  {
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    ReadFlag(FlagBitMask::Carry) ? ResetFlag(FlagBitMask::Carry) : SetFlag(FlagBitMask::Carry);
-  }
+  void CCF();
 
   // Flags: Z 0 H -
-  inline void INC_R(uint8_t& R)
-  {
-    ADD_X(R, 1);
-    ResetFlag(FlagBitMask::Subtract);
-  }
+  void INC_R(uint8_t& R);
 
   // Flags: Z 1 H -
-  inline void DEC_R(uint8_t& R)
-  {
-    ADD_X(R, -1);
-    SetFlag(FlagBitMask::Subtract);
-  }
-
-  // Flags: Z 0 H -
-  inline void INC__RR(uint16_t RR)
-  {
-    ADD__RR(RR, 1);
-  }
-
-  // Flags: Z 1 H -
-  inline void DEC__RR(uint16_t RR)
-  {
-    ADD__RR(RR, -1);
-  }
+  void DEC_R(uint8_t& R);
 
   inline void PUSH_RR(uint16_t RR)
   {
