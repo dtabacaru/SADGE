@@ -84,7 +84,7 @@ public:
   void RisingMEvent();
   void FallingMEvent();
 
-  uint64_t _opcycle{0};
+  uint64_t _opCycle{0};
   uint16_t _addressBus{0};
   uint8_t  _dataBus{0};
 
@@ -159,6 +159,7 @@ public:
   uint8_t  GetTitleHash(std::string title);
 
   void TestExecute();
+  void Execute();
   void SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
   bool CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
 #pragma endregion
@@ -185,7 +186,6 @@ private:
   Register _pc{};
 
   Register _wz{};
-  uint8_t   _n{};
 
 std::string OutputRegisters()
   {
@@ -220,8 +220,8 @@ std::string OutputRegisters()
 
   inline void SetHalfCarryFlag(uint8_t val1, int val2, int carry)
   {
-    bool bit_4_set = val2 < 0 ? ((val1 & 0xF) - (-val2 & 0xF) - (-carry & 0xF)) & 0x10
-                              : ((val1 & 0xF) + (+val2 & 0xF) + (+carry & 0xF)) & 0x10;
+    bool bit_4_set = val2 < 0 || carry < 0 ? ((val1 & 0xF) - (-val2 & 0xF) - (-carry & 0xF)) & 0x10
+                                           : ((val1 & 0xF) + (+val2 & 0xF) + (+carry & 0xF)) & 0x10;
 
     bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
   }
@@ -352,6 +352,23 @@ std::string OutputRegisters()
     BOOT_COMPLETE = 0xFF50
   };
 
+  enum class RestartVector
+  {
+    RST0 = 0x0000,
+    RST1 = 0x0008,
+    RST2 = 0x0010,
+    RST3 = 0x0018,
+    RST4 = 0x0020,
+    RST5 = 0x0028,
+    RST6 = 0x0030,
+    RST7 = 0x0038
+  };
+
+  static constexpr uint16_t GetRestartVectorAddress(RestartVector vec)
+  {
+    return static_cast<uint16_t>(vec);
+  }
+
   RomHeader m_rom_header;
 
   uint64_t m_total_cycle_count = 0;
@@ -366,6 +383,7 @@ std::string OutputRegisters()
   bool m_interrupt_enabled_requested = false;
   bool m_stop_requested = false;
   bool m_halt_requested = false;
+  bool _cb_mode = false;
 
   virtual uint8_t ReadAddress(uint16_t address);
   virtual void WriteAddress(uint16_t address, uint8_t val);
@@ -377,13 +395,7 @@ std::string OutputRegisters()
 
   uint8_t ReadNextUint8();
 
-  inline int8_t ReadNextInt8()
-  {
-    uint8_t val = ReadAddress(_pc.hl);
-    _pc.hl += 1;
-
-    return static_cast<int8_t>(val);
-  }
+  int8_t ReadNextInt8();
 
   inline int StopHandler()
   {
@@ -404,7 +416,7 @@ std::string OutputRegisters()
   {
     uint16_t isr = m_interrupt_controller.HandleInterrupt();
     _pc.hl -= 1;
-    PUSH_RR(_pc.hl);
+    PUSH_rr(_pc);
     _pc.hl = isr;
     Fetch();
 
@@ -422,7 +434,7 @@ std::string OutputRegisters()
   virtual void WaitFrame();
   void Init();
 
-  int ExecuteCb(uint8_t opcode);
+  void ExecuteCb();
   void Update(int cycle_count);
 #pragma endregion
 
@@ -435,994 +447,44 @@ std::string OutputRegisters()
   TimerController m_timer_controller;
 #pragma endregion
 
-#pragma region INSTRUCTIONS
-  using Instruction = int (Cpu::*)();
-  constexpr static uint16_t NUM_INSTRUCTIONS = 256;
-
-  enum class RestartVector
-  {
-    RST0 = 0x0000,
-    RST1 = 0x0008,
-    RST2 = 0x0010,
-    RST3 = 0x0018,
-    RST4 = 0x0020,
-    RST5 = 0x0028,
-    RST6 = 0x0030,
-    RST7 = 0x0038
-  };
-
-  void Op0x00();
-
-  void Op0x01();
-
-  void Op0x02();
-
-  void Op0x03();
-
-  void Op0x04();
-
-  void Op0x05();
-
-  void Op0x06();
-
-  void Op0x07();
-
-  inline int Op0x08()
-  {
-    LD__nn_rr(_sp.hl);
-    return 20;
-  }
-
-  void Op0x09();
-
-  void Op0x0A();
-
-  void Op0x0B();
-
-  void Op0x0C();
-
-  void Op0x0D();
-
-  void Op0x0E();
-
-  void Op0x0F();
-
-  void Op0x10();
-
-  void Op0x11();
-
-  void Op0x12();
-
-  void Op0x13();
-
-  void Op0x14();
-
-  void Op0x15();
-
-  void Op0x16();
-
-  void Op0x17();
-
-  inline int Op0x18()
-  {
-    JR(true);
-    return 12;
-  }
-
-  void Op0x19();
-
-  void Op0x1A();
-
-  void Op0x1B();
-
-  void Op0x1C();
-
-  void Op0x1D();
-
-  void Op0x1E();
-
-  void Op0x1F();
-
-  inline int Op0x20()
-  {
-    JR(!ReadFlag(FlagBitMask::Zero));
-    return !ReadFlag(FlagBitMask::Zero) ? 12 : 8;
-  }
-
-  void Op0x21();
-
-  void Op0x22();
-
-  void Op0x23();
-
-  void Op0x24();
-
-  void Op0x25();
-
-  void Op0x26();
-
-  void Op0x27();
-
-  inline int Op0x28()
-  {
-    JR(ReadFlag(FlagBitMask::Zero));
-    return ReadFlag(FlagBitMask::Zero) ? 12 : 8;
-  }
-
-  void Op0x29();
-
-  void Op0x2A();
-
-  void Op0x2B();
-
-  void Op0x2C();
-
-  void Op0x2D();
-
-  void Op0x2E();
-
-  void Op0x2F();
-
-  inline int Op0x30()
-  {
-    JR(!ReadFlag(FlagBitMask::Carry));
-    return !ReadFlag(FlagBitMask::Carry) ? 12 : 8;
-  }
-
-  void Op0x31();
-
-  void Op0x32();
-
-  void Op0x33();
-
-  void Op0x34();
-
-  void Op0x35();
-
-  inline int Op0x36()
-  {
-    WriteAddress(_hl.hl, ReadNextUint8());
-    return 12;
-  }
-
-  void Op0x37();
-
-  inline int Op0x38()
-  {
-    JR(ReadFlag(FlagBitMask::Carry));
-    return ReadFlag(FlagBitMask::Carry) ? 12 : 8;
-  }
-
-  void Op0x39();
-
-  void Op0x3A();
-
-  void Op0x3B();
-
-  void Op0x3C();
-
-  void Op0x3D();
-
-  void Op0x3E();
-
-  void Op0x3F();
-
-  void Op0x40();
-
-  void Op0x41();
-
-  void Op0x42();
-
-  void Op0x43();
-
-  void Op0x44();
-
-  void Op0x45();
-
-  void Op0x46();
-
-  void Op0x47();
-
-  void Op0x48();
-
-  void Op0x49();
-
-  void Op0x4A();
-
-  void Op0x4B();
-
-  void Op0x4C();
-
-  void Op0x4D();
-
-  void Op0x4E();
-
-  void Op0x4F();
-
-  void Op0x50();
-
-  void Op0x51();
-
-  void Op0x52();
-
-  void Op0x53();
-
-  void Op0x54();
-
-  void Op0x55();
-
-  void Op0x56();
-
-  void Op0x57();
-
-  void Op0x58();
-
-  void Op0x59();
-
-  void Op0x5A();
-
-  void Op0x5B();
-
-  void Op0x5C();
-
-  void Op0x5D();
-
-  void Op0x5E();
-
-  void Op0x5F();
-
-  void Op0x60();
-
-  void Op0x61();
-
-  void Op0x62();
-
-  void Op0x63();
-
-  void Op0x64();
-
-  void Op0x65();
-
-  void Op0x66();
-
-  void Op0x67();
-
-  void Op0x68();
-
-  void Op0x69();
-
-  void Op0x6A();
-
-  void Op0x6B();
-
-  void Op0x6C();
-
-  void Op0x6D();
-
-  void Op0x6E();
-
-  void Op0x6F();
-
-  void Op0x70();
-
-  void Op0x71();
-
-  void Op0x72();
-
-  void Op0x73();
-
-  void Op0x74();
-
-  void Op0x75();
-
-  void Op0x76();
-
-  void Op0x77();
-
-  void Op0x78();
-
-  void Op0x79();
-
-  void Op0x7A();
-
-  void Op0x7B();
-
-  void Op0x7C();
-
-  void Op0x7D();
-
-  void Op0x7E();
-
-  void Op0x7F();
-
-  void Op0x80();
-
-  void Op0x81();
-
-  void Op0x82();
-
-  void Op0x83();
-
-  void Op0x84();
-
-  void Op0x85();
-
-  inline int Op0x86()
-  {
-    ADD_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  void Op0x87();
-
-  void Op0x88();
-
-  void Op0x89();
-
-  void Op0x8A();
-
-  void Op0x8B();
-
-  void Op0x8C();
-
-  void Op0x8D();
-
-  inline int Op0x8E()
-  {
-    ADC_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  void Op0x8F();
-
-  void Op0x90();
-
-  void Op0x91();
-
-  void Op0x92();
-
-  void Op0x93();
-
-  void Op0x94();
-
-  void Op0x95();
-
-  inline int Op0x96()
-  {
-    SUB_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  void Op0x97();
-
-  void Op0x98();
-
-  void Op0x99();
-
-  void Op0x9A();
-
-  void Op0x9B();
-
-  void Op0x9C();
-
-  void Op0x9D();
-
-  inline int Op0x9E()
-  {
-    SBC_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  void Op0x9F();
-
-  inline int Op0xA0()
-  {
-    AND_A_X(_bc.h);
-    return 4;
-  }
-
-  inline int Op0xA1()
-  {
-    AND_A_X(_bc.l);
-    return 4;
-  }
-
-  inline int Op0xA2()
-  {
-    AND_A_X(_de.h);
-    return 4;
-  }
-
-  inline int Op0xA3()
-  {
-    AND_A_X(_de.l);
-    return 4;
-  }
-
-  inline int Op0xA4()
-  {
-    AND_A_X(_hl.h);
-    return 4;
-  }
-
-  inline int Op0xA5()
-  {
-    AND_A_X(_hl.l);
-    return 4;
-  }
-
-  inline int Op0xA6()
-  {
-    AND_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  inline int Op0xA7()
-  {
-    AND_A_X(_af.h);
-    return 4;
-  }
-
-  inline int Op0xA8()
-  {
-    XOR_A_X(_bc.h);
-    return 4;
-  }
-
-  inline int Op0xA9()
-  {
-    XOR_A_X(_bc.l);
-    return 4;
-  }
-
-  inline int Op0xAA()
-  {
-    XOR_A_X(_de.h);
-    return 4;
-  }
-
-  inline int Op0xAB()
-  {
-    XOR_A_X(_de.l);
-    return 4;
-  }
-
-  inline int Op0xAC()
-  {
-    XOR_A_X(_hl.h);
-    return 4;
-  }
-
-  inline int Op0xAD()
-  {
-    XOR_A_X(_hl.l);
-    return 4;
-  }
-
-  inline int Op0xAE()
-  {
-    XOR_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  inline int Op0xAF()
-  {
-    XOR_A_X(_af.h);
-    return 4;
-  }
-
-  inline int Op0xB0()
-  {
-    OR_A_X(_bc.h);
-    return 4;
-  }
-
-  inline int Op0xB1()
-  {
-    OR_A_X(_bc.l);
-    return 4;
-  }
-
-  inline int Op0xB2()
-  {
-    OR_A_X(_de.h);
-    return 4;
-  }
-
-  inline int Op0xB3()
-  {
-    OR_A_X(_de.l);
-    return 4;
-  }
-
-  inline int Op0xB4()
-  {
-    OR_A_X(_hl.h);
-    return 4;
-  }
-
-  inline int Op0xB5()
-  {
-    OR_A_X(_hl.l);
-    return 4;
-  }
-
-  inline int Op0xB6()
-  {
-    OR_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  inline int Op0xB7()
-  {
-    OR_A_X(_af.h);
-    return 4;
-  }
-
-  inline int Op0xB8()
-  {
-    CP_A_X(_bc.h);
-    return 4;
-  }
-
-  inline int Op0xB9()
-  {
-    CP_A_X(_bc.l);
-    return 4;
-  }
-
-  inline int Op0xBA()
-  {
-    CP_A_X(_de.h);
-    return 4;
-  }
-
-  inline int Op0xBB()
-  {
-    CP_A_X(_de.l);
-    return 4;
-  }
-
-  inline int Op0xBC()
-  {
-    CP_A_X(_hl.h);
-    return 4;
-  }
-
-  inline int Op0xBD()
-  {
-    CP_A_X(_hl.l);
-    return 4;
-  }
-
-  inline int Op0xBE()
-  {
-    CP_A_X(ReadAddress(_hl.hl));
-    return 8;
-  }
-
-  inline int Op0xBF()
-  {
-    CP_A_X(_af.h);
-    return 4;
-  }
-
-  inline int Op0xC0()
-  {
-    RET(!ReadFlag(FlagBitMask::Zero));
-    return !ReadFlag(FlagBitMask::Zero) ? 20 : 8;
-  }
-
-  inline int Op0xC1()
-  {
-    POP_RR(_bc.hl);
-    return 12;
-  }
-
-  inline int Op0xC2()
-  {
-    JP(!ReadFlag(FlagBitMask::Zero));
-    return !ReadFlag(FlagBitMask::Zero) ? 16 : 12;
-  }
-
-  inline int Op0xC3()
-  {
-    JP(true);
-    return 16;
-  }
-
-  inline int Op0xC4()
-  {
-    CALL(!ReadFlag(FlagBitMask::Zero));
-    return !ReadFlag(FlagBitMask::Zero) ? 24 : 12;
-  }
-
-  inline int Op0xC5()
-  {
-    PUSH_RR(_bc.hl);
-    return 16;
-  }
-
-  inline int Op0xC6()
-  {
-    ADD_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xC7()
-  {
-    RST(RestartVector::RST0);
-    return 16;
-  }
-
-  inline int Op0xC8()
-  {
-    RET(ReadFlag(FlagBitMask::Zero));
-    return ReadFlag(FlagBitMask::Zero) ? 20 : 8;
-  }
-
-  inline int Op0xC9()
-  {
-    RET(true);
-    return 16;
-  }
-
-  inline int Op0xCA()
-  {
-    JP(ReadFlag(FlagBitMask::Zero));
-    return ReadFlag(FlagBitMask::Zero) ? 16 : 12;
-  }
-
-  inline int Op0xCB()
-  {
-    uint8_t extended_opcode = ReadNextUint8();
-    return ExecuteCb(extended_opcode);
-    //return (this->*ExtendedInstructionSet[extended_opcode])();
-  }
-
-  inline int Op0xCC()
-  {
-    CALL(ReadFlag(FlagBitMask::Zero));
-    return ReadFlag(FlagBitMask::Zero) ? 24 : 12;
-  }
-
-  inline int Op0xCD()
-  {
-    CALL(true);
-    return 24;
-  }
-
-  inline int Op0xCE()
-  {
-    ADC_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xCF()
-  {
-    RST(RestartVector::RST1);
-    return 16;
-  }
-
-  inline int Op0xD0()
-  {
-    RET(!ReadFlag(FlagBitMask::Carry));
-    return !ReadFlag(FlagBitMask::Carry) ? 20 : 8;
-  }
-
-  inline int Op0xD1()
-  {
-    POP_RR(_de.hl);
-    return 12;
-  }
-
-  inline int Op0xD2()
-  {
-    JP(!ReadFlag(FlagBitMask::Carry));
-    return !ReadFlag(FlagBitMask::Carry) ? 16 : 12;
-  }
-
-  inline int Op0xD3()
-  {
-    throw std::exception("Invalid Instruction: 0xD3");
-  }
-
-  inline int Op0xD4()
-  {
-    CALL(!ReadFlag(FlagBitMask::Carry));
-    return !ReadFlag(FlagBitMask::Carry) ? 24 : 12;
-  }
-
-  inline int Op0xD5()
-  {
-    PUSH_RR(_de.hl);
-    return 16;
-  }
-
-  inline int Op0xD6()
-  {
-    SUB_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xD7()
-  {
-    RST(RestartVector::RST2);
-    return 16;
-  }
-
-  inline int Op0xD8()
-  {
-    RET(ReadFlag(FlagBitMask::Carry));
-    return ReadFlag(FlagBitMask::Carry) ? 20 : 8;
-  }
-
-  inline int Op0xD9()
-  {
-    RETI();
-    return 16;
-  }
-
-  inline int Op0xDA()
-  {
-    JP(ReadFlag(FlagBitMask::Carry));
-    return ReadFlag(FlagBitMask::Carry) ? 16 : 12;
-  }
-
-  inline int Op0xDB()
-  {
-    throw std::exception("Invalid Instruction: 0xDB");
-  }
-
-  inline int Op0xDC()
-  {
-    CALL(ReadFlag(FlagBitMask::Carry));
-    return ReadFlag(FlagBitMask::Carry) ? 24 : 12;
-  }
-
-  inline int Op0xDD()
-  {
-    throw std::exception("Invalid Instruction: 0xDD");
-  }
-
-  inline int Op0xDE()
-  {
-    SBC_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xDF()
-  {
-    RST(RestartVector::RST3);
-    return 16;
-  }
-
-  inline int Op0xE0()
-  {
-    LD__R_A_IO(ReadNextUint8());
-    return 12;
-  }
-
-  inline int Op0xE1()
-  {
-    POP_RR(_hl.hl);
-    return 12;
-  }
-
-  inline int Op0xE2()
-  {
-    LD__R_A_IO(_bc.l);
-    return 8;
-  }
-
-  inline int Op0xE3()
-  {
-    throw std::exception("Invalid Instruction: 0xE3");
-  }
-
-  inline int Op0xE4()
-  {
-    throw std::exception("Invalid Instruction: 0xE4");
-  }
-
-  inline int Op0xE5()
-  {
-    PUSH_RR(_hl.hl);
-    return 16;
-  }
-
-  inline int Op0xE6()
-  {
-    AND_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xE7()
-  {
-    RST(RestartVector::RST4);
-    return 16;
-  }
-
-  inline int Op0xE8()
-  {
-    ADD_SP_s();
-    return 16;
-  }
-
-  inline int Op0xE9()
-  {
-    _pc.hl = _hl.hl;
-    return 4;
-  }
-
-  inline int Op0xEA()
-  {
-    //LD__RR_A(ReadNextUint16());
-    return 16;
-  }
-
-  inline int Op0xEB()
-  {
-    throw std::exception("Invalid Instruction: 0xEB");
-  }
-
-  inline int Op0xEC()
-  {
-    throw std::exception("Invalid Instruction: 0xEC");
-  }
-
-  inline int Op0xED()
-  {
-    throw std::exception("Invalid Instruction: 0xED");
-  }
-
-  inline int Op0xEE()
-  {
-    XOR_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xEF()
-  {
-    RST(RestartVector::RST5);
-    return 16;
-  }
-
-  inline int Op0xF0()
-  {
-    LD_A__R_IO(ReadNextUint8());
-    return 12;
-  }
-
-  inline int Op0xF1()
-  {
-    POP_AF();
-    return 12;
-  }
-
-  inline int Op0xF2()
-  {
-    LD_A__R_IO(_bc.l);
-    return 8;
-  }
-
-  inline int Op0xF3()
-  {
-    m_interrupt_controller.DisableInterrupts();
-    return 4;
-  }
-
-  inline int Op0xF4()
-  {
-    throw std::exception("Invalid Instruction: 0xF4");
-  }
-
-  inline int Op0xF5()
-  {
-    PUSH_RR(_af.hl);
-    return 16;
-  }
-
-  inline int Op0xF6()
-  {
-    OR_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xF7()
-  {
-    RST(RestartVector::RST6);
-    return 16;
-  }
-
-  inline int Op0xF8()
-  {
-    LD_HL_SP_s();
-    return 12;
-  }
-
-  inline int Op0xF9()
-  {
-    _sp.hl = _hl.hl;
-    return 8;
-  }
-
-  inline int Op0xFA()
-  {
-    LD_r_x(_af.h, ReadAddress(ReadNextUint16()));
-    return 16;
-  }
-
-  inline int Op0xFB()
-  {
-    m_interrupt_enabled_requested = true;
-    return 4;
-  }
-
-  inline int Op0xFC()
-  {
-    throw std::exception("Invalid Instruction: 0xFC");
-  }
-
-  inline int Op0xFD()
-  {
-    throw std::exception("Invalid Instruction: 0xFD");
-  }
-
-  inline int Op0xFE()
-  {
-    CP_A_X(ReadNextUint8());
-    return 8;
-  }
-
-  inline int Op0xFF()
-  {
-    RST(RestartVector::RST7);
-    return 16;
-  }
-  //Instruction InstructionSet[NUM_INSTRUCTIONS]
-  //{
-  //  &Cpu::Op0x00, &Cpu::Op0x01, &Cpu::Op0x02, &Cpu::Op0x03, &Cpu::Op0x04, &Cpu::Op0x05, &Cpu::Op0x06, &Cpu::Op0x07, &Cpu::Op0x08, &Cpu::Op0x09, &Cpu::Op0x0A, &Cpu::Op0x0B, &Cpu::Op0x0C, &Cpu::Op0x0D, &Cpu::Op0x0E, &Cpu::Op0x0F,
-  //  &Cpu::Op0x10, &Cpu::Op0x11, &Cpu::Op0x12, &Cpu::Op0x13, &Cpu::Op0x14, &Cpu::Op0x15, &Cpu::Op0x16, &Cpu::Op0x17, &Cpu::Op0x18, &Cpu::Op0x19, &Cpu::Op0x1A, &Cpu::Op0x1B, &Cpu::Op0x1C, &Cpu::Op0x1D, &Cpu::Op0x1E, &Cpu::Op0x1F,
-  //  &Cpu::Op0x20, &Cpu::Op0x21, &Cpu::Op0x22, &Cpu::Op0x23, &Cpu::Op0x24, &Cpu::Op0x25, &Cpu::Op0x26, &Cpu::Op0x27, &Cpu::Op0x28, &Cpu::Op0x29, &Cpu::Op0x2A, &Cpu::Op0x2B, &Cpu::Op0x2C, &Cpu::Op0x2D, &Cpu::Op0x2E, &Cpu::Op0x2F,
-  //  &Cpu::Op0x30, &Cpu::Op0x31, &Cpu::Op0x32, &Cpu::Op0x33, &Cpu::Op0x34, &Cpu::Op0x35, &Cpu::Op0x36, &Cpu::Op0x37, &Cpu::Op0x38, &Cpu::Op0x39, &Cpu::Op0x3A, &Cpu::Op0x3B, &Cpu::Op0x3C, &Cpu::Op0x3D, &Cpu::Op0x3E, &Cpu::Op0x3F,
-  //  &Cpu::Op0x40, &Cpu::Op0x41, &Cpu::Op0x42, &Cpu::Op0x43, &Cpu::Op0x44, &Cpu::Op0x45, &Cpu::Op0x46, &Cpu::Op0x47, &Cpu::Op0x48, &Cpu::Op0x49, &Cpu::Op0x4A, &Cpu::Op0x4B, &Cpu::Op0x4C, &Cpu::Op0x4D, &Cpu::Op0x4E, &Cpu::Op0x4F,
-  //  &Cpu::Op0x50, &Cpu::Op0x51, &Cpu::Op0x52, &Cpu::Op0x53, &Cpu::Op0x54, &Cpu::Op0x55, &Cpu::Op0x56, &Cpu::Op0x57, &Cpu::Op0x58, &Cpu::Op0x59, &Cpu::Op0x5A, &Cpu::Op0x5B, &Cpu::Op0x5C, &Cpu::Op0x5D, &Cpu::Op0x5E, &Cpu::Op0x5F,
-  //  &Cpu::Op0x60, &Cpu::Op0x61, &Cpu::Op0x62, &Cpu::Op0x63, &Cpu::Op0x64, &Cpu::Op0x65, &Cpu::Op0x66, &Cpu::Op0x67, &Cpu::Op0x68, &Cpu::Op0x69, &Cpu::Op0x6A, &Cpu::Op0x6B, &Cpu::Op0x6C, &Cpu::Op0x6D, &Cpu::Op0x6E, &Cpu::Op0x6F,
-  //  &Cpu::Op0x70, &Cpu::Op0x71, &Cpu::Op0x72, &Cpu::Op0x73, &Cpu::Op0x74, &Cpu::Op0x75, &Cpu::Op0x76, &Cpu::Op0x77, &Cpu::Op0x78, &Cpu::Op0x79, &Cpu::Op0x7A, &Cpu::Op0x7B, &Cpu::Op0x7C, &Cpu::Op0x7D, &Cpu::Op0x7E, &Cpu::Op0x7F,
-  //  &Cpu::Op0x80, &Cpu::Op0x81, &Cpu::Op0x82, &Cpu::Op0x83, &Cpu::Op0x84, &Cpu::Op0x85, &Cpu::Op0x86, &Cpu::Op0x87, &Cpu::Op0x88, &Cpu::Op0x89, &Cpu::Op0x8A, &Cpu::Op0x8B, &Cpu::Op0x8C, &Cpu::Op0x8D, &Cpu::Op0x8E, &Cpu::Op0x8F,
-  //  &Cpu::Op0x90, &Cpu::Op0x91, &Cpu::Op0x92, &Cpu::Op0x93, &Cpu::Op0x94, &Cpu::Op0x95, &Cpu::Op0x96, &Cpu::Op0x97, &Cpu::Op0x98, &Cpu::Op0x99, &Cpu::Op0x9A, &Cpu::Op0x9B, &Cpu::Op0x9C, &Cpu::Op0x9D, &Cpu::Op0x9E, &Cpu::Op0x9F,
-  //  &Cpu::Op0xA0, &Cpu::Op0xA1, &Cpu::Op0xA2, &Cpu::Op0xA3, &Cpu::Op0xA4, &Cpu::Op0xA5, &Cpu::Op0xA6, &Cpu::Op0xA7, &Cpu::Op0xA8, &Cpu::Op0xA9, &Cpu::Op0xAA, &Cpu::Op0xAB, &Cpu::Op0xAC, &Cpu::Op0xAD, &Cpu::Op0xAE, &Cpu::Op0xAF,
-  //  &Cpu::Op0xB0, &Cpu::Op0xB1, &Cpu::Op0xB2, &Cpu::Op0xB3, &Cpu::Op0xB4, &Cpu::Op0xB5, &Cpu::Op0xB6, &Cpu::Op0xB7, &Cpu::Op0xB8, &Cpu::Op0xB9, &Cpu::Op0xBA, &Cpu::Op0xBB, &Cpu::Op0xBC, &Cpu::Op0xBD, &Cpu::Op0xBE, &Cpu::Op0xBF,
-  //  &Cpu::Op0xC0, &Cpu::Op0xC1, &Cpu::Op0xC2, &Cpu::Op0xC3, &Cpu::Op0xC4, &Cpu::Op0xC5, &Cpu::Op0xC6, &Cpu::Op0xC7, &Cpu::Op0xC8, &Cpu::Op0xC9, &Cpu::Op0xCA, &Cpu::Op0xCB, &Cpu::Op0xCC, &Cpu::Op0xCD, &Cpu::Op0xCE, &Cpu::Op0xCF,
-  //  &Cpu::Op0xD0, &Cpu::Op0xD1, &Cpu::Op0xD2, &Cpu::Op0xD3, &Cpu::Op0xD4, &Cpu::Op0xD5, &Cpu::Op0xD6, &Cpu::Op0xD7, &Cpu::Op0xD8, &Cpu::Op0xD9, &Cpu::Op0xDA, &Cpu::Op0xDB, &Cpu::Op0xDC, &Cpu::Op0xDD, &Cpu::Op0xDE, &Cpu::Op0xDF,
-  //  &Cpu::Op0xE0, &Cpu::Op0xE1, &Cpu::Op0xE2, &Cpu::Op0xE3, &Cpu::Op0xE4, &Cpu::Op0xE5, &Cpu::Op0xE6, &Cpu::Op0xE7, &Cpu::Op0xE8, &Cpu::Op0xE9, &Cpu::Op0xEA, &Cpu::Op0xEB, &Cpu::Op0xEC, &Cpu::Op0xED, &Cpu::Op0xEE, &Cpu::Op0xEF,
-  //  &Cpu::Op0xF0, &Cpu::Op0xF1, &Cpu::Op0xF2, &Cpu::Op0xF3, &Cpu::Op0xF4, &Cpu::Op0xF5, &Cpu::Op0xF6, &Cpu::Op0xF7, &Cpu::Op0xF8, &Cpu::Op0xF9, &Cpu::Op0xFA, &Cpu::Op0xFB, &Cpu::Op0xFC, &Cpu::Op0xFD, &Cpu::Op0xFE, &Cpu::Op0xFF
-  //};
-#pragma endregion
-
 #pragma region GENERALIZED INSTRUCTIONS
-  //
+
+  //-------------------------------------------------------------------------
   // Naming convention:
-  //   _ denotes a register
+  //   _ denotes a value
   //  __ denotes an address
   //   r denotes an 8-bit register
   //  rr denotes a 16-bit register
   //   n denotes the next 8-bit value
   //  nn denotes the next 16-bit value
-  //   s denotes the next signed 8-bit value
-  //  ss denotes the next signed 16-bit value
+  //   e denotes the next signed 8-bit value
+  //  cc denotes conditional flag
   // 
   //   x denotes wildcard
+  // 
+  //  Registers are capitalized
+  // 
+  //  e.g. HL, C
+  // 
+  //  Operations are capitalized
+  // 
+  //  e.g. LD, JP
   //
   //  Some functions are specific to a register.
   //  These functions will denote the register in the name.
-  //
-  //  e.g. LD__rr_a -> Load the value of A into the address pointed to by RR
-  //
+  // 
+  //  e.g. JP_HL -> Jump to HL
+  //  e.g. LD__rr_A -> Load the value of A into the address pointed to by RR
+  //-------------------------------------------------------------------------
 
   // Flags: - - - -
   void NOP();
+
+  // Flags: - - - -
+  void CB();
+
+  // Flags: - - - -
+  void JP_HL();
 
   // Flags: - - - -
   void LD_r_x(uint8_t& r, uint8_t val);
@@ -1434,18 +496,19 @@ std::string OutputRegisters()
   void LD_r_n(uint8_t& r);
 
   // Flags: - - - -
-  void LD_A__RR(Register rr);
+  void LD_A__rr(Register rr);
+
+  // Flags: - - - -
+  void LD_A__nn();
 
   // Flags: - - - -
   void LD_A__HLx(int val);
 
   // Flags: - - - -
-  inline void LD__nn_rr(uint16_t RR)
-  {
-    uint16_t address = ReadNextUint16();
-    WriteAddress(address, RR & 0xFF);
-    WriteAddress(address + 1, RR >> 8);
-  }
+  void LD_SP_HL();
+
+  // Flags: - - - -
+  void LD__nn_SP();
 
   // Flags: - - - -
   void LD_rr_nn(Register& rr);
@@ -1456,110 +519,116 @@ std::string OutputRegisters()
   // Flags: - - - -
   void LD__rr_A(Register rr);
 
+  // Flags: - - - -
+  void LD__nn_A();
+
+  // Flags: - - - -
   void LD__HLx_A(int val);
 
   // Flags: - - - -
-  inline void LD__R_A_IO(uint8_t R)
-  {
-    WriteAddress(static_cast<uint16_t>(ExecutionAddress::IO) + R, _af.h);
-  }
+  void LD__HL_n();
 
   // Flags: - - - -
-  inline void LD_A__R_IO(uint8_t R)
-  {
-    _af.h = ReadAddress(static_cast<uint16_t>(ExecutionAddress::IO) + R);
-  }
-
-  // Flags: 0 0 H C
-  inline void LD_HL_SP_s()
-  {
-    int8_t val = ReadNextInt8();
-    int result = _sp.hl + val;
-    ResetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
-    SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
-    _hl.hl = static_cast<uint16_t>(result);
-  }
-
-  // Flags: 0 0 H C
-  inline void ADD_SP_s()
-  {
-    int8_t val = ReadNextInt8();
-    int result = _sp.hl + val;
-    ResetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
-    SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
-    _sp.hl = static_cast<uint16_t>(result);
-  }
+  void LDH__n_A();
 
   // Flags: - - - -
-  void ADD_rr(Register& RR, int val);
+  void LDH__C_A();
+
+  // Flags: - - - -
+  void LDH_A__C();
+
+  // Flags: - - - -
+  void LDH_A__n();
+
+  // Flags: 0 0 H C
+  void LD_HL_SP_e();
+
+  // Flags: 0 0 H C
+  void ADD_SP_e();
+
+  // Flags: - - - -
+  void ADD_rr(Register& rr, int val);
 
   // Flags: Z 0 H C
-  void ADC_A_X(int val);
+  void ADC_A_x(int val);
 
   // Flags: Z 0 H C
-  void ADD_A_X(int val);
+  void ADC_A__HL();
+
+  // Flags: Z 0 H C
+  void ADC_A_n();
+
+  // Flags: Z 0 H C
+  void ADD_A_x(int val);
+
+  // Flags: Z 0 H C
+  void ADD_A__HL();
+
+  // Flags: Z 0 H C
+  void ADD_A_n();
 
   // Flags: Z 1 H C
-  void SBC_A_X(int val);
+  void SBC_A_x(int val);
 
   // Flags: Z 1 H C
-  void SUB_A_X(int val);
+  void SBC_A__HL();
+
+  // Flags: Z 1 H C
+  void SBC_A_n();
+
+  // Flags: Z 1 H C
+  void SUB_A_x(int val);
+
+  // Flags: Z 1 H C
+  void SUB_A__HL();
+
+  // Flags: Z 1 H C
+  void SUB_A_n();
 
   // Flags: Z - H C
-  void ADD_x(uint8_t& R, int val, bool set_carry = false);
+  void ADD_x(uint8_t& r, int val, bool set_carry = false);
 
   // Flags: Z N H -
   void ADD__HL(int val);
 
   // Flags: - 0 H C
-  void ADD_HL_rr(Register RR);
-
-  // Flags: - 0 H C
-  void ADD_HL_rr(uint16_t RR);
+  void ADD_HL_rr(Register rr);
 
   // Flags: Z 0 1 0
-  inline void AND_A_X(uint8_t val)
-  {
-    _af.h &= val;
-    SetZeroFlag(_af.h);
-    ResetFlag(FlagBitMask::Subtract);
-    SetFlag(FlagBitMask::HalfCarry);
-    ResetFlag(FlagBitMask::Carry);
-  }
+  void AND_A_x(uint8_t val);
+
+  // Flags: Z 0 1 0
+  void AND_A__HL();
+
+  // Flags: Z 0 1 0
+  void AND_A_n();
 
   // Flags: Z 0 0 0
-  inline void XOR_A_X(uint8_t val)
-  {
-    _af.h ^= val;
-    SetZeroFlag(_af.h);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    ResetFlag(FlagBitMask::Carry);
-  }
+  void XOR_A_x(uint8_t val);
 
   // Flags: Z 0 0 0
-  inline void OR_A_X(uint8_t val)
-  {
-    _af.h |= val;
-    SetZeroFlag(_af.h);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    ResetFlag(FlagBitMask::Carry);
-  }
+  void XOR_A__HL();
+
+  // Flags: Z 0 0 0
+  void XOR_A_n();
+
+  // Flags: Z 0 0 0
+  void OR_A_X(uint8_t val);
+
+  // Flags: Z 0 0 0
+  void OR_A__HL();
+
+  // Flags: Z 0 0 0
+  void OR_A_n();
 
   // Flags: Z 1 H C
-  inline void CP_A_X(uint8_t val)
-  {
-    int result = _af.h - val;
-    SetZeroFlag(result);
-    SetFlag(FlagBitMask::Subtract);
-    SetHalfCarryFlag(_af.h, -val);
-    SetCarry8Bit(result);
-  }
+  void CP_A_x(uint8_t val);
+
+  // Flags: Z 1 H C
+  void CP_A__HL();
+
+  // Flags: Z 1 H C
+  void CP_A_n();
 
   // Flags: 0 0 0 A7
   void RLCA();
@@ -1576,9 +645,9 @@ std::string OutputRegisters()
   // Flags: - 1 1 -
   void CPL();
 
-  // Flags: Z - 0 C
   // https://forums.nesdev.org/viewtopic.php?t=15944#:~:text=The%20DAA%20instruction%20adjusts%20the,%2C%20lower%20nybble%2C%20or%20both.
-  inline void DAA();
+  // Flags: Z - 0 C
+  void DAA();
 
   // Flags: - 0 0 1
   void SCF();
@@ -1587,1853 +656,142 @@ std::string OutputRegisters()
   void CCF();
 
   // Flags: Z 0 H -
-  void INC_R(uint8_t& R);
+  void INC_r(uint8_t& r);
 
   // Flags: Z 1 H -
-  void DEC_R(uint8_t& R);
+  void DEC_r(uint8_t& r);
 
-  inline void PUSH_RR(uint16_t RR)
-  {
-    _sp.hl -= 2;
-    WriteAddress(_sp.hl, RR & 0xFF);
-    WriteAddress(_sp.hl + 1, RR >> 8);
-  }
+  // Flags - - - -
+  void PUSH_rr(Register rr);
 
   // Flags: - - - -
-  inline void JR(bool jump)
-  {
-    int8_t steps = ReadNextInt8();
-    if (jump) _pc.hl += steps;
-  }
+  void JR_cc_e(bool jump);
 
   // Flags: - - - -
-  inline void POP_RR(uint16_t& RR)
-  {
-    uint8_t l = ReadAddress(_sp.hl);
-    _sp.hl += 1;
-    uint8_t h = ReadAddress(_sp.hl);
-    _sp.hl += 1;
-
-    RR = (h << 8) | l;
-  }
+  void POP_rr(Register& rr);
 
   // Flags: - - - -
-  inline void POP_AF()
-  {
-    uint8_t l = ReadAddress(_sp.hl);
-    _sp.hl += 1;
-    uint8_t h = ReadAddress(_sp.hl);
-    _sp.hl += 1;
-
-    _af.hl = (h << 8) | l;
-    _af.l &= 0xF0;
-  }
+  void POP_AF();
 
   // Flags: - - - -
-  inline void RET(bool ret)
-  {
-    if (ret) POP_RR(_pc.hl);
-  }
+  void RET(bool set_ime = false);
 
   // Flags: - - - -
-  inline void RETI()
-  {
-    m_interrupt_controller.EnableInterrupts();
-    RET(true);
-  }
+  void RET_cc(bool ret);
 
   // Flags: - - - -
-  inline void JP(bool jump)
-  {
-    uint16_t address = ReadNextUint16();
-    if (jump) _pc.hl = address;
-  }
+  void JP_cc_nn(bool jump);
 
   // Flags: - - - -
-  inline void CALL(bool call)
-  {
-    uint16_t func = ReadNextUint16();
-    if (call) { PUSH_RR(_pc.hl); _pc.hl = func; }
-  }
+  void CALL(bool call);
 
   // Flags: - - - -
-  inline void RST(RestartVector rst_vec)
-  {
-    PUSH_RR(_pc.hl);
-    _pc.hl = static_cast<uint16_t>(rst_vec);
-  }
+  void RST(RestartVector vec);
 #pragma endregion
 
-#pragma region EXTENDED INSTRUCTIONS
-  inline int OpCb0x00()
-  {
-    RLC_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x01()
-  {
-    RLC_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x02()
-  {
-    RLC_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x03()
-  {
-    RLC_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x04()
-  {
-    RLC_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x05()
-  {
-    RLC_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x06()
-  {
-    RLC__HL();
-    return 16;
-  }
-
-  inline int OpCb0x07()
-  {
-    RLC_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x08()
-  {
-    RRC_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x09()
-  {
-    RRC_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x0A()
-  {
-    RRC_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x0B()
-  {
-    RRC_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x0C()
-  {
-    RRC_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x0D()
-  {
-    RRC_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x0E()
-  {
-    RRC__HL();
-    return 16;
-  }
-
-  inline int OpCb0x0F()
-  {
-    RRC_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x10()
-  {
-    RL_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x11()
-  {
-    RL_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x12()
-  {
-    RL_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x13()
-  {
-    RL_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x14()
-  {
-    RL_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x15()
-  {
-    RL_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x16()
-  {
-    RL__HL();
-    return 16;
-  }
-
-  inline int OpCb0x17()
-  {
-    RL_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x18()
-  {
-    RR_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x19()
-  {
-    RR_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x1A()
-  {
-    RR_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x1B()
-  {
-    RR_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x1C()
-  {
-    RR_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x1D()
-  {
-    RR_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x1E()
-  {
-    RR__HL();
-    return 16;
-  }
-
-  inline int OpCb0x1F()
-  {
-    RR_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x20()
-  {
-    SLA_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x21()
-  {
-    SLA_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x22()
-  {
-    SLA_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x23()
-  {
-    SLA_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x24()
-  {
-    SLA_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x25()
-  {
-    SLA_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x26()
-  {
-    SLA__HL();
-    return 16;
-  }
-
-  inline int OpCb0x27()
-  {
-    SLA_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x28()
-  {
-    SRA_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x29()
-  {
-    SRA_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x2A()
-  {
-    SRA_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x2B()
-  {
-    SRA_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x2C()
-  {
-    SRA_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x2D()
-  {
-    SRA_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x2E()
-  {
-    SRA__HL();
-    return 16;
-  }
-
-  inline int OpCb0x2F()
-  {
-    SRA_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x30()
-  {
-    SWAP_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x31()
-  {
-    SWAP_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x32()
-  {
-    SWAP_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x33()
-  {
-    SWAP_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x34()
-  {
-    SWAP_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x35()
-  {
-    SWAP_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x36()
-  {
-    SWAP__HL();
-    return 16;
-  }
-
-  inline int OpCb0x37()
-  {
-    SWAP_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x38()
-  {
-    SRL_R(_bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x39()
-  {
-    SRL_R(_bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x3A()
-  {
-    SRL_R(_de.h);
-    return 8;
-  }
-
-  inline int OpCb0x3B()
-  {
-    SRL_R(_de.l);
-    return 8;
-  }
-
-  inline int OpCb0x3C()
-  {
-    SRL_R(_hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x3D()
-  {
-    SRL_R(_hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x3E()
-  {
-    SRL__HL();
-    return 16;
-  }
-
-  inline int OpCb0x3F()
-  {
-    SRL_R(_af.h);
-    return 8;
-  }
-
-  inline int OpCb0x40()
-  {
-    BIT_R(0b00000001, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x41()
-  {
-    BIT_R(0b00000001, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x42()
-  {
-    BIT_R(0b00000001, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x43()
-  {
-    BIT_R(0b00000001, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x44()
-  {
-    BIT_R(0b00000001, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x45()
-  {
-    BIT_R(0b00000001, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x46()
-  {
-    BIT__HL(0b00000001);
-    return 12;
-  }
-
-  inline int OpCb0x47()
-  {
-    BIT_R(0b00000001, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x48()
-  {
-    BIT_R(0b00000010, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x49()
-  {
-    BIT_R(0b00000010, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x4A()
-  {
-    BIT_R(0b00000010, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x4B()
-  {
-    BIT_R(0b00000010, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x4C()
-  {
-    BIT_R(0b00000010, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x4D()
-  {
-    BIT_R(0b00000010, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x4E()
-  {
-    BIT__HL(0b00000010);
-    return 12;
-  }
-
-  inline int OpCb0x4F()
-  {
-    BIT_R(0b00000010, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x50()
-  {
-    BIT_R(0b00000100, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x51()
-  {
-    BIT_R(0b00000100, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x52()
-  {
-    BIT_R(0b00000100, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x53()
-  {
-    BIT_R(0b00000100, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x54()
-  {
-    BIT_R(0b00000100, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x55()
-  {
-    BIT_R(0b00000100, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x56()
-  {
-    BIT__HL(0b00000100);
-    return 12;
-  }
-
-  inline int OpCb0x57()
-  {
-    BIT_R(0b00000100, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x58()
-  {
-    BIT_R(0b00001000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x59()
-  {
-    BIT_R(0b00001000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x5A()
-  {
-    BIT_R(0b00001000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x5B()
-  {
-    BIT_R(0b00001000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x5C()
-  {
-    BIT_R(0b00001000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x5D()
-  {
-    BIT_R(0b00001000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x5E()
-  {
-    BIT__HL(0b00001000);
-    return 12;
-  }
-
-  inline int OpCb0x5F()
-  {
-    BIT_R(0b00001000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x60()
-  {
-    BIT_R(0b00010000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x61()
-  {
-    BIT_R(0b00010000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x62()
-  {
-    BIT_R(0b00010000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x63()
-  {
-    BIT_R(0b00010000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x64()
-  {
-    BIT_R(0b00010000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x65()
-  {
-    BIT_R(0b00010000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x66()
-  {
-    BIT__HL(0b00010000);
-    return 12;
-  }
-
-  inline int OpCb0x67()
-  {
-    BIT_R(0b00010000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x68()
-  {
-    BIT_R(0b00100000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x69()
-  {
-    BIT_R(0b00100000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x6A()
-  {
-    BIT_R(0b00100000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x6B()
-  {
-    BIT_R(0b00100000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x6C()
-  {
-    BIT_R(0b00100000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x6D()
-  {
-    BIT_R(0b00100000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x6E()
-  {
-    BIT__HL(0b00100000);
-    return 12;
-  }
-
-  inline int OpCb0x6F()
-  {
-    BIT_R(0b00100000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x70()
-  {
-    BIT_R(0b01000000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x71()
-  {
-    BIT_R(0b01000000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x72()
-  {
-    BIT_R(0b01000000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x73()
-  {
-    BIT_R(0b01000000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x74()
-  {
-    BIT_R(0b01000000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x75()
-  {
-    BIT_R(0b01000000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x76()
-  {
-    BIT__HL(0b01000000);
-    return 12;
-  }
-
-  inline int OpCb0x77()
-  {
-    BIT_R(0b01000000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x78()
-  {
-    BIT_R(0b10000000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x79()
-  {
-    BIT_R(0b10000000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x7A()
-  {
-    BIT_R(0b10000000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x7B()
-  {
-    BIT_R(0b10000000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x7C()
-  {
-    BIT_R(0b10000000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x7D()
-  {
-    BIT_R(0b10000000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x7E()
-  {
-    BIT__HL(0b10000000);
-    return 12;
-  }
-
-  inline int OpCb0x7F()
-  {
-    BIT_R(0b10000000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x80()
-  {
-    RES_R(0b00000001, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x81()
-  {
-    RES_R(0b00000001, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x82()
-  {
-    RES_R(0b00000001, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x83()
-  {
-    RES_R(0b00000001, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x84()
-  {
-    RES_R(0b00000001, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x85()
-  {
-    RES_R(0b00000001, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x86()
-  {
-    RES__HL(0b00000001);
-    return 16;
-  }
-
-  inline int OpCb0x87()
-  {
-    RES_R(0b00000001, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x88()
-  {
-    RES_R(0b00000010, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x89()
-  {
-    RES_R(0b00000010, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x8A()
-  {
-    RES_R(0b00000010, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x8B()
-  {
-    RES_R(0b00000010, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x8C()
-  {
-    RES_R(0b00000010, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x8D()
-  {
-    RES_R(0b00000010, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x8E()
-  {
-    RES__HL(0b00000010);
-    return 16;
-  }
-
-  inline int OpCb0x8F()
-  {
-    RES_R(0b00000010, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x90()
-  {
-    RES_R(0b00000100, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x91()
-  {
-    RES_R(0b00000100, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x92()
-  {
-    RES_R(0b00000100, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x93()
-  {
-    RES_R(0b00000100, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x94()
-  {
-    RES_R(0b00000100, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x95()
-  {
-    RES_R(0b00000100, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x96()
-  {
-    RES__HL(0b00000100);
-    return 16;
-  }
-
-  inline int OpCb0x97()
-  {
-    RES_R(0b00000100, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0x98()
-  {
-    RES_R(0b00001000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0x99()
-  {
-    RES_R(0b00001000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0x9A()
-  {
-    RES_R(0b00001000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0x9B()
-  {
-    RES_R(0b00001000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0x9C()
-  {
-    RES_R(0b00001000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0x9D()
-  {
-    RES_R(0b00001000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0x9E()
-  {
-    RES__HL(0b00001000);
-    return 16;
-  }
-
-  inline int OpCb0x9F()
-  {
-    RES_R(0b00001000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xA0()
-  {
-    RES_R(0b00010000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xA1()
-  {
-    RES_R(0b00010000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xA2()
-  {
-    RES_R(0b00010000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xA3()
-  {
-    RES_R(0b00010000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xA4()
-  {
-    RES_R(0b00010000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xA5()
-  {
-    RES_R(0b00010000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xA6()
-  {
-    RES__HL(0b00010000);
-    return 16;
-  }
-
-  inline int OpCb0xA7()
-  {
-    RES_R(0b00010000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xA8()
-  {
-    RES_R(0b00100000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xA9()
-  {
-    RES_R(0b00100000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xAA()
-  {
-    RES_R(0b00100000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xAB()
-  {
-    RES_R(0b00100000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xAC()
-  {
-    RES_R(0b00100000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xAD()
-  {
-    RES_R(0b00100000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xAE()
-  {
-    RES__HL(0b00100000);
-    return 16;
-  }
-
-  inline int OpCb0xAF()
-  {
-    RES_R(0b00100000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xB0()
-  {
-    RES_R(0b01000000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xB1()
-  {
-    RES_R(0b01000000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xB2()
-  {
-    RES_R(0b01000000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xB3()
-  {
-    RES_R(0b01000000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xB4()
-  {
-    RES_R(0b01000000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xB5()
-  {
-    RES_R(0b01000000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xB6()
-  {
-    RES__HL(0b01000000);
-    return 16;
-  }
-
-  inline int OpCb0xB7()
-  {
-    RES_R(0b01000000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xB8()
-  {
-    RES_R(0b10000000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xB9()
-  {
-    RES_R(0b10000000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xBA()
-  {
-    RES_R(0b10000000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xBB()
-  {
-    RES_R(0b10000000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xBC()
-  {
-    RES_R(0b10000000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xBD()
-  {
-    RES_R(0b10000000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xBE()
-  {
-    RES__HL(0b10000000);
-    return 16;
-  }
-
-  inline int OpCb0xBF()
-  {
-    RES_R(0b10000000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xC0()
-  {
-    SET_R(0b00000001, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xC1()
-  {
-    SET_R(0b00000001, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xC2()
-  {
-    SET_R(0b00000001, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xC3()
-  {
-    SET_R(0b00000001, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xC4()
-  {
-    SET_R(0b00000001, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xC5()
-  {
-    SET_R(0b00000001, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xC6()
-  {
-    SET__HL(0b00000001);
-    return 16;
-  }
-
-  inline int OpCb0xC7()
-  {
-    SET_R(0b00000001, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xC8()
-  {
-    SET_R(0b00000010, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xC9()
-  {
-    SET_R(0b00000010, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xCA()
-  {
-    SET_R(0b00000010, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xCB()
-  {
-    SET_R(0b00000010, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xCC()
-  {
-    SET_R(0b00000010, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xCD()
-  {
-    SET_R(0b00000010, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xCE()
-  {
-    SET__HL(0b00000010);
-    return 16;
-  }
-
-  inline int OpCb0xCF()
-  {
-    SET_R(0b00000010, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xD0()
-  {
-    SET_R(0b00000100, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xD1()
-  {
-    SET_R(0b00000100, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xD2()
-  {
-    SET_R(0b00000100, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xD3()
-  {
-    SET_R(0b00000100, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xD4()
-  {
-    SET_R(0b00000100, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xD5()
-  {
-    SET_R(0b00000100, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xD6()
-  {
-    SET__HL(0b00000100);
-    return 16;
-  }
-
-  inline int OpCb0xD7()
-  {
-    SET_R(0b00000100, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xD8()
-  {
-    SET_R(0b00001000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xD9()
-  {
-    SET_R(0b00001000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xDA()
-  {
-    SET_R(0b00001000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xDB()
-  {
-    SET_R(0b00001000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xDC()
-  {
-    SET_R(0b00001000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xDD()
-  {
-    SET_R(0b00001000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xDE()
-  {
-    SET__HL(0b00001000);
-    return 16;
-  }
-
-  inline int OpCb0xDF()
-  {
-    SET_R(0b00001000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xE0()
-  {
-    SET_R(0b00010000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xE1()
-  {
-    SET_R(0b00010000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xE2()
-  {
-    SET_R(0b00010000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xE3()
-  {
-    SET_R(0b00010000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xE4()
-  {
-    SET_R(0b00010000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xE5()
-  {
-    SET_R(0b00010000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xE6()
-  {
-    SET__HL(0b00010000);
-    return 16;
-  }
-
-  inline int OpCb0xE7()
-  {
-    SET_R(0b00010000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xE8()
-  {
-    SET_R(0b00100000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xE9()
-  {
-    SET_R(0b00100000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xEA()
-  {
-    SET_R(0b00100000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xEB()
-  {
-    SET_R(0b00100000, _de.l);
-    return 8;
-  }
-  inline int OpCb0xEC()
-  {
-    SET_R(0b00100000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xED()
-  {
-    SET_R(0b00100000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xEE()
-  {
-    SET__HL(0b00100000);
-    return 16;
-  }
-
-  inline int OpCb0xEF()
-  {
-    SET_R(0b00100000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xF0()
-  {
-    SET_R(0b01000000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xF1()
-  {
-    SET_R(0b01000000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xF2()
-  {
-    SET_R(0b01000000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xF3()
-  {
-    SET_R(0b01000000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xF4()
-  {
-    SET_R(0b01000000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xF5()
-  {
-    SET_R(0b01000000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xF6()
-  {
-    SET__HL(0b01000000);
-    return 16;
-  }
-
-  inline int OpCb0xF7()
-  {
-    SET_R(0b01000000, _af.h);
-    return 8;
-  }
-
-  inline int OpCb0xF8()
-  {
-    SET_R(0b10000000, _bc.h);
-    return 8;
-  }
-
-  inline int OpCb0xF9()
-  {
-    SET_R(0b10000000, _bc.l);
-    return 8;
-  }
-
-  inline int OpCb0xFA()
-  {
-    SET_R(0b10000000, _de.h);
-    return 8;
-  }
-
-  inline int OpCb0xFB()
-  {
-    SET_R(0b10000000, _de.l);
-    return 8;
-  }
-
-  inline int OpCb0xFC()
-  {
-    SET_R(0b10000000, _hl.h);
-    return 8;
-  }
-
-  inline int OpCb0xFD()
-  {
-    SET_R(0b10000000, _hl.l);
-    return 8;
-  }
-
-  inline int OpCb0xFE()
-  {
-    SET__HL(0b10000000);
-    return 16;
-  }
-
-  inline int OpCb0xFF()
-  {
-    SET_R(0b10000000, _af.h);
-    return 8;
-  }
-
+#pragma region INSTRUCTIONS
+  void Op0x00(); void Op0x01(); void Op0x02(); void Op0x03(); void Op0x04(); void Op0x05(); void Op0x06(); void Op0x07(); void Op0x08(); void Op0x09(); void Op0x0A(); void Op0x0B(); void Op0x0C(); void Op0x0D(); void Op0x0E(); void Op0x0F();
+  void Op0x10(); void Op0x11(); void Op0x12(); void Op0x13(); void Op0x14(); void Op0x15(); void Op0x16(); void Op0x17(); void Op0x18(); void Op0x19(); void Op0x1A(); void Op0x1B(); void Op0x1C(); void Op0x1D(); void Op0x1E(); void Op0x1F();
+  void Op0x20(); void Op0x21(); void Op0x22(); void Op0x23(); void Op0x24(); void Op0x25(); void Op0x26(); void Op0x27(); void Op0x28(); void Op0x29(); void Op0x2A(); void Op0x2B(); void Op0x2C(); void Op0x2D(); void Op0x2E(); void Op0x2F();
+  void Op0x30(); void Op0x31(); void Op0x32(); void Op0x33(); void Op0x34(); void Op0x35(); void Op0x36(); void Op0x37(); void Op0x38(); void Op0x39(); void Op0x3A(); void Op0x3B(); void Op0x3C(); void Op0x3D(); void Op0x3E(); void Op0x3F();
+  void Op0x40(); void Op0x41(); void Op0x42(); void Op0x43(); void Op0x44(); void Op0x45(); void Op0x46(); void Op0x47(); void Op0x48(); void Op0x49(); void Op0x4A(); void Op0x4B(); void Op0x4C(); void Op0x4D(); void Op0x4E(); void Op0x4F();
+  void Op0x50(); void Op0x51(); void Op0x52(); void Op0x53(); void Op0x54(); void Op0x55(); void Op0x56(); void Op0x57(); void Op0x58(); void Op0x59(); void Op0x5A(); void Op0x5B(); void Op0x5C(); void Op0x5D(); void Op0x5E(); void Op0x5F();
+  void Op0x60(); void Op0x61(); void Op0x62(); void Op0x63(); void Op0x64(); void Op0x65(); void Op0x66(); void Op0x67(); void Op0x68(); void Op0x69(); void Op0x6A(); void Op0x6B(); void Op0x6C(); void Op0x6D(); void Op0x6E(); void Op0x6F();
+  void Op0x70(); void Op0x71(); void Op0x72(); void Op0x73(); void Op0x74(); void Op0x75(); void Op0x76(); void Op0x77(); void Op0x78(); void Op0x79(); void Op0x7A(); void Op0x7B(); void Op0x7C(); void Op0x7D(); void Op0x7E(); void Op0x7F();
+  void Op0x80(); void Op0x81(); void Op0x82(); void Op0x83(); void Op0x84(); void Op0x85(); void Op0x86(); void Op0x87(); void Op0x88(); void Op0x89(); void Op0x8A(); void Op0x8B(); void Op0x8C(); void Op0x8D(); void Op0x8E(); void Op0x8F();
+  void Op0x90(); void Op0x91(); void Op0x92(); void Op0x93(); void Op0x94(); void Op0x95(); void Op0x96(); void Op0x97(); void Op0x98(); void Op0x99(); void Op0x9A(); void Op0x9B(); void Op0x9C(); void Op0x9D(); void Op0x9E(); void Op0x9F();
+  void Op0xA0(); void Op0xA1(); void Op0xA2(); void Op0xA3(); void Op0xA4(); void Op0xA5(); void Op0xA6(); void Op0xA7(); void Op0xA8(); void Op0xA9(); void Op0xAA(); void Op0xAB(); void Op0xAC(); void Op0xAD(); void Op0xAE(); void Op0xAF();
+  void Op0xB0(); void Op0xB1(); void Op0xB2(); void Op0xB3(); void Op0xB4(); void Op0xB5(); void Op0xB6(); void Op0xB7(); void Op0xB8(); void Op0xB9(); void Op0xBA(); void Op0xBB(); void Op0xBC(); void Op0xBD(); void Op0xBE(); void Op0xBF();
+  void Op0xC0(); void Op0xC1(); void Op0xC2(); void Op0xC3(); void Op0xC4(); void Op0xC5(); void Op0xC6(); void Op0xC7(); void Op0xC8(); void Op0xC9(); void Op0xCA(); void Op0xCB(); void Op0xCC(); void Op0xCD(); void Op0xCE(); void Op0xCF();
+  void Op0xD0(); void Op0xD1(); void Op0xD2(); void Op0xD3(); void Op0xD4(); void Op0xD5(); void Op0xD6(); void Op0xD7(); void Op0xD8(); void Op0xD9(); void Op0xDA(); void Op0xDB(); void Op0xDC(); void Op0xDD(); void Op0xDE(); void Op0xDF();
+  void Op0xE0(); void Op0xE1(); void Op0xE2(); void Op0xE3(); void Op0xE4(); void Op0xE5(); void Op0xE6(); void Op0xE7(); void Op0xE8(); void Op0xE9(); void Op0xEA(); void Op0xEB(); void Op0xEC(); void Op0xED(); void Op0xEE(); void Op0xEF();
+  void Op0xF0(); void Op0xF1(); void Op0xF2(); void Op0xF3(); void Op0xF4(); void Op0xF5(); void Op0xF6(); void Op0xF7(); void Op0xF8(); void Op0xF9(); void Op0xFA(); void Op0xFB(); void Op0xFC(); void Op0xFD(); void Op0xFE(); void Op0xFF();
 #pragma endregion
 
 #pragma region GENERALIZED EXTENDED INSTRUCTIONS
   //Flags: Z 0 0 Bit7
-  inline void RLC__HL()
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val << 1 | val >> 7;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  void RLC_R(uint8_t& R);
 
   //Flags: Z 0 0 Bit7
-  inline void RLC_R(uint8_t& R)
-  {
-    (R & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R << 1 | R >> 7;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  void RLC__HL();
 
-  //Flags: Z 0 0 Bit0
-  inline void RRC__HL()
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val >> 1 | val << 7;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  // Flags: Z 0 0 Bit0
+  void RRC_R(uint8_t& R);
 
-  //Flags: Z 0 0 Bit0
-  inline void RRC_R(uint8_t& R)
-  {
-    (R & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R >> 1 | R << 7;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  // Flags: Z 0 0 Bit0
+  void RRC__HL();
 
-  //Flags: Z 0 0 Bit7
-  inline void RL__HL()
-  {
-    uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val << 1 | carry_bit;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  // Flags: Z 0 0 Bit7
+  void RL_R(uint8_t& R);
 
-  //Flags: Z 0 0 Bit7
-  inline void RL_R(uint8_t& R)
-  {
-    uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    (R & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R << 1 | carry_bit;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  // Flags: Z 0 0 Bit7
+  void RL__HL();
 
-  //Flags: Z 0 0 Bit0
-  inline void RR__HL()
-  {
-    uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val >> 1 | (carry_bit << 7);
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  // Flags: Z 0 0 Bit0
+  void RR_R(uint8_t& R);
 
-  //Flags: Z 0 0 Bit0
-  inline void RR_R(uint8_t& R)
-  {
-    uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-    (R & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R >> 1 | (carry_bit << 7);
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  // Flags: Z 0 0 Bit0
+  void RR__HL();
 
-  //Flags: Z 0 0 Bit7
-  inline void SLA__HL()
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val << 1;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  // Flags: Z 0 0 Bit7
+  void SLA_R(uint8_t& R);
 
-  //Flags: Z 0 0 Bit7
-  inline void SLA_R(uint8_t& R)
-  {
-    (R & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R << 1;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  // Flags: Z 0 0 Bit7
+  void SLA__HL();
 
-  //Flags: Z 0 0 Bit0
-  inline void SRA__HL()
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val >> 1 | (val & 0b10000000);
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  // Flags: Z 0 0 Bit0
+  void SRA_R(uint8_t& R);
 
-  //Flags: Z 0 0 Bit0
-  inline void SRA_R(uint8_t& R)
-  {
-    (R & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R >> 1 | (R & 0b10000000);
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  // Flags: Z 0 0 Bit0
+  void SRA__HL();
 
   // Flags: Z 0 0 0
-  inline void SWAP__HL()
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    uint8_t result = (val >> 4) | (val << 4);
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    ResetFlag(FlagBitMask::Carry);
-    WriteAddress(_hl.hl, result);
-  }
+  void SWAP_R(uint8_t& R);
 
   // Flags: Z 0 0 0
-  inline void SWAP_R(uint8_t& R)
-  {
-    uint8_t result = (R >> 4) | (R << 4);
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    ResetFlag(FlagBitMask::Carry);
-    R = result;
-  }
+  void SWAP__HL();
 
   // Flags: Z 0 0 bit0
-  inline void SRL__HL()
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = val >> 1;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    WriteAddress(_hl.hl, result);
-  }
+  void SRL_R(uint8_t& R);
 
   // Flags: Z 0 0 bit0
-  inline void SRL_R(uint8_t& R)
-  {
-    (R & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-    uint8_t result = R >> 1;
-    SetZeroFlag(result);
-    ResetFlag(FlagBitMask::Subtract);
-    ResetFlag(FlagBitMask::HalfCarry);
-    R = result;
-  }
+  void SRL__HL();
 
   // Flags: !bit 0 1 -
-  inline void BIT__HL(uint8_t bit_mask)
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    (val & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    SetFlag(FlagBitMask::HalfCarry);
-  }
+  void BIT_R(uint8_t bit_mask, uint8_t R);
 
   // Flags: !bit 0 1 -
-  inline void BIT_R(uint8_t bit_mask, uint8_t R)
-  {
-    (R & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
-    ResetFlag(FlagBitMask::Subtract);
-    SetFlag(FlagBitMask::HalfCarry);
-  }
+  void BIT__HL(uint8_t bit_mask);
 
   // Flags: - - - -
-  inline void RES__HL(uint8_t bit_mask)
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    uint8_t result = val & ~bit_mask;
-    WriteAddress(_hl.hl, result);
-  }
+  void RES_R(uint8_t bit_mask, uint8_t& R);
 
   // Flags: - - - -
-  inline void RES_R(uint8_t bit_mask, uint8_t& R)
-  {
-    R &= ~bit_mask;
-  }
+  void RES__HL(uint8_t bit_mask);
 
   // Flags: - - - -
-  inline void SET__HL(uint8_t bit_mask)
-  {
-    uint8_t val = ReadAddress(_hl.hl);
-    uint8_t result = val | bit_mask;
-    WriteAddress(_hl.hl, result);
-  }
+  void SET_R(uint8_t bit_mask, uint8_t& R);
 
   // Flags: - - - -
-  inline void SET_R(uint8_t bit_mask, uint8_t& R)
-  {
-    R |= bit_mask;
-  }
+  void SET__HL(uint8_t bit_mask);
+#pragma endregion
+
+#pragma region EXTENDED INSTRUCTIONS
+   void OpCb0x00(); void OpCb0x01(); void OpCb0x02(); void OpCb0x03(); void OpCb0x04(); void OpCb0x05(); void OpCb0x06(); void OpCb0x07(); void OpCb0x08(); void OpCb0x09(); void OpCb0x0A(); void OpCb0x0B(); void OpCb0x0C(); void OpCb0x0D(); void OpCb0x0E(); void OpCb0x0F();
+   void OpCb0x10(); void OpCb0x11(); void OpCb0x12(); void OpCb0x13(); void OpCb0x14(); void OpCb0x15(); void OpCb0x16(); void OpCb0x17(); void OpCb0x18(); void OpCb0x19(); void OpCb0x1A(); void OpCb0x1B(); void OpCb0x1C(); void OpCb0x1D(); void OpCb0x1E(); void OpCb0x1F();
+   void OpCb0x20(); void OpCb0x21(); void OpCb0x22(); void OpCb0x23(); void OpCb0x24(); void OpCb0x25(); void OpCb0x26(); void OpCb0x27(); void OpCb0x28(); void OpCb0x29(); void OpCb0x2A(); void OpCb0x2B(); void OpCb0x2C(); void OpCb0x2D(); void OpCb0x2E(); void OpCb0x2F();
+   void OpCb0x30(); void OpCb0x31(); void OpCb0x32(); void OpCb0x33(); void OpCb0x34(); void OpCb0x35(); void OpCb0x36(); void OpCb0x37(); void OpCb0x38(); void OpCb0x39(); void OpCb0x3A(); void OpCb0x3B(); void OpCb0x3C(); void OpCb0x3D(); void OpCb0x3E(); void OpCb0x3F();
+   void OpCb0x40(); void OpCb0x41(); void OpCb0x42(); void OpCb0x43(); void OpCb0x44(); void OpCb0x45(); void OpCb0x46(); void OpCb0x47(); void OpCb0x48(); void OpCb0x49(); void OpCb0x4A(); void OpCb0x4B(); void OpCb0x4C(); void OpCb0x4D(); void OpCb0x4E(); void OpCb0x4F();
+   void OpCb0x50(); void OpCb0x51(); void OpCb0x52(); void OpCb0x53(); void OpCb0x54(); void OpCb0x55(); void OpCb0x56(); void OpCb0x57(); void OpCb0x58(); void OpCb0x59(); void OpCb0x5A(); void OpCb0x5B(); void OpCb0x5C(); void OpCb0x5D(); void OpCb0x5E(); void OpCb0x5F();
+   void OpCb0x60(); void OpCb0x61(); void OpCb0x62(); void OpCb0x63(); void OpCb0x64(); void OpCb0x65(); void OpCb0x66(); void OpCb0x67(); void OpCb0x68(); void OpCb0x69(); void OpCb0x6A(); void OpCb0x6B(); void OpCb0x6C(); void OpCb0x6D(); void OpCb0x6E(); void OpCb0x6F();
+   void OpCb0x70(); void OpCb0x71(); void OpCb0x72(); void OpCb0x73(); void OpCb0x74(); void OpCb0x75(); void OpCb0x76(); void OpCb0x77(); void OpCb0x78(); void OpCb0x79(); void OpCb0x7A(); void OpCb0x7B(); void OpCb0x7C(); void OpCb0x7D(); void OpCb0x7E(); void OpCb0x7F();
+   void OpCb0x80(); void OpCb0x81(); void OpCb0x82(); void OpCb0x83(); void OpCb0x84(); void OpCb0x85(); void OpCb0x86(); void OpCb0x87(); void OpCb0x88(); void OpCb0x89(); void OpCb0x8A(); void OpCb0x8B(); void OpCb0x8C(); void OpCb0x8D(); void OpCb0x8E(); void OpCb0x8F();
+   void OpCb0x90(); void OpCb0x91(); void OpCb0x92(); void OpCb0x93(); void OpCb0x94(); void OpCb0x95(); void OpCb0x96(); void OpCb0x97(); void OpCb0x98(); void OpCb0x99(); void OpCb0x9A(); void OpCb0x9B(); void OpCb0x9C(); void OpCb0x9D(); void OpCb0x9E(); void OpCb0x9F();
+   void OpCb0xA0(); void OpCb0xA1(); void OpCb0xA2(); void OpCb0xA3(); void OpCb0xA4(); void OpCb0xA5(); void OpCb0xA6(); void OpCb0xA7(); void OpCb0xA8(); void OpCb0xA9(); void OpCb0xAA(); void OpCb0xAB(); void OpCb0xAC(); void OpCb0xAD(); void OpCb0xAE(); void OpCb0xAF();
+   void OpCb0xB0(); void OpCb0xB1(); void OpCb0xB2(); void OpCb0xB3(); void OpCb0xB4(); void OpCb0xB5(); void OpCb0xB6(); void OpCb0xB7(); void OpCb0xB8(); void OpCb0xB9(); void OpCb0xBA(); void OpCb0xBB(); void OpCb0xBC(); void OpCb0xBD(); void OpCb0xBE(); void OpCb0xBF();
+   void OpCb0xC0(); void OpCb0xC1(); void OpCb0xC2(); void OpCb0xC3(); void OpCb0xC4(); void OpCb0xC5(); void OpCb0xC6(); void OpCb0xC7(); void OpCb0xC8(); void OpCb0xC9(); void OpCb0xCA(); void OpCb0xCB(); void OpCb0xCC(); void OpCb0xCD(); void OpCb0xCE(); void OpCb0xCF();
+   void OpCb0xD0(); void OpCb0xD1(); void OpCb0xD2(); void OpCb0xD3(); void OpCb0xD4(); void OpCb0xD5(); void OpCb0xD6(); void OpCb0xD7(); void OpCb0xD8(); void OpCb0xD9(); void OpCb0xDA(); void OpCb0xDB(); void OpCb0xDC(); void OpCb0xDD(); void OpCb0xDE(); void OpCb0xDF();
+   void OpCb0xE0(); void OpCb0xE1(); void OpCb0xE2(); void OpCb0xE3(); void OpCb0xE4(); void OpCb0xE5(); void OpCb0xE6(); void OpCb0xE7(); void OpCb0xE8(); void OpCb0xE9(); void OpCb0xEA(); void OpCb0xEB(); void OpCb0xEC(); void OpCb0xED(); void OpCb0xEE(); void OpCb0xEF();
+   void OpCb0xF0(); void OpCb0xF1(); void OpCb0xF2(); void OpCb0xF3(); void OpCb0xF4(); void OpCb0xF5(); void OpCb0xF6(); void OpCb0xF7(); void OpCb0xF8(); void OpCb0xF9(); void OpCb0xFA(); void OpCb0xFB(); void OpCb0xFC(); void OpCb0xFD(); void OpCb0xFE(); void OpCb0xFF();
 #pragma endregion
 };
