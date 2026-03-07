@@ -182,9 +182,13 @@ public:
       m_dma_requested = false;
   };
 
-  inline bool Update(double frame_time)
+  void UpdateFrameTime(double frame_time)
   {
     m_frame_time = frame_time;
+  }
+
+  inline bool Update()
+  {
     UpdateDma();
 
     bool frame_ready = m_lcd_enabled ? UpdateState() : UpdateDisabled();
@@ -344,7 +348,7 @@ private:
     } 
 
     CheckStatInterrupt(StatBitMask::MODE0_INT_SELECT);
-    m_vblank_interrupt_queued = true;
+    TriggerInterrupt(InterruptBitMask::VBLANK);
 
     m_wly = 0;
     m_next_mode = Modes::MODE_2_OAM;
@@ -432,12 +436,6 @@ private:
       CheckLyc();
     }
 
-    if (m_vblank_interrupt_queued)
-    {
-      TriggerInterrupt(InterruptBitMask::VBLANK);
-      m_vblank_interrupt_queued = false;
-    }
-
     if (m_mode_transition_cycles == 0)
     {
       Transition();
@@ -457,8 +455,6 @@ private:
   Modes m_current_mode = Modes::MODE_0_HBLANK;
   Modes m_next_mode    = Modes::MODE_3_DRAW;
   uint32_t m_mode_transition_cycles = 76;
-
-  bool m_vblank_interrupt_queued = false;
 
   std::array<uint8_t, SCREEN_WIDTH> m_line{};
   std::array<Pixel, SCREEN_SIZE> m_frame{};

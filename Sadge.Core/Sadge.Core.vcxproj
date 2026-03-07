@@ -22,8 +22,8 @@
     <ClCompile Include="AudioController.cpp" />
     <ClCompile Include="Cpu.cpp" />
     <ClCompile Include="ExtendedInstructionSet.cpp" />
+    <ClCompile Include="Flags.cpp" />
     <ClCompile Include="InstructionSet.cpp" />
-    <ClCompile Include="InstructionSetGranular.cpp" />
     <ClCompile Include="InterruptController.cpp" />
     <ClCompile Include="JoypadController.cpp" />
     <ClCompile Include="LcdController.cpp" />

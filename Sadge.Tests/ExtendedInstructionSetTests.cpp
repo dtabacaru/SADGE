@@ -1,30 +1,11 @@
-#include "Cpu.h"
+#include "SstCpu.h"
 
 #include "gtest/gtest.h"
 #include "json/json.h"
 
 #include <fstream>
 
-#define ENABLED
-
-// Cpu tests require flat ram
-class CpuInstructionTest : public Cpu
-{
-public:
-  CpuInstructionTest() : Cpu() {}
-
-  uint8_t ReadAddress(uint16_t address)
-  {
-    return m_test_ram[address];
-  }
-
-  void WriteAddress(uint16_t address, uint8_t val)
-  {
-    m_test_ram[address] = val;
-  }
-private:
-  std::vector<uint8_t> m_test_ram = std::vector<uint8_t>(64 * 1024);
-};
+//#define ENABLED
 
 static CpuInstructionTest cpu_;
 
@@ -49,7 +30,7 @@ static void TestCbOpcode(uint8_t opcode)
   {
     const auto& initial = test["initial"];
 
-    cpu_.SetTestState(initial["pc"].asUInt(),
+    cpu_.SetState(initial["pc"].asUInt(),
                       initial["sp"].asUInt(),
                       initial["a"].asUInt(),
                       initial["b"].asUInt(),
@@ -67,11 +48,11 @@ static void TestCbOpcode(uint8_t opcode)
       cpu_.WriteAddress(ram[0].asUInt(), ram[1].asUInt());
     }
 
-    cpu_.TestExecute();
+    cpu_.Main();
 
     const auto& final_ = test["final"];
 
-    bool state_passed = cpu_.CheckTestState(final_["pc"].asUInt(),
+    bool state_passed = cpu_.CheckState(final_["pc"].asUInt(),
                                             final_["sp"].asUInt(),
                                             final_["a"].asUInt(),
                                             final_["b"].asUInt(),

@@ -34,7 +34,7 @@ void InterruptController::HandleWrite(uint16_t address, uint8_t val)
 
 uint16_t InterruptController::HandleInterrupt()
 {
-  m_ime = false;
+  bool m_ime = false;
 
   if (InterruptExists(InterruptBitMask::VBLANK))
   {

@@ -8,20 +8,19 @@ void Cpu::RLC_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::RLC__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l << 1 | _wz.l >> 7;
@@ -31,11 +30,10 @@ void Cpu::RLC__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -50,20 +48,19 @@ void Cpu::RRC_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::RRC__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l >> 1 | _wz.l << 7;
@@ -73,11 +70,10 @@ void Cpu::RRC__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -93,20 +89,19 @@ void Cpu::RL_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::RL__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l << 1 | static_cast<uint8_t>(ReadFlag(FlagBitMask::Carry));
@@ -116,11 +111,10 @@ void Cpu::RL__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -136,20 +130,19 @@ void Cpu::RR_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::RR__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l >> 1 | (ReadFlag(FlagBitMask::Carry) << 7);
@@ -159,11 +152,10 @@ void Cpu::RR__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -178,20 +170,19 @@ void Cpu::SLA_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::SLA__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l << 1;
@@ -201,11 +192,10 @@ void Cpu::SLA__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0b10000000) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -220,20 +210,19 @@ void Cpu::SRA_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::SRA__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l >> 1 | (_wz.l & 0b10000000);
@@ -243,11 +232,11 @@ void Cpu::SRA__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
+
       break;
     default:
       break;
@@ -262,20 +251,19 @@ void Cpu::SWAP_R(uint8_t& R)
   ResetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::SWAP__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = (_wz.l >> 4) | (_wz.l << 4);
@@ -285,11 +273,10 @@ void Cpu::SWAP__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -304,20 +291,19 @@ void Cpu::SRL_R(uint8_t& R)
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   R = result;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::SRL__HL()
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l >> 1;
@@ -327,11 +313,10 @@ void Cpu::SRL__HL()
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
       (_wz.l & 0x1) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -343,27 +328,25 @@ void Cpu::BIT_R(uint8_t bit_mask, uint8_t R)
   (R & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   SetFlag(FlagBitMask::HalfCarry);
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::BIT__HL(uint8_t bit_mask)
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       (_wz.l & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
       ResetFlag(FlagBitMask::Subtract);
       SetFlag(FlagBitMask::HalfCarry);
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -373,30 +356,28 @@ void Cpu::BIT__HL(uint8_t bit_mask)
 void Cpu::RES_R(uint8_t bit_mask, uint8_t& R)
 {
   R &= ~bit_mask;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::RES__HL(uint8_t bit_mask)
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l & ~bit_mask;
       _dataBus = result;
       WriteAddress(_addressBus, _dataBus);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -406,30 +387,28 @@ void Cpu::RES__HL(uint8_t bit_mask)
 void Cpu::SET_R(uint8_t bit_mask, uint8_t& R)
 {
   R |= bit_mask;
-  _cb_mode = false;
-  _opCycle = INSTRUCTION_COMPLETE;
+  _exeCycle = EXE_COMPLETE;
 }
 
 void Cpu::SET__HL(uint8_t bit_mask)
 {
   uint8_t result{};
-  switch (_opCycle)
+  switch (_exeCycle)
   {
     case 1:
       _addressBus = _hl.hl;
       _dataBus = ReadAddress(_addressBus);
       _wz.l = _dataBus;
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 2:
       result = _wz.l | bit_mask;
       _dataBus = result;
       WriteAddress(_addressBus, _dataBus);
-      _opCycle += 1;
+      _exeCycle += 1;
       break;
     case 3:
-      _opCycle = INSTRUCTION_COMPLETE;
-      _cb_mode = false;
+      _exeCycle = EXE_COMPLETE;
       break;
     default:
       break;

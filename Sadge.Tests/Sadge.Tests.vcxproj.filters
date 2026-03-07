@@ -1515,4 +1515,7 @@
       <UniqueIdentifier>{47e4e54a-14c0-4017-a43d-02744da25e53}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SstCpu.h" />
+  </ItemGroup>
 </Project>

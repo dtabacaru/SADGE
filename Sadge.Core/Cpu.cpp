@@ -729,10 +729,10 @@ Status Cpu::ParseHeader()
   return status;
 }
 
-Cpu::Cpu() : m_timer_controller(m_interrupt_controller),
-             m_joypad_controller(m_interrupt_controller),
-             m_lcd_controller(m_interrupt_controller),
-             m_serial_controller(m_interrupt_controller)
+Cpu::Cpu() : m_timer_controller(mInterruptController),
+             m_joypad_controller(mInterruptController),
+             m_lcd_controller(mInterruptController),
+             m_serial_controller(mInterruptController)
 {
 }
 
@@ -741,68 +741,106 @@ Cpu::~Cpu()
   WriteEram();
 }
 
-void Cpu::Update(int cycle_count)
+void Cpu::TickComponents()
 {
-  m_total_cycle_count += cycle_count;
-  m_interrupt_controller.Update(m_interrupt_enabled_requested);
-  m_interrupt_enabled_requested = false;
+  m_total_cycle_count += 4;
+  m_frame_cycles += 4;
 
-  for (int m_cycle = 0; m_cycle < (cycle_count / 4); m_cycle += 1)
+  if (m_lcd_controller.DmaRequested())
   {
-    if (m_lcd_controller.DmaRequested())
-    {
-      uint16_t dma_address = m_lcd_controller.GetCurrentDmaAddress();
-      m_lcd_controller.ServiceDma(ReadAddress(dma_address));
-    }
-
-    bool frame_ready = m_lcd_controller.Update(m_frame_time);
-
-    m_frame_cycles += 4;
-    bool apu_div_tick = m_timer_controller.Update();
-
-    if (apu_div_tick)
-     m_audio_controller.ApuDivTick();
-
-    m_audio_controller.Update();
-
-    if (frame_ready)
-    {
-      WaitFrame();
-    } 
+    uint16_t dma_address = m_lcd_controller.GetCurrentDmaAddress();
+    m_lcd_controller.ServiceDma(ReadAddress(dma_address));
   }
+
+  bool frame_ready = m_lcd_controller.Update();
+  bool apu_div_tick = m_timer_controller.Update();
+
+  if (apu_div_tick)
+    m_audio_controller.ApuDivTick();
+
+  m_audio_controller.Update();
+
+  if (frame_ready)
+  {
+    WaitFrame();
+  } 
+}
+
+void Cpu::TickEdge(EdgeType& edge, LevelType& level, uint64_t& count)
+{
+  edge = edge == EdgeType::FALLING ? EdgeType::RISING : EdgeType::FALLING;
+  level = edge == EdgeType::FALLING ? LevelType::LOW : LevelType::HIGH;
+  count += 1;
 }
 
 void Cpu::FallingTEvent()
 {
+  _tLowCount += 1;
 }
 
 void Cpu::FallingMEvent()
 {
+  _mLowCount += 1;
 }
 
-void Cpu::RisingMEvent()
+void Cpu::InterruptCompleteEvent()
 {
-  TickExecution();
+  mExecutionMode = ExecutionMode::INSTRUCTION;
+  InstructionCompleteEvent();
+}
 
-  if(_opCycle == 0)
-    Fetch();
+void Cpu::InstructionCompleteEvent()
+{
+  Fetch();
 
-  m_timer_controller.Update();
+  mInterruptController.Update(mImeRequest);
+  mImeRequest = false;
+
+  if(mInterruptController.InterruptRequested())
+    mExecutionMode = ExecutionMode::INTERRUPT;
+}
+
+void Cpu::ExtInstructionCompleteEvent()
+{
+  mExecutionMode = ExecutionMode::INSTRUCTION;
+  InstructionCompleteEvent();
+}
+
+void Cpu::HaltCompleteEvent()
+{
+  mExecutionMode = ExecutionMode::INSTRUCTION;
+  mInterruptController.Update(mImeRequest);
+  mImeRequest = false;
+
+  if (mInterruptController.InterruptRequested())
+    mExecutionMode = ExecutionMode::INTERRUPT;
+}
+
+void Cpu::Main()
+{
+  TickEdge(_tEdge, _tLevel, _tEdgeCount);
+
+  _tEdge == EdgeType::RISING ? RisingTEvent() : FallingTEvent();
 }
 
 void Cpu::RisingTEvent()
 {
-  if (_tEdgeCount % MACHINE_CLOCK_DIV == 0)
+  _tHighCount += 1;
+
+  if (_tHighCount % MACHINE_EDGE_DIV == 0)
   {
     TickEdge(_mEdge, _mLevel, _mEdgeCount);
 
     _mEdge == EdgeType::RISING ? RisingMEvent() : FallingMEvent();
   }
+}
 
-  // TODO: Make T cycle updates
-  //m_audio_controller.Update();
-  // Tick APU
-  // Tick PPU
+void Cpu::RisingMEvent()
+{
+  _mHighCount += 1;
+
+  TickExecution();
+  TickComponents();
 }
 
 void Cpu::WaitFrame()
@@ -814,6 +852,7 @@ void Cpu::WaitFrame()
   while (m_execution_stopwatch.Elapsed() < frame_expected_time) {}
 
   m_frame_time = m_execution_stopwatch.Elapsed();
+  m_lcd_controller.UpdateFrameTime(m_frame_time);
 
   m_compensation_time = m_frame_time - frame_expected_time;
 
@@ -833,13 +872,6 @@ void Cpu::Init()
   m_execution_stopwatch.Start();
 }
 
-void Cpu::Main()
-{
-  TickEdge(_tEdge, _tLevel, _tEdgeCount);
-
-  _tEdge == EdgeType::RISING ? RisingTEvent() : FallingTEvent();
-}
-
 uint8_t Cpu::ReadNextUint8()
 {
   _addressBus = _pc.hl;
@@ -849,28 +881,7 @@ uint8_t Cpu::ReadNextUint8()
   return val;
 }
 
-int8_t Cpu::ReadNextInt8()
-{
-  _addressBus = _pc.hl;
-  uint8_t val = ReadAddress(_addressBus);
-  _pc.hl += 1;
-
-  return static_cast<int8_t>(val);
-}
-
-void Cpu::TestExecute() 
-{ 
-  _test_cycles.clear();
-  Fetch();
-
-  do
-  {
-    _test_cycles.push_back({_addressBus, _dataBus});
-    TickExecution();
-  } while (_opCycle > 0);
-}
-
-void Cpu::Execute()
+void Cpu::InstructionHandler()
 {
   switch (_opcode)
   {
@@ -1389,9 +1400,12 @@ void Cpu::Execute()
     default:
       break;
   }
+
+  if (_exeCycle == EXE_COMPLETE)
+    InstructionCompleteEvent();
 }
 
-void Cpu::ExecuteCb()
+void Cpu::ExtInstructionHandler()
 {
   switch (_opcode)
   {
@@ -1910,14 +1924,82 @@ void Cpu::ExecuteCb()
     default:
       break;
   }
+
+  if (_exeCycle == EXE_COMPLETE)
+    ExtInstructionCompleteEvent();
+}
+
+void Cpu::Fetch()
+{
+  _dataBus = ReadNextUint8();
+  _opcode = _dataBus;
+}
+
+void Cpu::HaltHandler()
+{
+  if (mInterruptController.InterruptExists())
+    HaltCompleteEvent();
+}
+
+void Cpu::InterruptHandler()
+{
+  switch (_exeCycle)
+  {
+    case 0:
+      _addressBus = _pc.hl;
+      _pc.hl -= 1;
+      _exeCycle += 1;
+      break;
+    case 1:
+      _addressBus = _sp.hl;
+      _sp.hl -= 1;
+      _exeCycle += 1;
+      break;
+    case 2:
+      _addressBus = _sp.hl;
+      _dataBus = _pc.h;
+      WriteAddress(_addressBus, _dataBus);
+      _sp.hl -= 1;
+      _exeCycle += 1;
+      break;
+    case 3:
+      _addressBus = _sp.hl;
+      _dataBus = _pc.l;
+      WriteAddress(_addressBus, _dataBus);
+      _exeCycle += 1;
+      break;
+    case 4:
+      _pc.hl = mInterruptController.HandleInterrupt();
+      _exeCycle = EXE_COMPLETE;
+      InterruptCompleteEvent();
+      break;
+    default:
+      break;
+  }
 }
 
 void Cpu::TickExecution()
 {
-  if (_cb_mode)
-    ExecuteCb();
-  else
-    Execute();
+  switch (this->mExecutionMode)
+  {
+    case ExecutionMode::INSTRUCTION:
+      InstructionHandler();
+      break;
+    case ExecutionMode::EXT_INSTRUCTION:
+      ExtInstructionHandler();
+      break;
+    case ExecutionMode::INTERRUPT:
+      InterruptHandler();
+      break;
+    case ExecutionMode::HALT:
+      HaltHandler();
+      break;
+    case ExecutionMode::STOP:
+      throw std::exception("STOP not implemented.");
+      break;
+    default:
+      break;
+  }
 }
 
 void Cpu::RunUntil(uint64_t cycle_count)
@@ -1956,7 +2038,7 @@ void Cpu::WriteIo(uint16_t address, uint8_t val)
   }
   else if (address == static_cast<uint16_t>(InterruptController::InterruptAddress::FLAG))
   {
-    m_interrupt_controller.HandleWrite(address, val);
+    mInterruptController.HandleWrite(address, val);
   }
   else if (address >= static_cast<uint16_t>(AudioController::AudioAddress::START) &&
            address <= static_cast<uint16_t>(AudioController::AudioAddress::END))
@@ -2005,7 +2087,7 @@ uint8_t Cpu::ReadIo(uint16_t address)
   }
   else if (address == static_cast<uint16_t>(InterruptController::InterruptAddress::FLAG))
   {
-    return m_interrupt_controller.HandleRead(address);
+    return mInterruptController.HandleRead(address);
   }
   else if (address >= static_cast<uint16_t>(AudioController::AudioAddress::START) &&
            address <= static_cast<uint16_t>(AudioController::AudioAddress::END))
@@ -2036,7 +2118,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
 {
   if (address == 0xFFFF) // (FFFF-FFFF) Interrupts Enable Register (IE)
   {
-    m_interrupt_controller.HandleWrite(address, val);
+    mInterruptController.HandleWrite(address, val);
   }
   else if (address >= 0xFF80) // (FF80-FFFE) High RAM (HRAM)
   {
@@ -2210,17 +2292,6 @@ void Cpu::Mbc3_5FFF(uint8_t val)
   m_ram_bank = val & 0b11;
 }
 
-uint16_t Cpu::ReadNextUint16()
-{
-  _addressBus = _pc.hl;
-  uint8_t l = ReadAddress(_pc.hl);
-  _pc.hl += 1;
-  uint8_t h = ReadAddress(_pc.hl);
-  _pc.hl += 1;
-
-  return (h << 8) | l;
-}
-
 void Cpu::Mbc3_3FFF(uint8_t val)
 {
   m_rom_bank = val & 0x7F;
@@ -2267,7 +2338,7 @@ uint8_t Cpu::ReadAddress(uint16_t address)
 {
   if (address > 0xFFFE) // (FFFF-FFFF) Interrupts Enable Register (IE)
   {
-    return m_interrupt_controller.HandleRead(address);
+    return mInterruptController.HandleRead(address);
   }
   else if (address > 0xFF7F) // (FF80-FFFE) High RAM (HRAM)
   {
@@ -2321,7 +2392,7 @@ uint8_t Cpu::ReadAddress(uint16_t address)
   }
 }
 
-void Cpu::SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie)
+void Cpu::SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie)
 {
   ime;
   ie;
@@ -2338,7 +2409,7 @@ void Cpu::SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c
   _hl.l = l;
 }
 
-bool Cpu::CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
+bool Cpu::CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
 {
   ime;
 

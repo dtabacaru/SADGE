@@ -58,55 +58,53 @@ public:
   ~Cpu();
 
   constexpr static auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22)) * 1;
-  constexpr static auto MACHINE_CLOCK_DIV = 4;
-  constexpr static auto INSTRUCTION_COMPLETE = 0;
+  constexpr static auto MACHINE_EDGE_DIV = 2;
+  constexpr static auto EXE_COMPLETE = 0;
 
   // Presumably, cycles start at rising edges, and the system powers on triggering a rising edge
   // Initialize these as falling/low/-1 such that the very first cycle mimics the behaviour
   // of powering on a DMG
   EdgeType  _tEdge{EdgeType::FALLING};
   LevelType _tLevel{LevelType::LOW};
+  uint64_t  _tLowCount{static_cast<uint64_t>(-1)};
+  uint64_t  _tHighCount{static_cast<uint64_t>(-1)};
   uint64_t  _tEdgeCount{static_cast<uint64_t>(-1)};
 
   EdgeType  _mEdge{EdgeType::FALLING};
   LevelType _mLevel{LevelType::LOW};
+  uint64_t  _mLowCount{static_cast<uint64_t>(-1)};
+  uint64_t  _mHighCount{static_cast<uint64_t>(-1)};
   uint64_t  _mEdgeCount{static_cast<uint64_t>(-1)};
 
-  inline void TickEdge(EdgeType& edge, LevelType& level, uint64_t& count)
-  {
-    edge  = edge == EdgeType::FALLING ? EdgeType::RISING : EdgeType::FALLING;
-    level = edge == EdgeType::FALLING ? LevelType::LOW : LevelType::HIGH;
-    count += 1;
-  }
+  void TickEdge(EdgeType& edge, LevelType& level, uint64_t& count);
 
   void RisingTEvent();
   void FallingTEvent();
   void RisingMEvent();
   void FallingMEvent();
 
-  uint64_t _opCycle{0};
+  virtual void InstructionCompleteEvent();
+  void InterruptCompleteEvent();
+  void ExtInstructionCompleteEvent();
+
+  void HaltCompleteEvent();
+
+  uint64_t _exeCycle{0};
   uint16_t _addressBus{0};
   uint8_t  _dataBus{0};
 
   void TickExecution();
-  std::vector<TestCycle> _test_cycles;
 
   Status SetRom(const std::filesystem::path& rom_path, std::vector<uint8_t> rom);
-  void Main();
+  virtual void Main();
 
   void RunUntil(uint64_t cycle_count);
   void Run();
+  void Fetch();
 
   inline void Stop()
   {
     m_stopped = true;
-  }
-
-  StopWatch m_execution_stopwatch;
-
-  inline std::vector<TestCycle> GetTestCycles()
-  {
-    return _test_cycles;
   }
 
   inline AudioController&  GetAudioController()  { return m_audio_controller; }
@@ -158,10 +156,9 @@ public:
   Palettes GetPalettes(std::string title);
   uint8_t  GetTitleHash(std::string title);
 
-  void TestExecute();
-  void Execute();
-  void SetTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
-  bool CheckTestState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
+  void InstructionHandler();
+  void SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
+  bool CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
 #pragma endregion
 
 private:
@@ -186,19 +183,6 @@ private:
   Register _pc{};
 
   Register _wz{};
-
-std::string OutputRegisters()
-  {
-    std::ostringstream ss;
-
-    ss << std::dec << m_total_cycle_count;
-    ss << std::hex << std::uppercase << std::setfill('0');
-    ss << " AF: " << std::setw(4) << _af.hl << " BC: " << std::setw(4) << _bc.hl << " DE: " << std::setw(4) << _de.hl << " HL: " << std::setw(4) << _hl.hl << " SP: " << std::setw(4) << _sp.hl << " PC: " << std::setw(4) << _pc.hl << " op: " << std::setw(2) << (int)_opcode;
-    ss << " IME: " << std::dec << (int)m_interrupt_controller.m_ime << " IE: " << (int)m_interrupt_controller.m_ie << " IF: " << (int)m_interrupt_controller.m_if;
-
-    return ss.str();
-  }
-
 #pragma endregion
 
 #pragma region FLAGS
@@ -210,64 +194,25 @@ std::string OutputRegisters()
     Zero = 0b10000000
   };
 
-  inline void SetHalfCarryFlag(uint8_t val1, int val2)
-  {
-    bool bit_4_set = val2 < 0 ? ((val1 & 0xF) - (-val2 & 0xF)) & 0x10
-                              : ((val1 & 0xF) + (+val2 & 0xF)) & 0x10;
+  void SetHalfCarryFlag(uint8_t val1, int val2);
 
-    bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void SetHalfCarryFlag(uint8_t val1, int val2, int carry);
 
-  inline void SetHalfCarryFlag(uint8_t val1, int val2, int carry)
-  {
-    bool bit_4_set = val2 < 0 || carry < 0 ? ((val1 & 0xF) - (-val2 & 0xF) - (-carry & 0xF)) & 0x10
-                                           : ((val1 & 0xF) + (+val2 & 0xF) + (+carry & 0xF)) & 0x10;
+  void SetHalfCarryFlag(uint16_t val1, int val2);
 
-    bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void SetCarry16Bit(int result);
 
-  inline void SetHalfCarryFlag(uint16_t val1, int val2)
-  {
-    bool bit_12_set = val2 < 0 ? ((val1 & 0xFFF) - (-val2 & 0xFFF)) & 0x1000
-                               : ((val1 & 0xFFF) + (+val2 & 0xFFF)) & 0x1000;
+  void SetCarry8Bit(int result);
 
-    bit_12_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
-  }
+  void SetZeroFlag(uint8_t val);
 
-  inline void SetCarry16Bit(int result)
-  {
-    (result > 0xFFFF || result < 0) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  }
+  void SetSubtractionFlag(int val);
 
-  inline void SetCarry8Bit(int result)
-  {
-    (result > 0xFF || result < 0) ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  }
+  void SetFlag(FlagBitMask flag);
 
-  inline void SetZeroFlag(uint8_t val)
-  {
-    val ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
-  }
+  void ResetFlag(FlagBitMask flag);
 
-  inline void SetSubtractionFlag(int val)
-  {
-    val < 0 ? SetFlag(FlagBitMask::Subtract) : ResetFlag(FlagBitMask::Subtract);
-  }
-
-  inline void SetFlag(FlagBitMask flag)
-  {
-    _af.l |= static_cast<uint8_t>(flag);
-  }
-
-  inline void ResetFlag(FlagBitMask flag)
-  {
-    _af.l &= ~static_cast<uint8_t>(flag);
-  }
-
-  inline bool ReadFlag(FlagBitMask flag) const
-  {
-    return _af.l & static_cast<uint8_t>(flag);
-  }
+  bool ReadFlag(FlagBitMask flag) const;
 #pragma endregion
 
 #pragma region CARTRIDGE
@@ -345,14 +290,14 @@ std::string OutputRegisters()
 #pragma region EXECUTION
   constexpr static double CLOCK_RATE = (1 << 22);
 
-  enum class ExecutionAddress
+  enum class ExecutionAddress : uint16_t
   {
     RESET = 0x0100,
     IO = 0xFF00,
     BOOT_COMPLETE = 0xFF50
   };
 
-  enum class RestartVector
+  enum class RestartVector : uint16_t
   {
     RST0 = 0x0000,
     RST1 = 0x0008,
@@ -364,26 +309,36 @@ std::string OutputRegisters()
     RST7 = 0x0038
   };
 
+  enum class ExecutionMode : uint8_t
+  {
+    INSTRUCTION,
+    EXT_INSTRUCTION,
+    INTERRUPT,
+    HALT,
+    STOP
+  };
+
   static constexpr uint16_t GetRestartVectorAddress(RestartVector vec)
   {
     return static_cast<uint16_t>(vec);
   }
 
+  ExecutionMode mExecutionMode = ExecutionMode::INSTRUCTION;
+
   RomHeader m_rom_header;
 
   uint64_t m_total_cycle_count = 0;
 
+  StopWatch m_execution_stopwatch;
   std::atomic<bool> m_stopped = false;
+  double m_frame_time = 0;
   double m_compensation_time = 0;
   uint64_t m_frame_cycles = 0;
 
   uint8_t _opcode = 0x00;
 
   bool m_boot_complete = false;
-  bool m_interrupt_enabled_requested = false;
-  bool m_stop_requested = false;
-  bool m_halt_requested = false;
-  bool _cb_mode = false;
+  bool mImeRequest = false;
 
   virtual uint8_t ReadAddress(uint16_t address);
   virtual void WriteAddress(uint16_t address, uint8_t val);
@@ -391,55 +346,21 @@ std::string OutputRegisters()
   uint8_t ReadIo(uint16_t address);
   void WriteIo(uint16_t address, uint8_t val);
 
-  uint16_t ReadNextUint16();
-
   uint8_t ReadNextUint8();
 
-  int8_t ReadNextInt8();
+  void HaltHandler();
 
-  inline int StopHandler()
-  {
-    throw std::exception("STOP not implemented.");
-
-    return 4;
-  }
-
-  inline int HaltHandler() // TODO: Handle the HALT bug
-  {
-    if (m_interrupt_controller.InterruptExists())
-      m_halt_requested = false;
-
-    return 4;
-  }
-
-  inline int InterruptHandler()
-  {
-    uint16_t isr = m_interrupt_controller.HandleInterrupt();
-    _pc.hl -= 1;
-    PUSH_rr(_pc);
-    _pc.hl = isr;
-    Fetch();
-
-    return 20;
-  }
-
-  void Fetch()
-  {
-    _dataBus = ReadNextUint8();
-    _opcode  = _dataBus;
-  }
-
-  double m_frame_time = 0;
+  void InterruptHandler();
 
   virtual void WaitFrame();
   void Init();
 
-  void ExecuteCb();
-  void Update(int cycle_count);
+  void ExtInstructionHandler();
+  void TickComponents();
 #pragma endregion
 
 #pragma region I/O CONTROLLERS
-  InterruptController m_interrupt_controller;
+  InterruptController mInterruptController;
   AudioController m_audio_controller;
   LcdController m_lcd_controller;
   JoypadController m_joypad_controller;
