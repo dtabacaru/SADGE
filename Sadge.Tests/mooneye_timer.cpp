@@ -1,42 +1,13 @@
-#include "Cpu.h"
+#include "FrameBufferCpu.h"
 
 #include "gtest/gtest.h"
 
 #include <filesystem>
 #include <fstream>
 
-// Don't wait at all
-class CpuFrameBufferTest : public Cpu
-{
-public:
-  CpuFrameBufferTest() : Cpu() {}
-private:
-  void WaitFrame() {}
-};
-
-static inline bool ColorIsEqual(Pixel a, Pixel b)
-{
-  return a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A;
-}
-
-static bool CheckFrameBuffer(std::array<Pixel, SCREEN_SIZE>& frame_buffer, std::filesystem::path ref_frame_buffer_path)
-{
-  std::ifstream ref_frame_buffer_stream(ref_frame_buffer_path);
-  std::vector<Pixel> ref_frame_buffer(SCREEN_SIZE);
-  ref_frame_buffer_stream.read(reinterpret_cast<char*>(ref_frame_buffer.data()), SCREEN_SIZE * sizeof(Pixel));
-
-  for (int i = 0; i < ref_frame_buffer.size(); i += 1)
-  {
-    if (!ColorIsEqual(ref_frame_buffer[i], frame_buffer[i]))
-      return false;
-  }
-
-  return true;
-}
-
 TEST(Mooneye, div_write)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\div_write.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -52,7 +23,7 @@ TEST(Mooneye, div_write)
 
 TEST(Mooneye, rapid_toggle)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\rapid_toggle.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -68,7 +39,7 @@ TEST(Mooneye, rapid_toggle)
 
 TEST(Mooneye, tim00)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim00.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -84,7 +55,7 @@ TEST(Mooneye, tim00)
 
 TEST(Mooneye, tim00_div_trigger)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim00_div_trigger.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -100,7 +71,7 @@ TEST(Mooneye, tim00_div_trigger)
 
 TEST(Mooneye, tim01)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim01.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -116,7 +87,7 @@ TEST(Mooneye, tim01)
 
 TEST(Mooneye, tim01_div_trigger)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim01_div_trigger.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -132,7 +103,7 @@ TEST(Mooneye, tim01_div_trigger)
 
 TEST(Mooneye, tim10)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim10.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -148,7 +119,7 @@ TEST(Mooneye, tim10)
 
 TEST(Mooneye, tim10_div_trigger)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim10_div_trigger.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -164,7 +135,7 @@ TEST(Mooneye, tim10_div_trigger)
 
 TEST(Mooneye, tim11)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim11.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -180,7 +151,7 @@ TEST(Mooneye, tim11)
 
 TEST(Mooneye, tim11_div_trigger)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tim11_div_trigger.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -196,7 +167,7 @@ TEST(Mooneye, tim11_div_trigger)
 
 TEST(Mooneye, tima_reload)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tima_reload.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -212,7 +183,7 @@ TEST(Mooneye, tima_reload)
 
 TEST(Mooneye, tima_write_reloading)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tima_write_reloading.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);
@@ -228,7 +199,7 @@ TEST(Mooneye, tima_write_reloading)
 
 TEST(Mooneye, tma_write_reloading)
 {
-  CpuFrameBufferTest cpu;
+  FrameBufferCpu cpu;
 
   std::filesystem::path rom_path = "mooneye\\timer\\tma_write_reloading.gb";
   uint64_t file_size = std::filesystem::file_size(rom_path);

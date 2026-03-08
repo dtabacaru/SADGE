@@ -7,7 +7,7 @@
 
 //#define ENABLED
 
-static CpuInstructionTest cpu_;
+static SstCpu cpu_;
 
 static void TestCbOpcode(uint8_t opcode)
 {

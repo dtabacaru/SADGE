@@ -41,114 +41,42 @@ public:
     HZ16384  = 0b11
   };
   
-  inline constexpr uint8_t GetTimerBitMask(TimerBitMask timer_bit_mask)
+  constexpr TimerAddress GetTimerAddress(uint16_t address) const
   {
-    return static_cast<uint8_t>(timer_bit_mask);
+    return static_cast<TimerAddress>(address);
   }
 
-  inline constexpr uint8_t GetTimerClockSelect(TimerClockSelect timer_clock_select)
+  constexpr uint8_t GetTimerBitMask(TimerBitMask mask)
   {
-    return static_cast<uint8_t>(timer_clock_select);
+    return static_cast<uint8_t>(mask);
   }
 
-  TimerController(InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::TIMER) {}
-  ~TimerController() {}
+  constexpr uint8_t GetTimerClockSelect(TimerClockSelect cs)
+  {
+    return static_cast<uint8_t>(cs);
+  }
+
+  TimerController(InterruptReceiver& interrupt_receiver);
 
   bool HandleWrite(uint16_t address, uint8_t val);
   uint8_t HandleRead(uint16_t address) const;
 
   /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  inline bool UpdateSysClock(uint16_t sys_clk)
-  {
-    uint16_t last_cycle_count = m_sys_clk;
-    m_sys_clk = sys_clk;
-    UpdateTima(last_cycle_count);
-    return FallingEdgeDetect(last_cycle_count, DIV_APU_BIT_MASK);
-  }
-
-  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  inline bool Update()
-  {
-    return UpdateSysClock(m_sys_clk + 4);
-  }
+  bool Update();
 
 private:
-
-  inline bool FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bit_mask)
-  {
-    return (last_cycle_count & div_bit_mask) && !(m_sys_clk & div_bit_mask);
-  }
-
-  inline void TickTima()
-  {
-    m_tima += 1;
-    if (m_tima == 0) 
-      TimaOverflow();
-  }
-
   /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  inline bool HandleDivWrite()
-  {
-    return UpdateSysClock(0);
-  }
-
-  inline void HandleTimaWrite(uint8_t val)
-  {
-    if (m_tima_reload_cycle != 4)
-      m_tima = val;
-
-    m_tima_reload_cycle = 8;
-  }
-
-  inline void HandleTmaWrite(uint8_t val)
-  {
-    if (m_tima_reload_cycle == 4)
-      m_tima = val;
-
-    m_tma = val;
-  }
-
-  inline void HandleTacWrite(uint8_t val)
-  {
-    if (m_timer_enabled && !(val & GetTimerBitMask(TimerBitMask::ENABLE)))
-    {
-      if (m_sys_clk & m_div_bit_mask)
-        TickTima();
-    }
-
-    m_tac = val;
-    m_div_bit_mask = DIV_BIT_MASK_LUT[m_tac & GetTimerBitMask(TimerBitMask::CLOCK_SELECT)];
-    m_timer_enabled = m_tac & static_cast<uint8_t>(TimerBitMask::ENABLE);
-  }
-
-  inline void TimaOverflow()
-  {
-    m_tima_reload_cycle = 0;
-    m_tima = 0;
-  }
-
-  inline void ReloadTima()
-  {
-    TriggerInterrupt();
-    m_tima = m_tma;
-  }
-
-  inline void UpdateTima(uint16_t last_cycle_count)
-  {
-    if (m_tima_reload_cycle < 8)
-    {
-      m_tima_reload_cycle += 4;
-
-      if (m_tima_reload_cycle == 4) 
-        ReloadTima();
-    }
-
-    if (m_timer_enabled)
-    {
-      if (FallingEdgeDetect(last_cycle_count, m_div_bit_mask))
-        TickTima();
-    }
-  }
+  bool UpdateSysClock(uint16_t sys_clk);
+  bool FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bit_mask);
+  void TickTima();
+  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
+  bool HandleDivWrite();
+  void HandleTimaWrite(uint8_t val);
+  void HandleTmaWrite(uint8_t val);
+  void HandleTacWrite(uint8_t val);
+  void TimaOverflow();
+  void ReloadTima();
+  void UpdateTima(uint16_t last_cycle_count);
 
   bool m_timer_enabled{};
 

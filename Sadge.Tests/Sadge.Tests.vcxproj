@@ -617,6 +617,7 @@
     <None Include="sm83-main\v1\ff.json" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FrameBufferCpu.h" />
     <ClInclude Include="SstCpu.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

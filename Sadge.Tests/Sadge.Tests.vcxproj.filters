@@ -1517,5 +1517,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SstCpu.h" />
+    <ClInclude Include="FrameBufferCpu.h" />
   </ItemGroup>
 </Project>

@@ -3,10 +3,10 @@
 #include "Cpu.h"
 
 
-class CpuInstructionTest : public Cpu
+class SstCpu : public Cpu
 {
 public:
-  CpuInstructionTest() : Cpu() {}
+  SstCpu() : Cpu() {}
 
   uint8_t ReadAddress(uint16_t address)
   {
