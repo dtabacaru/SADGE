@@ -1,17 +1,21 @@
 #include "TimerController.h"
 
+#include "Constants.h"
+#include "Utils.h"
+
 TimerController::TimerController(InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::TIMER) 
 {
 }
 
-bool TimerController::HandleWrite(uint16_t address, uint8_t val)
+void TimerController::HandleWrite(uint16_t address, uint8_t val)
 {
-  TimerAddress timer_address = GetTimerAddress(address);
+  TimerAddress timer_address = static_cast<TimerAddress>(address);
 
   switch (timer_address)
   {
     case TimerAddress::DIV:
-      return HandleDivWrite();
+      HandleDivWrite();
+      break;
     case TimerAddress::TIMA:
       HandleTimaWrite(val);
       break;
@@ -21,17 +25,12 @@ bool TimerController::HandleWrite(uint16_t address, uint8_t val)
     case TimerAddress::TAC:
       HandleTacWrite(val);
       break;
-    default:
-      (void)val;
-      break;
   }
-
-  return false;
 }
 
 uint8_t TimerController::HandleRead(uint16_t address) const
 {
-  TimerAddress timer_address = GetTimerAddress(address);
+  TimerAddress timer_address = static_cast<TimerAddress>(address);
 
   switch (timer_address)
   {
@@ -48,47 +47,77 @@ uint8_t TimerController::HandleRead(uint16_t address) const
   }
 }
 
-bool TimerController::UpdateSysClock(uint16_t newClk)
+uint16_t TimerController::GetClk() const
+{
+  return mClk;
+}
+
+void TimerController::Tick()
+{
+  return TickSysClk(mClk + 1);
+}
+
+constexpr uint8_t TimerController::GetTimerBitMask(TimerBitMask mask) const
+{
+  return static_cast<uint8_t>(mask);
+}
+
+constexpr uint8_t TimerController::GetTimerClockSelect(TimerClockSelect cs) const
+{
+  return static_cast<uint8_t>(cs);
+}
+
+void TimerController::TickSysClk(uint16_t newClk)
 {
   uint16_t oldClk = mClk;
   mClk = newClk;
-  UpdateTima(oldClk);
-  return FallingEdgeDetect(oldClk, DIV_APU_BIT_MASK);
+  
+  if (mReloadCycle != RELOAD_END_CYCLE)
+    TickReload();
+
+  if (mTimerEnabled)
+  {
+    if (Utils::FallingEdgeDetect(oldClk, mClk, mMask))
+      TickTima();
+  }
 }
 
-bool TimerController::Update()
+void TimerController::TickReload()
 {
-  return UpdateSysClock(mClk + 1);
-}
-
-bool TimerController::FallingEdgeDetect(uint16_t oldClk, uint16_t mask)
-{
-  return (oldClk & mask) && !(mClk & mask);
+  mReloadCycle += 1;
+  if (mReloadCycle == RELOAD_CYCLE)
+  {
+    TriggerInterrupt();
+    mTima = mTma;
+  }
 }
 
 void TimerController::TickTima()
 {
   mTima += 1;
   if (mTima == 0)
-    TimaOverflow();
+  {
+    mReloadCycle = RELOAD_START_CYCLE;
+    mTima = 0;
+  }
 }
 
-bool TimerController::HandleDivWrite()
+void TimerController::HandleDivWrite()
 {
-  return UpdateSysClock(0);
+  TickSysClk(0);
 }
 
 void TimerController::HandleTimaWrite(uint8_t val)
 {
-  if (mReloadCycle != 1)
+  if (mReloadCycle != RELOAD_CYCLE)
     mTima = val;
 
-  mReloadCycle = 2;
+  mReloadCycle = RELOAD_END_CYCLE;
 }
 
 void TimerController::HandleTmaWrite(uint8_t val)
 {
-  if (mReloadCycle == 1)
+  if (mReloadCycle == RELOAD_CYCLE)
     mTima = val;
 
   mTma = val;
@@ -105,33 +134,4 @@ void TimerController::HandleTacWrite(uint8_t val)
   mTac = val;
   mMask = DIV_BIT_MASK_LUT[mTac & GetTimerBitMask(TimerBitMask::CLOCK_SELECT)];
   mTimerEnabled = mTac & GetTimerBitMask(TimerBitMask::ENABLE);
-}
-
-void TimerController::TimaOverflow()
-{
-  mReloadCycle = 0;
-  mTima = 0;
-}
-
-void TimerController::ReloadTima()
-{
-  TriggerInterrupt();
-  mTima = mTma;
-}
-
-void TimerController::UpdateTima(uint16_t oldClk)
-{
-  if (mReloadCycle != NO_RELOAD)
-  {
-    mReloadCycle += 1;
-
-    if (mReloadCycle == 1)
-      ReloadTima();
-  }
-
-  if (mTimerEnabled)
-  {
-    if (FallingEdgeDetect(oldClk, mMask))
-      TickTima();
-  }
 }

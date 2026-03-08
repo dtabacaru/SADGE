@@ -7,13 +7,12 @@
 #include "SerialController.h"
 #include "TimerController.h"
 
+#include "Constants.h"
 #include "RomHeader.h"
 #include "Status.h"
 #include "StopWatch.h"
 
 #include <array>
-#include <iostream>
-#include <iomanip>
 #include <filesystem>
 #include <fstream>
 
@@ -57,59 +56,18 @@ public:
   Cpu();
   ~Cpu();
 
-  constexpr static auto DRAG_WINDOW_DETECT_TIME = (70224.0 / (1 << 22)) * 1;
-  constexpr static auto MACHINE_EDGE_DIV = 2;
-  constexpr static auto EXE_COMPLETE = 0;
-
-  // Presumably, cycles start at rising edges, and the system powers on triggering a rising edge
-  // Initialize these as falling/low/-1 such that the very first cycle mimics the behaviour
-  // of powering on a DMG
-  EdgeType  _tEdge{EdgeType::FALLING};
-  LevelType _tLevel{LevelType::LOW};
-  uint64_t  _tLowCount{static_cast<uint64_t>(-1)};
-  uint64_t  _tHighCount{static_cast<uint64_t>(-1)};
-  uint64_t  _tEdgeCount{static_cast<uint64_t>(-1)};
-
-  EdgeType  _mEdge{EdgeType::FALLING};
-  LevelType _mLevel{LevelType::LOW};
-  uint64_t  _mLowCount{static_cast<uint64_t>(-1)};
-  uint64_t  _mHighCount{static_cast<uint64_t>(-1)};
-  uint64_t  _mEdgeCount{static_cast<uint64_t>(-1)};
-
-  void TickEdge(EdgeType& edge, LevelType& level, uint64_t& count);
-
-  void RisingTEvent();
-  void FallingTEvent();
-  void RisingMEvent();
-  void FallingMEvent();
-
-  virtual void InstructionCompleteEvent();
-  void InterruptCompleteEvent();
-  void ExtInstructionCompleteEvent();
-
-  void HaltCompleteEvent();
-
-  uint64_t _exeCycle{0};
-  uint16_t _addressBus{0};
-  uint8_t  _dataBus{0};
-
-  void TickExecution();
-
-  Status SetRom(const std::filesystem::path& rom_path, std::vector<uint8_t> rom);
+  constexpr static auto DRAG_WINDOW_DETECT_TIME = (70224.0 / T_RATE) * 1;
+  
+  Status SetRom(const std::filesystem::path& romPath, std::vector<uint8_t> rom);
   virtual void Main();
 
-  void RunUntil(uint64_t cycle_count);
+  void RunUntil(uint64_t count);
   void Run();
-  void Fetch();
+  void Stop();
 
-  inline void Stop()
-  {
-    m_stopped = true;
-  }
-
-  inline AudioController&  GetAudioController()  { return m_audio_controller; }
-  inline LcdController&    GetLcdController()    { return m_lcd_controller; }
-  inline JoypadController& GetJoypadController() { return m_joypad_controller; }
+  AudioController&  GetAudioController()  { return mAudioCtrl; }
+  LcdController&    GetLcdController()    { return mLcdCtrl; }
+  JoypadController& GetJoypadController() { return mJoypadCtrl; }
 
   Status InsertRom(const std::filesystem::path& rom_path)
   {
@@ -156,9 +114,15 @@ public:
   Palettes GetPalettes(std::string title);
   uint8_t  GetTitleHash(std::string title);
 
-  void InstructionHandler();
+  void Fetch();
+
   void SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
   bool CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
+
+  uint64_t mExeCycle{0};
+  uint16_t mAddressBus{0};
+  uint8_t  mDataBus{0};
+  void TickExecution();
 #pragma endregion
 
 private:
@@ -234,6 +198,7 @@ private:
 
   const std::string SAVE_EXTENSION = ".sav";
 
+  RomHeader m_rom_header;
   Status ParseHeader();
   
   void InitBanks();
@@ -288,7 +253,8 @@ private:
 #pragma endregion
 
 #pragma region EXECUTION
-  constexpr static double CLOCK_RATE = (1 << 22);
+  constexpr static auto M_DIV = 4;
+  constexpr static auto EXE_COMPLETE = 0;
 
   enum class ExecutionAddress : uint16_t
   {
@@ -323,21 +289,58 @@ private:
     return static_cast<uint16_t>(vec);
   }
 
+  void Init();
+
+  void TickEdge(EdgeType& edge, LevelType& level, uint64_t& count);
+
+  void RisingTEvent();
+  void FallingTEvent();
+  void RisingMEvent();
+  void FallingMEvent();
+
+  virtual void InstructionCompleteEvent();
+  void InterruptCompleteEvent();
+  void ExtInstructionCompleteEvent();
+  void HaltCompleteEvent();
+
+  void InstructionHandler();
+  void ExtInstructionHandler();
+  void InterruptHandler();
+  void HaltHandler();
+
+  void TickComponents();
+
+  uint8_t ReadNextUint8();
+
+  // Presumably, cycles start at rising edges, and the system powers on triggering a rising edge
+  // Initialize these as falling/low/-1 such that the very first cycle mimics the behaviour
+  // of powering on a DMG
+  EdgeType  mTEdge{EdgeType::FALLING};
+  LevelType mTLevel{LevelType::LOW};
+  uint64_t  mTLowCount{static_cast<uint64_t>(-1)};
+  uint64_t  mTHighCount{static_cast<uint64_t>(-1)};
+  uint64_t  mTEdgeCount{static_cast<uint64_t>(-1)};
+
+  EdgeType  mMEdge{EdgeType::FALLING};
+  LevelType mMLevel{LevelType::LOW};
+  uint64_t  mMLowCount{static_cast<uint64_t>(-1)};
+  uint64_t  mMHighCount{static_cast<uint64_t>(-1)};
+  uint64_t  mMEdgeCount{static_cast<uint64_t>(-1)};
+
   ExecutionMode mExecutionMode = ExecutionMode::INSTRUCTION;
 
-  RomHeader m_rom_header;
+  uint8_t  mOpcode{0};
 
-  uint64_t m_total_cycle_count = 0;
+  uint64_t mTotalCycles = 0;
+  uint64_t mFrameCycles = 0;
 
-  StopWatch m_execution_stopwatch;
-  std::atomic<bool> m_stopped = false;
-  double m_frame_time = 0;
-  double m_compensation_time = 0;
-  uint64_t m_frame_cycles = 0;
-
-  uint8_t _opcode = 0x00;
-
-  bool m_boot_complete = false;
+  StopWatch mExeStopwatch;
+  
+  double mFrameTime = 0; // seconds
+  double mCompensationTime = 0; // seconds
+  
+  std::atomic<bool> mStopped = false;
+  bool mBooted = false;
   bool mImeRequest = false;
 
   virtual uint8_t ReadAddress(uint16_t address);
@@ -346,26 +349,16 @@ private:
   uint8_t ReadIo(uint16_t address);
   void WriteIo(uint16_t address, uint8_t val);
 
-  uint8_t ReadNextUint8();
-
-  void HaltHandler();
-
-  void InterruptHandler();
-
   virtual void WaitFrame();
-  void Init();
-
-  void ExtInstructionHandler();
-  void TickComponents();
 #pragma endregion
 
 #pragma region I/O CONTROLLERS
-  InterruptController mInterruptController;
-  AudioController m_audio_controller;
-  LcdController m_lcd_controller;
-  JoypadController m_joypad_controller;
-  SerialController m_serial_controller;
-  TimerController m_timer_controller;
+  InterruptController mInterruptCtrl;
+  AudioController mAudioCtrl;
+  LcdController mLcdCtrl;
+  JoypadController mJoypadCtrl;
+  SerialController mSerialCtrl;
+  TimerController mTimerCtrl;
 #pragma endregion
 
 #pragma region GENERALIZED INSTRUCTIONS

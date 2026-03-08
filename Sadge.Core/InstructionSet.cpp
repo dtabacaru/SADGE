@@ -8,27 +8,27 @@ void Cpu::NOP()
 void Cpu::CB()
 {
   this->mExecutionMode = ExecutionMode::EXT_INSTRUCTION;
-  _exeCycle += 1;
+  mExeCycle += 1;
   Fetch();
 }
 
 void Cpu::LD_rr_nn(Register& rr)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      _wz.h = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.h = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
       rr = _wz;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -37,16 +37,16 @@ void Cpu::LD_rr_nn(Register& rr)
 
 void Cpu::LD_r_n(uint8_t& r)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       r = _wz.l;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -61,17 +61,17 @@ void Cpu::LD_r_x(uint8_t& r, uint8_t val)
 
 void Cpu::LD_r__HL(uint8_t& r)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       r = _wz.l;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -80,37 +80,37 @@ void Cpu::LD_r__HL(uint8_t& r)
 
 void Cpu::LD__HL_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _hl.hl;
-      _dataBus = _wz.l;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = _wz.l;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 2:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::LD__rr_r(Register rr, uint8_t r)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = rr.hl;
-      _dataBus = r;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = rr.hl;
+      mDataBus = r;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 1:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -124,26 +124,26 @@ void Cpu::LD__rr_A(Register rr)
 
 void Cpu::LD__nn_A()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      _wz.h = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.h = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = _wz.hl;
-      _dataBus = _af.h;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = _wz.hl;
+      mDataBus = _af.h;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 3:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -154,7 +154,7 @@ void Cpu::LD__HLx_A(int val)
 {
   LD__rr_r(_hl, _af.h);
 
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
       _hl.hl += val;
@@ -167,17 +167,17 @@ void Cpu::LD__HLx_A(int val)
 
 void Cpu::LD_A__rr(Register rr)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = rr.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = rr.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       _af.h = _wz.l;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -186,27 +186,27 @@ void Cpu::LD_A__rr(Register rr)
 
 void Cpu::LD_A__nn()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      _wz.h = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.h = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = _wz.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _wz.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 3:
       _af.h = _wz.l;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -217,7 +217,7 @@ void Cpu::LD_A__HLx(int val)
 {
   LD_A__rr(_hl);
 
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
       _hl.hl += val;
@@ -230,33 +230,33 @@ void Cpu::LD_A__HLx(int val)
 
 void Cpu::LD__nn_SP()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      _wz.h = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.h = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = _wz.hl;
-      _dataBus = _sp.l;
-      WriteAddress(_addressBus, _dataBus);
+      mAddressBus = _wz.hl;
+      mDataBus = _sp.l;
+      WriteAddress(mAddressBus, mDataBus);
       _wz.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 3:
-      _addressBus = _wz.hl;
-      _dataBus = _sp.h;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = _wz.hl;
+      mDataBus = _sp.h;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 4:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -265,14 +265,14 @@ void Cpu::LD__nn_SP()
 
 void Cpu::LD_SP_HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
       _sp = _hl;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -283,15 +283,15 @@ void Cpu::LD_HL_SP_e()
 {
   int8_t val;
   int result;
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = 0x0000;
+      mAddressBus = 0x0000;
       val = static_cast<int8_t>(_wz.l);
       result = _sp.hl + val;
       ResetFlag(FlagBitMask::Zero);
@@ -299,10 +299,10 @@ void Cpu::LD_HL_SP_e()
       SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
       SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
       _hl.hl = static_cast<uint16_t>(result);
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -313,15 +313,15 @@ void Cpu::ADD_SP_e()
 {
   int8_t val;
   int result;
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = 0x0000;
+      mAddressBus = 0x0000;
       val = static_cast<int8_t>(_wz.l);
       result = _sp.hl + val;
       ResetFlag(FlagBitMask::Zero);
@@ -329,14 +329,14 @@ void Cpu::ADD_SP_e()
       SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
       SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
       _wz.hl = static_cast<uint16_t>(result);
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 3:
       _sp = _wz;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -345,21 +345,21 @@ void Cpu::ADD_SP_e()
 
 void Cpu::LDH__n_A()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _wz.l;
-      _dataBus = _af.h;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _wz.l;
+      mDataBus = _af.h;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 2:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -368,16 +368,16 @@ void Cpu::LDH__n_A()
 
 void Cpu::LDH__C_A()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.l;
-      _dataBus = _af.h;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.l;
+      mDataBus = _af.h;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 1:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -386,17 +386,17 @@ void Cpu::LDH__C_A()
 
 void Cpu::LDH_A__C()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.l;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.l;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       _af.h = _wz.l;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -405,22 +405,22 @@ void Cpu::LDH_A__C()
 
 void Cpu::LDH_A__n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _wz.l;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _wz.l;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
       _af.h = _wz.l;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -429,15 +429,15 @@ void Cpu::LDH_A__n()
 
 void Cpu::ADD_rr(Register& rr, int val)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = rr.hl;
+      mAddressBus = rr.hl;
       rr.hl += val;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -448,11 +448,11 @@ void Cpu::ADD_HL_rr(Register rr)
 {
   int result{};
 
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = 0x0000;
-      _exeCycle += 1;
+      mAddressBus = 0x0000;
+      mExeCycle += 1;
       break;
     case 1:
       result = _hl.hl + rr.hl;
@@ -460,7 +460,7 @@ void Cpu::ADD_HL_rr(Register rr)
       SetHalfCarryFlag(_hl.hl, rr.hl);
       SetCarry16Bit(result);
       _hl.hl = result;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -471,25 +471,25 @@ void Cpu::ADD__HL(int val)
 {
   uint8_t result{};
 
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       result = _wz.l + val;
-      _dataBus = result;
-      WriteAddress(_addressBus, _dataBus);
+      mDataBus = result;
+      WriteAddress(mAddressBus, mDataBus);
       SetHalfCarryFlag(_wz.l, val);
       SetZeroFlag(result);
       SetSubtractionFlag(val);
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -520,17 +520,17 @@ void Cpu::ADC_A_x(int val)
 
 void Cpu::ADC_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       ADC_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -539,16 +539,16 @@ void Cpu::ADC_A__HL()
 
 void Cpu::ADC_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       ADC_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -569,17 +569,17 @@ void Cpu::SBC_A_x(int val)
 
 void Cpu::SBC_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       SBC_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -588,16 +588,16 @@ void Cpu::SBC_A__HL()
 
 void Cpu::SBC_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       SBC_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -615,17 +615,17 @@ void Cpu::AND_A_x(uint8_t val)
 
 void Cpu::AND_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       AND_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -634,16 +634,16 @@ void Cpu::AND_A__HL()
 
 void Cpu::AND_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       AND_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -661,17 +661,17 @@ void Cpu::XOR_A_x(uint8_t val)
 
 void Cpu::XOR_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       XOR_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -680,16 +680,16 @@ void Cpu::XOR_A__HL()
 
 void Cpu::XOR_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       XOR_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -707,17 +707,17 @@ void Cpu::OR_A_X(uint8_t val)
 
 void Cpu::OR_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       OR_A_X(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -726,16 +726,16 @@ void Cpu::OR_A__HL()
 
 void Cpu::OR_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       OR_A_X(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -753,17 +753,17 @@ void Cpu::CP_A_x(uint8_t val)
 
 void Cpu::CP_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       CP_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -772,16 +772,16 @@ void Cpu::CP_A__HL()
 
 void Cpu::CP_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       CP_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -796,17 +796,17 @@ void Cpu::ADD_A_x(int val)
 
 void Cpu::ADD_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       ADD_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -815,16 +815,16 @@ void Cpu::ADD_A__HL()
 
 void Cpu::ADD_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       ADD_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -839,17 +839,17 @@ void Cpu::SUB_A_x(int val)
 
 void Cpu::SUB_A__HL()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _hl.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mAddressBus = _hl.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       SUB_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -858,16 +858,16 @@ void Cpu::SUB_A__HL()
 
 void Cpu::SUB_A_n()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
       SUB_A_x(_wz.l);
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
     default:
       break;
@@ -972,72 +972,72 @@ void Cpu::CCF()
 
 void Cpu::PUSH_rr(Register rr)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _sp.hl;
+      mAddressBus = _sp.hl;
       _sp.hl -= 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _sp.hl;
-      _dataBus = rr.h;
-      WriteAddress(_addressBus, _dataBus);
+      mAddressBus = _sp.hl;
+      mDataBus = rr.h;
+      WriteAddress(mAddressBus, mDataBus);
       _sp.hl -= 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = _sp.hl;
-      _dataBus = rr.l;
-      WriteAddress(_addressBus, _dataBus);
-      _exeCycle += 1;
+      mAddressBus = _sp.hl;
+      mDataBus = rr.l;
+      WriteAddress(mAddressBus, mDataBus);
+      mExeCycle += 1;
       break;
     case 3:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::CALL(bool call)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      _wz.h = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.h = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
       if (!call)
       {
-        _exeCycle = EXE_COMPLETE;
+        mExeCycle = EXE_COMPLETE;
         break;
       }
-      _addressBus = _sp.hl;
+      mAddressBus = _sp.hl;
       _sp.hl -= 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 3:
-      _addressBus = _sp.hl;
-      _dataBus = _pc.h;
-      WriteAddress(_addressBus, _dataBus);
+      mAddressBus = _sp.hl;
+      mDataBus = _pc.h;
+      WriteAddress(mAddressBus, mDataBus);
       _sp.hl -= 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 4:
-      _addressBus = _sp.hl;
-      _dataBus = _pc.l;
-      WriteAddress(_addressBus, _dataBus);
+      mAddressBus = _sp.hl;
+      mDataBus = _pc.l;
+      WriteAddress(mAddressBus, mDataBus);
       _pc = _wz;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 5:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
@@ -1049,25 +1049,25 @@ void Cpu::JP_HL()
 
 void Cpu::JP_cc_nn(bool jump)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _dataBus = ReadNextUint8();
-      _wz.h = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.h = mDataBus;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = 0x0000;
+      mAddressBus = 0x0000;
       if (jump) _pc = _wz;
-      _exeCycle = jump ? _exeCycle + 1 : EXE_COMPLETE;
+      mExeCycle = jump ? mExeCycle + 1 : EXE_COMPLETE;
       break;
     case 3:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
@@ -1075,167 +1075,167 @@ void Cpu::JP_cc_nn(bool jump)
 void Cpu::JR_cc_e(bool jump)
 {
   int8_t val;
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _dataBus = ReadNextUint8();
-      _wz.l = _dataBus;
-      _exeCycle += 1;
+      mDataBus = ReadNextUint8();
+      _wz.l = mDataBus;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _pc.h;
-      _exeCycle = jump ? _exeCycle + 1 : EXE_COMPLETE;
+      mAddressBus = _pc.h;
+      mExeCycle = jump ? mExeCycle + 1 : EXE_COMPLETE;
       break;
     case 2:
       val = static_cast<int8_t>(_wz.l);
       _pc.hl += val;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::POP_rr(Register& rr)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.h = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.h = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
       rr = _wz;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::RET(bool set_ime)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.h = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.h = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
       _pc = _wz;
-      if (set_ime) mInterruptController.EnableInterrupts();
-      _exeCycle += 1;
+      if (set_ime) mInterruptCtrl.EnableInterrupts();
+      mExeCycle += 1;
       break;
     case 3:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::RET_cc(bool ret)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = 0x0000;
-      _exeCycle += 1;
+      mAddressBus = 0x0000;
+      mExeCycle += 1;
       break;
     case 1:
       if (!ret)
       {
-        _exeCycle = EXE_COMPLETE;
+        mExeCycle = EXE_COMPLETE;
         break;
       }
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.h = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.h = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 3:
       _pc = _wz;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 4:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::POP_AF()
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.l = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.l = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _sp.hl;
-      _dataBus = ReadAddress(_addressBus);
-      _wz.h = _dataBus;
+      mAddressBus = _sp.hl;
+      mDataBus = ReadAddress(mAddressBus);
+      _wz.h = mDataBus;
       _sp.hl += 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
       _af = _wz;
       _af.l &= 0xF0;
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
 
 void Cpu::RST(RestartVector vec)
 {
-  switch (_exeCycle)
+  switch (mExeCycle)
   {
     case 0:
-      _addressBus = _sp.hl;
+      mAddressBus = _sp.hl;
       _sp.hl -= 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 1:
-      _addressBus = _sp.hl;
-      _dataBus = _pc.h;
-      WriteAddress(_addressBus, _dataBus);
+      mAddressBus = _sp.hl;
+      mDataBus = _pc.h;
+      WriteAddress(mAddressBus, mDataBus);
       _sp.hl -= 1;
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 2:
-      _addressBus = _sp.hl;
-      _dataBus = _pc.l;
-      WriteAddress(_addressBus, _dataBus);
+      mAddressBus = _sp.hl;
+      mDataBus = _pc.l;
+      WriteAddress(mAddressBus, mDataBus);
       _pc.hl = GetRestartVectorAddress(vec);
-      _exeCycle += 1;
+      mExeCycle += 1;
       break;
     case 3:
-      _exeCycle = EXE_COMPLETE;
+      mExeCycle = EXE_COMPLETE;
       break;
   }
 }
@@ -2462,7 +2462,7 @@ void Cpu::Op0xF2()
 
 void Cpu::Op0xF3()
 {
-  mInterruptController.DisableInterrupts();
+  mInterruptCtrl.DisableInterrupts();
 }
 
 void Cpu::Op0xF4()

@@ -4,21 +4,22 @@
 #include "NoiseChannel.h"
 #include "WaveChannel.h"
 
+#include "Constants.h"
+
 #include <vector>
 
 constexpr static uint32_t AUDIO_BITS = 16;
 constexpr static uint32_t AUDIO_FREQUENCY = 48000;
-constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536; // TODO: Non-integer cycles
-constexpr static double   T_RATE = (1 << 22);
-constexpr static double   M_RATE = (1 << 20);
+constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536 * 3; // TODO: Non-integer cycles
 constexpr static uint8_t  AUDIO_CHANNELS = 2;
-constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 2) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
+constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 4) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
 
 class AudioController
 {
 public:
-  constexpr static uint8_t NUM_CHANNELS = 4;
-  constexpr static uint8_t DEFAULT_READ = 0xFF;
+  constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
+  constexpr static uint8_t  NUM_CHANNELS = 4;
+  constexpr static uint8_t  DEFAULT_READ = 0xFF;
 
   struct AudioSample
   {
@@ -145,7 +146,7 @@ public:
 
   uint8_t HandleRead(uint16_t address) const;
   void HandleWrite(uint16_t address, uint8_t val);
-  void Update();
+  void Update(uint16_t clk);
 
 private:
   inline uint8_t GetChOnBits() const
@@ -171,6 +172,8 @@ private:
   uint8_t m_nr50{};
   uint8_t m_nr51{};
   uint8_t m_nr52{};
+
+  uint16_t mClk{};
 
   bool m_audio_enabled{};
 };

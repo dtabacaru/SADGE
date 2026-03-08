@@ -2,7 +2,6 @@
 
 #include "Cpu.h"
 
-
 class SstCpu : public Cpu
 {
 public:
@@ -31,9 +30,9 @@ public:
 
     do
     {
-      m_test_cycles.push_back({_addressBus, _dataBus});
+      m_test_cycles.push_back({mAddressBus, mDataBus});
       TickExecution();
-    } while (_exeCycle > 0);
+    } while (mExeCycle > 0);
   }
 
   std::vector<TestCycle> GetTestCycles()

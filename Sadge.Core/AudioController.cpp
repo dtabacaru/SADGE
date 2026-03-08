@@ -1,5 +1,7 @@
 #include "AudioController.h"
 
+#include "Utils.h"
+
 //#include <fstream>
 //std::ofstream pcm_out("pcm_out.wav", std::ios_base::binary);
 
@@ -244,8 +246,13 @@ void AudioController::SubSample()
   m_right_samples_buffer.clear();
 }
 
-void AudioController::Update()
+void AudioController::Update(uint16_t clk)
 {
+  if(Utils::FallingEdgeDetect(mClk, clk, DIV_APU_BIT_MASK))
+    ApuDivTick();
+
+  mClk = clk;
+
   if (m_audio_enabled)
   {
     UpdateApu();

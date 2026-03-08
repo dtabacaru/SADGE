@@ -221,8 +221,8 @@ private:
       SetStatMode(Modes::MODE_0_HBLANK);
       m_current_mode = Modes::MODE_0_HBLANK;
       m_next_mode = Modes::MODE_3_DRAW;
-      m_mode_transition_cycles = 76;
-      m_cycle_count = 4;
+      m_mode_transition_cycles = 80;
+      m_cycle_count = 0;
       m_wly = 0;
       m_ly = 0;
       m_delay_frame = true;
@@ -425,12 +425,13 @@ private:
       m_cycle_count = 0;
 
     // Line 153 sets m_ly to 0 after 4 cycles
-    if (m_cycle_count == (FRAME_CYCLES - CYCLES_PER_ROW + 4))
-    {
-      m_ly = 0;
-      CheckLyc();
-    }
-    else if ((m_cycle_count % CYCLES_PER_ROW) == 0)
+    //if (m_cycle_count == (FRAME_CYCLES - CYCLES_PER_ROW + 4))
+    //{
+    //  m_ly = 0;
+    //  CheckLyc();
+    //}
+    //else if ((m_cycle_count % CYCLES_PER_ROW) == 0)
+    if ((m_cycle_count % CYCLES_PER_ROW) == 0)
     {
       m_ly = m_cycle_count / CYCLES_PER_ROW;
       CheckLyc();
@@ -477,7 +478,7 @@ private:
   
   bool     m_lcd_enabled{};
   double   m_frame_time = 0;
-  uint32_t m_cycle_count = 4;
+  uint32_t m_cycle_count = 0;
   uint32_t m_disabled_cycle_count = 0;
   bool     m_delay_frame = true;
   bool     m_frame_ready = false;

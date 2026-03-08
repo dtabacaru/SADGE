@@ -18,23 +18,17 @@ class TimerController : public InterruptProvider
 {
 public:
   
-  constexpr TimerAddress GetTimerAddress(uint16_t address) const
-  {
-    return static_cast<TimerAddress>(address);
-  }
-
   TimerController(InterruptReceiver& interrupt_receiver);
 
-  bool HandleWrite(uint16_t address, uint8_t val);
+  void HandleWrite(uint16_t address, uint8_t val);
   uint8_t HandleRead(uint16_t address) const;
 
-  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  bool Update();
+  uint16_t GetClk() const;
+
+  void Tick();
 
 private:
-  constexpr static uint8_t  NO_RELOAD = 2;
-  constexpr static uint8_t  DEFAULT_READ = 0xFF;
-  constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
+  
   constexpr static std::array<uint16_t, 4> DIV_BIT_MASK_LUT = {
     0b10000000,
     0b00000010,
@@ -56,28 +50,16 @@ private:
     HZ16384  = 0b11
   };
 
-  constexpr uint8_t GetTimerBitMask(TimerBitMask mask)
-  {
-    return static_cast<uint8_t>(mask);
-  }
+  constexpr uint8_t GetTimerBitMask(TimerBitMask mask) const;
+  constexpr uint8_t GetTimerClockSelect(TimerClockSelect cs) const;
 
-  constexpr uint8_t GetTimerClockSelect(TimerClockSelect cs)
-  {
-    return static_cast<uint8_t>(cs);
-  }
-
-  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  bool UpdateSysClock(uint16_t newClk);
-  bool FallingEdgeDetect(uint16_t oldClk, uint16_t mask);
+  void TickSysClk(uint16_t newClk);
+  void TickReload();
   void TickTima();
-  /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  bool HandleDivWrite();
+  void HandleDivWrite();
   void HandleTimaWrite(uint8_t val);
   void HandleTmaWrite(uint8_t val);
   void HandleTacWrite(uint8_t val);
-  void TimaOverflow();
-  void ReloadTima();
-  void UpdateTima(uint16_t oldClk);
 
   bool mTimerEnabled{};
 
@@ -91,15 +73,19 @@ private:
   //
   // Handle timer esoteric behaviour
   //
-  // 1. When TIMA overflows from incrementing on T cycle 0, TIMA is reloaded on the following M cycle.
-  //   -set m_tima_reload_cycle = 0 on overflow
-  //   -if m_tima_reload_cycle == 1, TIMA is reloaded
+  // 1. When TIMA overflows from incrementing, TIMA is reloaded on the following M cycle.
+  //   -set mReloadCycle = RELOAD_START_CYCLE on overflow
+  //   -if mReloadCycle == RELOAD_CYCLE, TIMA is reloaded
   // 2. On cycle 1, if TMA is written to, TIMA is also set to the same value.
-  //   -if m_tima_reload_cycle == 1 on TMA write, TIMA=val
+  //   -if m_tima_reload_cycle == RELOAD_CYCLE on TMA write, TIMA=val
   // 3. On cycle 1, if TIMA is written to, the write is ignored.
-  //   -if m_tima_reload_cycle != 1 on TIMA write, TIMA = val
+  //   -if m_tima_reload_cycle != RELOAD_CYCLE on TIMA write, TIMA = val
   // 4. If TIMA is written to during the overflow cycle, the overflow is ignored
-  //   -set m_tima_reload_cycle = 2 on TIMA write so reload stops
+  //   -set m_tima_reload_cycle = RELOAD_END_CYCLE on TIMA write so reload stops
   //
-  uint8_t mReloadCycle{NO_RELOAD};
+  constexpr static uint8_t  RELOAD_START_CYCLE = 0;
+  constexpr static uint8_t  RELOAD_CYCLE = 1;
+  constexpr static uint8_t  RELOAD_END_CYCLE = 2;
+
+  uint8_t mReloadCycle{RELOAD_END_CYCLE};
 };

@@ -20,9 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AudioController.cpp" />
+    <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="Cpu.cpp" />
+    <ClCompile Include="Execution.cpp" />
     <ClCompile Include="ExtendedInstructionSet.cpp" />
     <ClCompile Include="Flags.cpp" />
+    <ClCompile Include="Init.cpp" />
     <ClCompile Include="InstructionSet.cpp" />
     <ClCompile Include="InterruptController.cpp" />
     <ClCompile Include="JoypadController.cpp" />
@@ -35,6 +38,8 @@
   <ItemGroup>
     <ClInclude Include="AudioChannel.h" />
     <ClInclude Include="AudioController.h" />
+    <ClInclude Include="Cartridge.h" />
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="Cpu.h" />
     <ClInclude Include="InterruptController.h" />
     <ClInclude Include="InterruptProvider.h" />
@@ -50,6 +55,7 @@
     <ClInclude Include="Status.h" />
     <ClInclude Include="StopWatch.h" />
     <ClInclude Include="TimerController.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="WaveChannel.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
