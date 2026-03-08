@@ -2029,8 +2029,8 @@ void Cpu::WriteIo(uint16_t address, uint8_t val)
   {
     m_serial_controller.HandleWrite(address, val);
   }
-  else if (address >= static_cast<uint16_t>(TimerController::TimerAddress::START) &&
-           address <= static_cast<uint16_t>(TimerController::TimerAddress::END))
+  else if (address >= static_cast<uint16_t>(TimerAddress::START) &&
+           address <= static_cast<uint16_t>(TimerAddress::END))
   {
     bool apu_div_tick = m_timer_controller.HandleWrite(address, val);
     if (apu_div_tick)
@@ -2080,8 +2080,8 @@ uint8_t Cpu::ReadIo(uint16_t address)
   {
     return m_serial_controller.HandleRead(address);
   }
-  else if (address >= static_cast<uint16_t>(TimerController::TimerAddress::START) &&
-           address <= static_cast<uint16_t>(TimerController::TimerAddress::END))
+  else if (address >= static_cast<uint16_t>(TimerAddress::START) &&
+           address <= static_cast<uint16_t>(TimerAddress::END))
   {
     return m_timer_controller.HandleRead(address);
   }

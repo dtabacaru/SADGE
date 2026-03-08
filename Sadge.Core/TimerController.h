@@ -3,57 +3,24 @@
 #include "InterruptProvider.h"
 
 #include <array>
-#include <stdint.h>
+
+enum class TimerAddress : uint16_t
+{
+  DIV = 0xFF04,
+  TIMA = 0xFF05,
+  TMA = 0xFF06,
+  TAC = 0xFF07,
+  START = DIV,
+  END = TAC
+};
 
 class TimerController : public InterruptProvider
 {
 public:
-  constexpr static uint8_t  DEFAULT_READ = 0xFF;
-  constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
-  constexpr static std::array<uint16_t, 4> DIV_BIT_MASK_LUT = {
-    static_cast<uint16_t>(1 << 7),
-    static_cast<uint16_t>(1 << 1),
-    static_cast<uint16_t>(1 << 3),
-    static_cast<uint16_t>(1 << 5),
-  };
-
-  enum class TimerAddress : uint16_t
-  {
-    DIV   = 0xFF04,
-    TIMA  = 0xFF05,
-    TMA   = 0xFF06,
-    TAC   = 0xFF07,
-    START = DIV,
-    END   = TAC
-  };
-
-  enum class TimerBitMask : uint8_t
-  {
-    CLOCK_SELECT = 0b00000011,
-    ENABLE       = 0b00000100
-  };
-
-  enum class TimerClockSelect : uint8_t
-  {
-    HZ4096   = 0b00,
-    HZ262144 = 0b01,
-    HZ65536  = 0b10,
-    HZ16384  = 0b11
-  };
   
   constexpr TimerAddress GetTimerAddress(uint16_t address) const
   {
     return static_cast<TimerAddress>(address);
-  }
-
-  constexpr uint8_t GetTimerBitMask(TimerBitMask mask)
-  {
-    return static_cast<uint8_t>(mask);
-  }
-
-  constexpr uint8_t GetTimerClockSelect(TimerClockSelect cs)
-  {
-    return static_cast<uint8_t>(cs);
   }
 
   TimerController(InterruptReceiver& interrupt_receiver);
@@ -65,9 +32,43 @@ public:
   bool Update();
 
 private:
+  constexpr static uint8_t  NO_RELOAD = 2;
+  constexpr static uint8_t  DEFAULT_READ = 0xFF;
+  constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
+  constexpr static std::array<uint16_t, 4> DIV_BIT_MASK_LUT = {
+    static_cast<uint16_t>(1 << 7),
+    static_cast<uint16_t>(1 << 1),
+    static_cast<uint16_t>(1 << 3),
+    static_cast<uint16_t>(1 << 5),
+  };
+
+  enum class TimerBitMask : uint8_t
+  {
+    CLOCK_SELECT = 0b00000011,
+    ENABLE = 0b00000100
+  };
+
+  enum class TimerClockSelect : uint8_t
+  {
+    HZ4096   = 0b00,
+    HZ262144 = 0b01,
+    HZ65536  = 0b10,
+    HZ16384  = 0b11
+  };
+
+  constexpr uint8_t GetTimerBitMask(TimerBitMask mask)
+  {
+    return static_cast<uint8_t>(mask);
+  }
+
+  constexpr uint8_t GetTimerClockSelect(TimerClockSelect cs)
+  {
+    return static_cast<uint8_t>(cs);
+  }
+
   /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
-  bool UpdateSysClock(uint16_t sys_clk);
-  bool FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bit_mask);
+  bool UpdateSysClock(uint16_t newClk);
+  bool FallingEdgeDetect(uint16_t oldClk, uint16_t mask);
   void TickTima();
   /// <returns>Flag indicating whether an apu DIV event was triggered this cycle</returns>
   bool HandleDivWrite();
@@ -76,16 +77,16 @@ private:
   void HandleTacWrite(uint8_t val);
   void TimaOverflow();
   void ReloadTima();
-  void UpdateTima(uint16_t last_cycle_count);
+  void UpdateTima(uint16_t oldClk);
 
-  bool m_timer_enabled{};
+  bool mTimerEnabled{};
 
-  uint8_t m_tima{};
-  uint8_t m_tma{};
-  uint8_t m_tac{};
+  uint8_t mTima{};
+  uint8_t mTma{};
+  uint8_t mTac{};
 
-  uint16_t m_div_bit_mask{DIV_BIT_MASK_LUT[GetTimerClockSelect(TimerClockSelect::HZ4096)]};
-  uint16_t m_sys_clk{};
+  uint16_t mMask{DIV_BIT_MASK_LUT[GetTimerClockSelect(TimerClockSelect::HZ4096)]};
+  uint16_t mClk{};
 
   //
   // Handle timer esoteric behaviour
@@ -100,7 +101,5 @@ private:
   // 4. If TIMA is written to during the overflow cycle, the overflow is ignored
   //   -set m_tima_reload_cycle = 2 on TIMA write so reload stops
   //
-  // Defaults to 2 = no current reload
-  //
-  uint8_t m_tima_reload_cycle{2};
+  uint8_t mReloadCycle{NO_RELOAD};
 };
