@@ -9,12 +9,12 @@ class TimerController : public InterruptProvider
 {
 public:
   constexpr static uint8_t  DEFAULT_READ = 0xFF;
-  constexpr static uint16_t DIV_APU_BIT_MASK = 0b1000000000000;
+  constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
   constexpr static std::array<uint16_t, 4> DIV_BIT_MASK_LUT = {
-    static_cast<uint16_t>(1 << 9),
+    static_cast<uint16_t>(1 << 7),
+    static_cast<uint16_t>(1 << 1),
     static_cast<uint16_t>(1 << 3),
     static_cast<uint16_t>(1 << 5),
-    static_cast<uint16_t>(1 << 7),
   };
 
   enum class TimerAddress : uint16_t
@@ -90,17 +90,17 @@ private:
   //
   // Handle timer esoteric behaviour
   //
-  // 1. When TIMA overflows from incrementing on T cycle 0, TIMA is reloaded on the following M cycle; T cycle 4.
+  // 1. When TIMA overflows from incrementing on T cycle 0, TIMA is reloaded on the following M cycle.
   //   -set m_tima_reload_cycle = 0 on overflow
-  //   -if m_tima_reload_cycle == 4, TIMA is reloaded
-  // 2. On cycle 4, if TMA is written to, TIMA is also set to the same value.
-  //   -if m_tima_reload_cycle == 4 on TMA write, TIMA=val
-  // 3. On cycle 4, if TIMA is written to, the write is ignored.
-  //   -if m_tima_reload_cycle != 4 on TIMA write, TIMA = val
+  //   -if m_tima_reload_cycle == 1, TIMA is reloaded
+  // 2. On cycle 1, if TMA is written to, TIMA is also set to the same value.
+  //   -if m_tima_reload_cycle == 1 on TMA write, TIMA=val
+  // 3. On cycle 1, if TIMA is written to, the write is ignored.
+  //   -if m_tima_reload_cycle != 1 on TIMA write, TIMA = val
   // 4. If TIMA is written to during the overflow cycle, the overflow is ignored
-  //   -set m_tima_reload_cycle = 8 on TIMA write so reload stops
+  //   -set m_tima_reload_cycle = 2 on TIMA write so reload stops
   //
-  // Defaults to 8 = no current reload
+  // Defaults to 2 = no current reload
   //
-  uint8_t m_tima_reload_cycle{8};
+  uint8_t m_tima_reload_cycle{2};
 };

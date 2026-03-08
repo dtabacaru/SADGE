@@ -36,7 +36,7 @@ uint8_t TimerController::HandleRead(uint16_t address) const
   switch (timer_address)
   {
     case TimerController::TimerAddress::DIV:
-      return m_sys_clk >> 8;
+      return m_sys_clk >> 6;
     case TimerController::TimerAddress::TIMA:
       return m_tima;
     case TimerController::TimerAddress::TMA:
@@ -58,7 +58,7 @@ bool TimerController::UpdateSysClock(uint16_t sys_clk)
 
 bool TimerController::Update()
 {
-  return UpdateSysClock(m_sys_clk + 4);
+  return UpdateSysClock(m_sys_clk + 1);
 }
 
 bool TimerController::FallingEdgeDetect(uint16_t last_cycle_count, uint16_t div_bit_mask)
@@ -80,15 +80,15 @@ bool TimerController::HandleDivWrite()
 
 void TimerController::HandleTimaWrite(uint8_t val)
 {
-  if (m_tima_reload_cycle != 4)
+  if (m_tima_reload_cycle != 1)
     m_tima = val;
 
-  m_tima_reload_cycle = 8;
+  m_tima_reload_cycle = 2;
 }
 
 void TimerController::HandleTmaWrite(uint8_t val)
 {
-  if (m_tima_reload_cycle == 4)
+  if (m_tima_reload_cycle == 1)
     m_tima = val;
 
   m_tma = val;
@@ -121,11 +121,11 @@ void TimerController::ReloadTima()
 
 void TimerController::UpdateTima(uint16_t last_cycle_count)
 {
-  if (m_tima_reload_cycle < 8)
+  if (m_tima_reload_cycle < 2)
   {
-    m_tima_reload_cycle += 4;
+    m_tima_reload_cycle += 1;
 
-    if (m_tima_reload_cycle == 4)
+    if (m_tima_reload_cycle == 1)
       ReloadTima();
   }
 
