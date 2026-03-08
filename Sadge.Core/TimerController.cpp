@@ -104,7 +104,7 @@ void TimerController::HandleTacWrite(uint8_t val)
 
   mTac = val;
   mMask = DIV_BIT_MASK_LUT[mTac & GetTimerBitMask(TimerBitMask::CLOCK_SELECT)];
-  mTimerEnabled = mTac & static_cast<uint8_t>(TimerBitMask::ENABLE);
+  mTimerEnabled = mTac & GetTimerBitMask(TimerBitMask::ENABLE);
 }
 
 void TimerController::TimaOverflow()

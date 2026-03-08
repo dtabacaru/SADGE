@@ -36,10 +36,10 @@ private:
   constexpr static uint8_t  DEFAULT_READ = 0xFF;
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
   constexpr static std::array<uint16_t, 4> DIV_BIT_MASK_LUT = {
-    static_cast<uint16_t>(1 << 7),
-    static_cast<uint16_t>(1 << 1),
-    static_cast<uint16_t>(1 << 3),
-    static_cast<uint16_t>(1 << 5),
+    0b10000000,
+    0b00000010,
+    0b00001000,
+    0b00100000
   };
 
   enum class TimerBitMask : uint8_t
