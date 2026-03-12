@@ -14,7 +14,7 @@ void TimerController::HandleWrite(uint16_t address, uint8_t val)
   switch (timer_address)
   {
     case TimerAddress::DIV:
-      HandleDivWrite();
+      TickSysClk(0);
       break;
     case TimerAddress::TIMA:
       HandleTimaWrite(val);
@@ -95,16 +95,11 @@ void TimerController::TickReload()
 void TimerController::TickTima()
 {
   mTima += 1;
-  if (mTima == 0)
+  if (mTima == TIMA_OVERFLOW)
   {
     mReloadCycle = RELOAD_START_CYCLE;
     mTima = 0;
   }
-}
-
-void TimerController::HandleDivWrite()
-{
-  TickSysClk(0);
 }
 
 void TimerController::HandleTimaWrite(uint8_t val)

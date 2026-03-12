@@ -102,8 +102,8 @@ void Cpu::WaitFrame()
   double frame_expected_time = (mFrameCycles / T_RATE) - mCompensationTime;
   double wait_time = frame_expected_time - mExeStopwatch.Elapsed();
 
-  //std::this_thread::sleep_for(std::chrono::duration<double>(wait_time));
-  while (mExeStopwatch.Elapsed() < frame_expected_time) {}
+  std::this_thread::sleep_for(std::chrono::duration<double>(wait_time));
+  //while (mExeStopwatch.Elapsed() < frame_expected_time) {}
 
   mFrameTime = mExeStopwatch.Elapsed();
   mLcdCtrl.UpdateFrameTime(mFrameTime);

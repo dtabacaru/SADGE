@@ -56,12 +56,13 @@ private:
   void TickSysClk(uint16_t newClk);
   void TickReload();
   void TickTima();
-  void HandleDivWrite();
   void HandleTimaWrite(uint8_t val);
   void HandleTmaWrite(uint8_t val);
   void HandleTacWrite(uint8_t val);
 
   bool mTimerEnabled{};
+
+  constexpr static uint8_t TIMA_OVERFLOW = 0;
 
   uint8_t mTima{};
   uint8_t mTma{};

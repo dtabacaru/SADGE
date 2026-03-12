@@ -7,7 +7,6 @@ Cpu::Cpu() : mTimerCtrl(mInterruptCtrl),
   mLcdCtrl(mInterruptCtrl),
   mSerialCtrl(mInterruptCtrl)
 {
-
 }
 
 Cpu::~Cpu()

@@ -254,7 +254,7 @@ constexpr auto WINDOW_TITLE = "Sadge.Driver";
 
 constexpr auto RENDER_SCALE = 5;
 
-constexpr auto FPS_BUFFER_SIZE = 32;
+constexpr auto FPS_BUFFER_SIZE = 100;
 constexpr auto FPS_FONT_SIZE = 20;
 constexpr auto FPS_FONT_COLOR = LIME;
 constexpr auto FPS_WINDOW_OFFSET = 10;
