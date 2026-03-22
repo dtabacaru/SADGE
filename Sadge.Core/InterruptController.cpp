@@ -125,17 +125,17 @@ uint16_t InterruptController::HandleInterrupt()
   }
 }
 
-bool InterruptController::InterruptExists(InterruptBitMask bit_mask) const
+bool InterruptController::InterruptExists(InterruptBitMask mask) const
 {
-  return (mIF & mIE) & GetInterruptBitMask(bit_mask);
+  return (mIF & mIE) & GetInterruptBitMask(mask);
 }
 
-void InterruptController::ReceiveInterrupt(InterruptBitMask bit_mask)
+void InterruptController::ReceiveInterrupt(InterruptBitMask mask)
 {
-  mIF |= GetInterruptBitMask(bit_mask);
+  mIF |= GetInterruptBitMask(mask);
 }
 
-void InterruptController::ClearInterrupt(InterruptBitMask bit_mask)
+void InterruptController::ClearInterrupt(InterruptBitMask mask)
 {
-  mIF &= ~GetInterruptBitMask(bit_mask);
+  mIF &= ~GetInterruptBitMask(mask);
 }

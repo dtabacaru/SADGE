@@ -140,19 +140,19 @@ public:
     m_frame_callback = frame_callback;
   }
 
-  inline constexpr uint8_t GetAttributeBitMask(ObjectAttributeBitMask bit_mask)
+  inline constexpr uint8_t GetAttributeBitMask(ObjectAttributeBitMask mask)
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
-  inline constexpr uint8_t GetStatBitMask(StatBitMask bit_mask) const
+  inline constexpr uint8_t GetStatBitMask(StatBitMask mask) const
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
-  inline constexpr uint8_t GetLcdcBitMask(LcdcBitMask bit_mask) const
+  inline constexpr uint8_t GetLcdcBitMask(LcdcBitMask mask) const
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
   inline constexpr uint8_t GetMode(Modes mode)
@@ -292,11 +292,11 @@ private:
     PopulateFrameBuffer();
   }
 
-  inline void CheckStatInterrupt(StatBitMask bit_mask)
+  inline void CheckStatInterrupt(StatBitMask mask)
   {
     bool stat_state = GetStatState();
 
-    if (!stat_state && (m_stat & GetStatBitMask(bit_mask)))
+    if (!stat_state && (m_stat & GetStatBitMask(mask)))
       TriggerInterrupt();
   }
 

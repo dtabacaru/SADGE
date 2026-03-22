@@ -672,22 +672,22 @@ private:
   void SRL__HL();
 
   // Flags: !bit 0 1 -
-  void BIT_R(uint8_t bit_mask, uint8_t R);
+  void BIT_R(uint8_t mask, uint8_t R);
 
   // Flags: !bit 0 1 -
-  void BIT__HL(uint8_t bit_mask);
+  void BIT__HL(uint8_t mask);
 
   // Flags: - - - -
-  void RES_R(uint8_t bit_mask, uint8_t& R);
+  void RES_R(uint8_t mask, uint8_t& R);
 
   // Flags: - - - -
-  void RES__HL(uint8_t bit_mask);
+  void RES__HL(uint8_t mask);
 
   // Flags: - - - -
-  void SET_R(uint8_t bit_mask, uint8_t& R);
+  void SET_R(uint8_t mask, uint8_t& R);
 
   // Flags: - - - -
-  void SET__HL(uint8_t bit_mask);
+  void SET__HL(uint8_t mask);
 #pragma endregion
 
 #pragma region EXTENDED INSTRUCTIONS

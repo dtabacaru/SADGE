@@ -27,7 +27,7 @@ public:
   uint8_t GetVolume();
   bool DacEnabled() const;
 
-  void HandleNR30Write(uint8_t val);
+  void HandleNR30Write();
 
   void OutputCurrentSample();
 

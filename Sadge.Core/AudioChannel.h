@@ -26,67 +26,76 @@ public:
     PERIOD_UPPER = 0b00000111
   };
 
-  virtual constexpr uint8_t GetNRX1BitMask(NRX1BitMask bit_mask) const
+  virtual constexpr uint8_t GetNRX1BitMask(NRX1BitMask mask) const
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
-  constexpr uint8_t GetNRX2BitMask(NRX2BitMask bit_mask) const
+  constexpr uint8_t GetNRX2BitMask(NRX2BitMask mask) const
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
-  constexpr uint8_t GetNRX4BitMask(NRX4BitMask bit_mask) const
+  constexpr uint8_t GetNRX4BitMask(NRX4BitMask mask) const
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
   AudioChannel(uint8_t& dataBus,
                uint16_t& addrBus);
 
+  bool Enabled() const;
+  double ChOut() const;
+
+  void HandleNRX2Write();
+  virtual void HandleNRX4Write();
+
+  virtual void DivTick();
+  virtual void ApuTick() = 0;
+
+  uint8_t NRX1{};
+  uint8_t NRX2{};
+  uint8_t NRX3{};
+  uint8_t NRX4{};
+
+protected:
   virtual int MaxLengthTick() const;
   virtual uint8_t GetInitLengthTimer();
   virtual uint8_t GetVolume();
-  bool GetLengthEnable();
   uint16_t GetPeriodCounter();
   virtual bool DacEnabled() const;
 
-  void ZombieMode(uint8_t val);
-  void HandleNRX2Write(uint8_t val);
-  virtual void HandleNRX4Write(uint8_t val);
-  
-  double Dac(uint8_t level, double dc_offset);
-
-  void ResetLengthTimer();
+  double Dac(uint8_t level, double dcOffset);
 
   virtual void Trigger();
 
   virtual void Reset();
   virtual void Disable();
 
-  virtual void TickSoundLength();
   void TickVolSweep();
+  void TickVolSweepPace();
 
   virtual void UpdateChOut() = 0;
 
-  virtual void DivTick();
-  virtual void ApuTick() = 0;
-
-  uint8_t  mVolume{};
-  int      mVolSweepPaceTick{};
-  double   mCHOut{};
-  int      mLengthTimerTick{};
-  int      mSoundLengthTick{};
-  int      mEnvelopeTick{};
-  bool     mEnvelopeSaturated{};
-
   bool     mEnabled{};
 
-  uint8_t mNRX1{};
-  uint8_t mNRX2{};
-  uint8_t mNRX3{};
-  uint8_t mNRX4{};
+  int      mEnvelopeTick{};
+  bool     mEnvelopeSaturated{};
+  
+  int      mVolSweepPaceTick{};
+  int      mLengthTimerTick{};
+  int      mSoundLengthTick{};
+  
+  uint8_t  mVolume{};
+  double   mChOut{};
 
-  uint8_t&  mDataBus;
+  uint8_t& mDataBus;
   uint16_t& mAddressBus;
+
+private:
+  bool GetLengthEnable();
+  void ZombieMode(uint8_t val);
+
+  void ResetLengthTimer();
+  void TickSoundLength();
 };

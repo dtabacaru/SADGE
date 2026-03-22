@@ -30,9 +30,9 @@ void PulseSweepChannel::TickFreqSweep()
     if (mPeriodCounter > 0x7FF)
       Disable();
 
-    mNRX3 = mPeriodCounter & 0xFF;
-    mNRX4 &= ~GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
-    mNRX4 |= (mPeriodCounter >> 8) & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
+    NRX3 = mPeriodCounter & 0xFF;
+    NRX4 &= ~GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
+    NRX4 |= (mPeriodCounter >> 8) & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
   }
 }
 

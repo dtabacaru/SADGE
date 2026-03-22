@@ -15,9 +15,9 @@ public:
     m_receiver.ReceiveInterrupt(m_default_bit_mask);
   }
 
-  inline void TriggerInterrupt(InterruptBitMask bit_mask)
+  inline void TriggerInterrupt(InterruptBitMask mask)
   {
-    m_receiver.ReceiveInterrupt(bit_mask);
+    m_receiver.ReceiveInterrupt(mask);
   }
 
 private:

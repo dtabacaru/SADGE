@@ -2,13 +2,13 @@
 
 PulseChannel::PulseChannel(uint8_t& dataBus,
                            uint16_t& addrBus) :
-  AudioChannel(mDataBus, mAddressBus)
+  AudioChannel(dataBus, addrBus)
 {
 }
 
 uint8_t PulseChannel::GetWaveDuty()
 {
-  return (mNRX1 & GetNRX1BitMask(NRX1BitMask::WAVE_DUTY)) >> 6;
+  return (NRX1 & GetNRX1BitMask(NRX1BitMask::WAVE_DUTY)) >> 6;
 }
 
 void PulseChannel::ApuTick()
@@ -33,27 +33,14 @@ void PulseChannel::UpdateChOut()
   uint8_t level = DUTY[GetWaveDuty()][mIdx] ? mVolume : 0;
 
   double dcOffset = mVolume / 2;
-  mCHOut = Dac(level, dcOffset);
+  mChOut = Dac(level, dcOffset);
 }
 
 void PulseChannel::DivTick()
 {
   AudioChannel::DivTick();
 
-  mEnvelopeTick += 1;
-
-  if (mEnvelopeTick == 8)
-  {
-    mVolSweepPaceTick += 1;
-
-    if (mVolSweepPaceTick == (mNRX2 & GetNRX2BitMask(NRX2BitMask::SWEEP_PACE)))
-    {
-      TickVolSweep();
-      mVolSweepPaceTick = 0;
-    }
-
-    mEnvelopeTick = 0;
-  }
+  TickVolSweepPace();
 }
 
 void PulseChannel::Trigger()

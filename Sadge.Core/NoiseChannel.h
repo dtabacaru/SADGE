@@ -13,9 +13,9 @@ public:
     CLOCK_DIV   = 0b00000111
   };
 
-  constexpr uint8_t GetNr43BitMask(Nr43BitMask bit_mask)
+  constexpr uint8_t GetNr43BitMask(Nr43BitMask mask)
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
   NoiseChannel(uint8_t& dataBus,

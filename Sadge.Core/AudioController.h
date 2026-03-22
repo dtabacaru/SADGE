@@ -16,8 +16,8 @@ constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_
 
 struct Sample
 {
-  double left;
-  double right;
+  double left{};
+  double right{};
 };
 
 class AudioController
@@ -27,7 +27,39 @@ public:
 
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
   constexpr static uint8_t  NUM_CHANNELS = 4;
-  constexpr static uint8_t  DEFAULT_READ = 0xFF;
+
+  constexpr static uint8_t NR52_MASK = 0b10000000;
+  constexpr static uint8_t VOL_MASK  = 0b00000111;
+
+  enum class Nr50BitMask : uint8_t
+  {
+    VIN_L  = 0b10000000,
+    L_VOL  = 0b01110000,
+    VIN_R  = 0b00001000,
+    R_VOL  = 0b00000111
+  };
+
+  constexpr static uint8_t GetNr50BitMask(Nr50BitMask mask)
+  {
+    return static_cast<uint8_t>(mask);
+  }
+
+  enum class Nr51BitMask : uint8_t
+  {
+    CH4_L  = 0b10000000,
+    CH3_L  = 0b01000000,
+    CH2_L  = 0b00100000,
+    CH1_L  = 0b00010000,
+    CH4_R  = 0b00001000,
+    CH3_R  = 0b00000100,
+    CH2_R  = 0b00000010,
+    CH1_R  = 0b00000001
+  };
+
+  constexpr static uint8_t GetNr51BitMask(Nr51BitMask mask)
+  {
+    return static_cast<uint8_t>(mask);
+  }
 
   enum class Nr52BitMask : uint8_t
   {
@@ -38,9 +70,9 @@ public:
     CH1_ON   = 0b00000001
   };
 
-  constexpr static uint8_t GetNr52BitMask(Nr52BitMask bit_mask)
+  constexpr static uint8_t GetNr52BitMask(Nr52BitMask mask)
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
   enum class UnusedReadBits : uint8_t
@@ -132,10 +164,10 @@ private:
 
   AudioCallback mCallback = NULL;
 
-  PulseSweepChannel mCH1;
-  PulseChannel      mCH2;
-  WaveChannel       mCH3;
-  NoiseChannel      mCH4;
+  PulseSweepChannel mCh1;
+  PulseChannel      mCh2;
+  WaveChannel       mCh3;
+  NoiseChannel      mCh4;
 
   uint8_t mNR50{};
   uint8_t mNR51{};

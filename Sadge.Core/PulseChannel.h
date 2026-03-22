@@ -22,9 +22,9 @@ public:
     INIT_LEN_TIM = 0b00111111,
   };
 
-  constexpr uint8_t GetNRX1BitMask(NRX1BitMask bit_mask)
+  constexpr uint8_t GetNRX1BitMask(NRX1BitMask mask)
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
   PulseChannel(uint8_t& dataBus,

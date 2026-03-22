@@ -6,10 +6,10 @@ AudioController::AudioController(uint8_t& dataBus,
                                  uint16_t& addrBus) :
   mDataBus(dataBus),
   mAddressBus(addrBus),
-  mCH1(dataBus, addrBus),
-  mCH2(dataBus, addrBus),
-  mCH3(dataBus, addrBus),
-  mCH4(dataBus, addrBus)
+  mCh1(dataBus, addrBus),
+  mCh2(dataBus, addrBus),
+  mCh3(dataBus, addrBus),
+  mCh4(dataBus, addrBus)
 {
   mSampleBuf.reserve(NUM_CYCLES_TO_BUFFER);
 }
@@ -29,7 +29,7 @@ void AudioController::Read() const
 {
   if (mAddressBus >= static_cast<uint16_t>(WaveAddress::START) && mAddressBus <= static_cast<uint16_t>(WaveAddress::END))
   {
-    mDataBus = mCH3.mWaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)];
+    mDataBus = mCh3.mWaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)];
     return;
   }
 
@@ -38,58 +38,58 @@ void AudioController::Read() const
   switch (addr)
   {
     case AudioController::Address::NR10:
-      mDataBus = mCH1.mNR10 | GetUnusedBits(UnusedReadBits::NR10);
+      mDataBus = mCh1.mNR10 | GetUnusedBits(UnusedReadBits::NR10);
       break;
     case AudioController::Address::NR11:
-      mDataBus = mCH1.mNRX1 | GetUnusedBits(UnusedReadBits::NRX1);
+      mDataBus = mCh1.NRX1 | GetUnusedBits(UnusedReadBits::NRX1);
       break;
     case AudioController::Address::NR12:
-      mDataBus = mCH1.mNRX2;
+      mDataBus = mCh1.NRX2;
       break;
       //case AudioController::Address::NR13: // Write only
         //mDataBus = mCH1.NRX3;
         //break;
     case AudioController::Address::NR14:
-      mDataBus = mCH1.mNRX4 | GetUnusedBits(UnusedReadBits::NRX4);
+      mDataBus = mCh1.NRX4 | GetUnusedBits(UnusedReadBits::NRX4);
       break;
     case AudioController::Address::NR21:
-      mDataBus = mCH2.mNRX1 | GetUnusedBits(UnusedReadBits::NRX1);
+      mDataBus = mCh2.NRX1 | GetUnusedBits(UnusedReadBits::NRX1);
       break;
     case AudioController::Address::NR22:
-      mDataBus = mCH2.mNRX2;
+      mDataBus = mCh2.NRX2;
       break;
       //case AudioController::Address::NR23: // Write only
         //mDataBus = mCH2.NRX3;
         //break;
     case AudioController::Address::NR24:
-      mDataBus = mCH2.mNRX4 | GetUnusedBits(UnusedReadBits::NRX4);
+      mDataBus = mCh2.NRX4 | GetUnusedBits(UnusedReadBits::NRX4);
       break;
     case AudioController::Address::NR30:
-      mDataBus = mCH3.mNR30 | GetUnusedBits(UnusedReadBits::NR30);
+      mDataBus = mCh3.mNR30 | GetUnusedBits(UnusedReadBits::NR30);
       break;
       //case AudioController::Address::NR31: // Write only
         //mDataBus = mCH3.NRX1;
         //break;
     case AudioController::Address::NR32:
-      mDataBus = mCH3.mNRX2 | GetUnusedBits(UnusedReadBits::NR32);
+      mDataBus = mCh3.NRX2 | GetUnusedBits(UnusedReadBits::NR32);
       break;
       //case AudioController::Address::NR33: // Write only
         //mDataBus = mCH3.NRX3;
         //break;
     case AudioController::Address::NR34:
-      mDataBus = mCH3.mNRX4 | GetUnusedBits(UnusedReadBits::NRX4);
+      mDataBus = mCh3.NRX4 | GetUnusedBits(UnusedReadBits::NRX4);
       break;
       //case AudioController::Address::NR41: // Write only
         //mDataBus = mCH4.NRX1;
         //break;
     case AudioController::Address::NR42:
-      mDataBus = mCH4.mNRX2;
+      mDataBus = mCh4.NRX2;
       break;
     case AudioController::Address::NR43:
-      mDataBus = mCH4.mNRX3;
+      mDataBus = mCh4.NRX3;
       break;
     case AudioController::Address::NR44:
-      mDataBus = mCH4.mNRX4 | GetUnusedBits(UnusedReadBits::NRX4);
+      mDataBus = mCh4.NRX4 | GetUnusedBits(UnusedReadBits::NRX4);
       break;
     case AudioController::Address::NR50:
       mDataBus = mNR50;
@@ -110,7 +110,7 @@ void AudioController::Write()
 {
   if (mAddressBus >= static_cast<uint16_t>(WaveAddress::START) && mAddressBus <= static_cast<uint16_t>(WaveAddress::END))
   {
-    mCH3.mWaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)] = mDataBus;
+    mCh3.mWaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)] = mDataBus;
     return;
   }
 
@@ -128,62 +128,58 @@ void AudioController::Write()
   switch (addr)
   {
     case AudioController::Address::NR10:
-      mCH1.mNR10 = mDataBus;
+      mCh1.mNR10 = mDataBus;
       break;
     case AudioController::Address::NR11:
-      mCH1.mNRX1 = mDataBus;
-      mCH1.ResetLengthTimer();
+      mCh1.NRX1 = mDataBus;
       break;
     case AudioController::Address::NR12:
-      mCH1.HandleNRX2Write(mDataBus);
+      mCh1.HandleNRX2Write();
       break;
     case AudioController::Address::NR13:
-      mCH1.mNRX3 = mDataBus;
+      mCh1.NRX3 = mDataBus;
       break;
     case AudioController::Address::NR14:
-      mCH1.HandleNRX4Write(mDataBus);
+      mCh1.HandleNRX4Write();
       break;
     case AudioController::Address::NR21:
-      mCH2.mNRX1 = mDataBus;
-      mCH2.ResetLengthTimer();
+      mCh2.NRX1 = mDataBus;
       break;
     case AudioController::Address::NR22:
-      mCH2.HandleNRX2Write(mDataBus);
+      mCh2.HandleNRX2Write();
       break;
     case AudioController::Address::NR23:
-      mCH2.mNRX3 = mDataBus;
+      mCh2.NRX3 = mDataBus;
       break;
     case AudioController::Address::NR24:
-      mCH2.HandleNRX4Write(mDataBus);
+      mCh2.HandleNRX4Write();
       break;
     case AudioController::Address::NR30:
-      mCH3.HandleNR30Write(mDataBus);
+      mCh3.HandleNR30Write();
       break;
     case AudioController::Address::NR31:
-      mCH3.mNRX1 = mDataBus;
-      mCH3.ResetLengthTimer();
+      mCh3.NRX1 = mDataBus;
       break;
     case AudioController::Address::NR32:
-      mCH3.mNRX2 = mDataBus;
+      mCh3.NRX2 = mDataBus;
       break;
     case AudioController::Address::NR33:
-      mCH3.mNRX3 = mDataBus;
+      mCh3.NRX3 = mDataBus;
       break;
     case AudioController::Address::NR34:
-      mCH3.HandleNRX4Write(mDataBus);
+      mCh3.HandleNRX4Write();
       break;
     case AudioController::Address::NR41:
-      mCH4.mNRX1 = mDataBus;
-      mCH4.ResetLengthTimer();
+      mCh4.NRX1 = mDataBus;
       break;
     case AudioController::Address::NR42:
-      mCH4.HandleNRX2Write(mDataBus);
+      mCh4.HandleNRX2Write();
       break;
     case AudioController::Address::NR43:
-      mCH4.mNRX3 = mDataBus;
+      mCh4.NRX3 = mDataBus;
       break;
     case AudioController::Address::NR44:
-      mCH4.HandleNRX4Write(mDataBus);
+      mCh4.HandleNRX4Write();
       break;
     case AudioController::Address::NR50:
       mNR50 = mDataBus;
@@ -220,50 +216,52 @@ void AudioController::Tick(uint16_t clk)
 
 void AudioController::DivTick()
 {
-  mCH1.DivTick();
-  mCH2.DivTick();
-  mCH3.DivTick();
-  mCH4.DivTick();
+  mCh1.DivTick();
+  mCh2.DivTick();
+  mCh3.DivTick();
+  mCh4.DivTick();
 }
 
 void AudioController::ApuTick()
 {
-  mCH1.ApuTick();
-  mCH2.ApuTick();
-  mCH3.ApuTick();
-  mCH4.ApuTick();
+  mCh1.ApuTick();
+  mCh2.ApuTick();
+  mCh3.ApuTick();
+  mCh4.ApuTick();
 }
 
 Sample AudioController::Mixer()
 {
+  constexpr static auto L_VOL_START_BIT = 4;
+  constexpr static auto R_VOL_START_BIT = 0;
+
+  constexpr static double VOL_DIV = 8.0;
+
   Sample out;
 
-  if (mNR51 & (1 << 4))
-    out.left += mCH1.mCHOut;
-  if (mNR51 & (1 << 5))
-    out.left += mCH2.mCHOut;
-  if (mNR51 & (1 << 6))
-    out.left += mCH3.mCHOut;
-  if (mNR51 & (1 << 7))
-    out.left += mCH4.mCHOut;
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH1_L)) out.left += mCh1.ChOut();
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH2_L)) out.left += mCh2.ChOut();
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH3_L)) out.left += mCh3.ChOut();
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH4_L)) out.left += mCh4.ChOut();
 
-  if (mNR51 & (1 << 0))
-    out.right += mCH1.mCHOut;
-  if (mNR51 & (1 << 1))
-    out.right += mCH2.mCHOut;
-  if (mNR51 & (1 << 2))
-    out.right += mCH3.mCHOut;
-  if (mNR51 & (1 << 3))
-    out.right += mCH4.mCHOut;
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH1_R)) out.right += mCh1.ChOut();
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH2_R)) out.right += mCh2.ChOut();
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH3_R)) out.right += mCh3.ChOut();
+  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH4_R)) out.right += mCh4.ChOut();
 
-  uint8_t left_vol  = (mNR50 >> 4) & 0x7;
-  uint8_t right_vol = (mNR50 >> 0) & 0x7;
+  uint8_t leftVol  = ((mNR50 & GetNr50BitMask(Nr50BitMask::L_VOL)) >> L_VOL_START_BIT) & VOL_MASK;
+  uint8_t rightVol = ((mNR50 & GetNr50BitMask(Nr50BitMask::R_VOL)) >> R_VOL_START_BIT) & VOL_MASK;
+  double leftVolScale  = (leftVol + 1) / VOL_DIV;
+  double rightVolScale = (rightVol + 1) / VOL_DIV;
 
-  double left_scale  = -1.0 * ((left_vol + 1) / 8.0) / NUM_CHANNELS;
-  double right_scale = -1.0 * ((right_vol + 1) / 8.0) / NUM_CHANNELS;
+  double chanAvgScale = 1.0 / NUM_CHANNELS;
+  double invScale = -1.0;
 
-  out.left  *= left_scale;
-  out.right *= right_scale;
+  double leftScale  = leftVolScale * chanAvgScale * invScale;
+  double rightScale = rightVolScale * chanAvgScale * invScale;
+
+  out.left  *= leftScale;
+  out.right *= rightScale;
 
   return out;
 }
@@ -276,15 +274,15 @@ void AudioController::Reset()
   mNR51 = {};
   mNR52 = {};
 
-  mCH1.Reset();
-  mCH2.Reset();
-  mCH3.Reset();
-  mCH4.Reset();
+  mCh1.Reset();
+  mCh2.Reset();
+  mCh3.Reset();
+  mCh4.Reset();
 }
 
 void AudioController::HandleNr52Write()
 {
-  mNR52 = mDataBus & 0b10000000;
+  mNR52 = mDataBus & NR52_MASK;
   mEnabled = mNR52 & GetNr52BitMask(Nr52BitMask::AUDIO_ON);
 
   if (!mEnabled)
@@ -317,8 +315,8 @@ void AudioController::SubSample()
 
 uint8_t AudioController::GetChOnBits() const
 {
-  return (static_cast<int>(mCH4.mEnabled) << 3) | 
-         (static_cast<int>(mCH3.mEnabled) << 2) | 
-         (static_cast<int>(mCH2.mEnabled) << 1) |
-         (static_cast<int>(mCH1.mEnabled) << 0);
+  return (static_cast<int>(mCh4.Enabled()) << 3) |
+    (static_cast<int>(mCh3.Enabled()) << 2) |
+    (static_cast<int>(mCh2.Enabled()) << 1) |
+    (static_cast<int>(mCh1.Enabled()) << 0);
 }

@@ -4,7 +4,6 @@ WaveChannel::WaveChannel(uint8_t& dataBus, uint16_t& addressBus) :
   AudioChannel(dataBus, addressBus),
   mWaveRam(WAVE_RAM_INIT) // TODO randomize this, but this is one sample from my hardware
 {
-
 }
 
 bool WaveChannel::DacEnabled() const
@@ -14,12 +13,12 @@ bool WaveChannel::DacEnabled() const
 
 uint8_t WaveChannel::GetInitLengthTimer()
 {
-  return mNRX1;
+  return NRX1;
 }
 
 uint8_t WaveChannel::GetVolume()
 {
-  return (mNRX2 & static_cast<uint8_t>(Nr32BitMask::INIT_VOL)) >> 5;
+  return (NRX2 & static_cast<uint8_t>(Nr32BitMask::INIT_VOL)) >> 5;
 }
 
 void WaveChannel::OutputCurrentSample()
@@ -27,7 +26,7 @@ void WaveChannel::OutputCurrentSample()
   uint8_t shift = GetVolume() == 0 ? 4 : GetVolume() - 1;
   uint8_t level = mCurrentSample >> shift;
   int scale = shift == 4 ? 1 : 1 << shift;
-  mCHOut = Dac(level, mDcOffset / scale);
+  mChOut = Dac(level, mDcOffset / scale);
 }
 
 void WaveChannel::UpdateChOut()
@@ -47,18 +46,18 @@ void WaveChannel::ApuTick()
 {
   mPeriodCounter += 2;
 
-  if (mPeriodCounter >= MAX_PERIOD_COUNT)
-  {
-    UpdateChOut();
-    mPeriodCounter = mPeriodCounter > MAX_PERIOD_COUNT ? GetPeriodCounter() - 1 : GetPeriodCounter();
-  }
+  if (mPeriodCounter < MAX_PERIOD_COUNT)
+    return;
+
+  mPeriodCounter = mPeriodCounter > MAX_PERIOD_COUNT ? GetPeriodCounter() - 1 : GetPeriodCounter();
+  UpdateChOut();
 }
 
 int WaveChannel::MaxLengthTick() const { return 256; }
 
-void WaveChannel::HandleNR30Write(uint8_t val)
+void WaveChannel::HandleNR30Write()
 {
-  mNR30 = val;
+  mNR30 = mDataBus;
 
   if (!DacEnabled())
     Disable();

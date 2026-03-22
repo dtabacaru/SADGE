@@ -39,9 +39,9 @@ public:
 
   private:
 
-  bool InterruptExists(InterruptBitMask bit_mask) const;
-  void ReceiveInterrupt(InterruptBitMask bit_mask);
-  void ClearInterrupt(InterruptBitMask bit_mask);
+  bool InterruptExists(InterruptBitMask mask) const;
+  void ReceiveInterrupt(InterruptBitMask mask);
+  void ClearInterrupt(InterruptBitMask mask);
 
   // Leave this as atomic in case driver/ui set this from a different thread
   std::atomic<uint8_t> mIF{};

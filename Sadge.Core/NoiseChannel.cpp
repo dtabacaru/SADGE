@@ -4,22 +4,21 @@ NoiseChannel::NoiseChannel(uint8_t& dataBus,
                            uint16_t& addrBus) :
   AudioChannel(dataBus, addrBus)
 {
-
 }
 
 bool NoiseChannel::GetLfsrWidth()
 {
-  return mNRX3 & GetNr43BitMask(Nr43BitMask::LFSR_WIDTH);
+  return NRX3 & GetNr43BitMask(Nr43BitMask::LFSR_WIDTH);
 }
 
 uint8_t NoiseChannel::GetClockDivider()
 {
-  return mNRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_DIV);
+  return NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_DIV);
 }
 
 uint8_t NoiseChannel::GetClockShift()
 {
-  return (mNRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_SHIFT)) >> 4;
+  return (NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_SHIFT)) >> 4;
 }
 
 void NoiseChannel::ApuTick()
@@ -56,27 +55,14 @@ void NoiseChannel::UpdateChOut()
   uint16_t bit0 = mLfsr & 0x1;
   uint8_t level = bit0 ? mVolume : 0;
   double dcOffset = mVolume / 2;
-  mCHOut = Dac(level, dcOffset);
+  mChOut = Dac(level, dcOffset);
 }
 
 void NoiseChannel::DivTick()
 {
   AudioChannel::DivTick();
 
-  mEnvelopeTick += 1;
-
-  if (mEnvelopeTick == 8)
-  {
-    mVolSweepPaceTick += 1;
-
-    if (mVolSweepPaceTick == (mNRX2 & GetNRX2BitMask(NRX2BitMask::SWEEP_PACE)))
-    {
-      TickVolSweep();
-      mVolSweepPaceTick = 0;
-    }
-
-    mEnvelopeTick = 0;
-  }
+  TickVolSweepPace();
 }
 
 void NoiseChannel::Trigger()

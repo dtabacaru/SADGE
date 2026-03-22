@@ -7,37 +7,47 @@ AudioChannel::AudioChannel(uint8_t& dataBus,
 {
 }
 
-  uint8_t AudioChannel::GetInitLengthTimer()
+bool AudioChannel::Enabled() const
 {
-  return mNRX1 & GetNRX1BitMask(NRX1BitMask::INIT_LEN_TIM);
+  return mEnabled;
+}
+
+double AudioChannel::ChOut() const
+{
+  return mChOut;
+}
+
+uint8_t AudioChannel::GetInitLengthTimer()
+{
+  return NRX1 & GetNRX1BitMask(NRX1BitMask::INIT_LEN_TIM);
 }
 
 uint8_t AudioChannel::GetVolume()
 {
-  return (mNRX2 & GetNRX2BitMask(NRX2BitMask::INIT_VOL)) >> 4;
+  return (NRX2 & GetNRX2BitMask(NRX2BitMask::INIT_VOL)) >> 4;
 }
 
 bool AudioChannel::GetLengthEnable()
 {
-  return mNRX4 & GetNRX4BitMask(NRX4BitMask::LENGTH_ENABLE);
+  return NRX4 & GetNRX4BitMask(NRX4BitMask::LENGTH_ENABLE);
 }
 
 uint16_t AudioChannel::GetPeriodCounter()
 {
-  return ((mNRX4 & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER)) << 8) | mNRX3;
+  return ((NRX4 & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER)) << 8) | NRX3;
 }
 
 bool AudioChannel::DacEnabled() const
 {
-  return mNRX2 & (GetNRX2BitMask(NRX2BitMask::INIT_VOL) | GetNRX2BitMask(NRX2BitMask::ENV_DIR));
+  return NRX2 & (GetNRX2BitMask(NRX2BitMask::INIT_VOL) | GetNRX2BitMask(NRX2BitMask::ENV_DIR));
 }
 
 void AudioChannel::ZombieMode(uint8_t val)
 {
-  uint8_t oldDir = mNRX2 & GetNRX2BitMask(NRX2BitMask::ENV_DIR);
+  uint8_t oldDir = NRX2 & GetNRX2BitMask(NRX2BitMask::ENV_DIR);
   uint8_t newDir = val & GetNRX2BitMask(NRX2BitMask::ENV_DIR);
 
-  uint8_t oldPace = mNRX2 & GetNRX2BitMask(NRX2BitMask::SWEEP_PACE);
+  uint8_t oldPace = NRX2 & GetNRX2BitMask(NRX2BitMask::SWEEP_PACE);
 
   if (oldPace == 0 && !mEnvelopeSaturated)
     mVolume += 1;
@@ -50,12 +60,12 @@ void AudioChannel::ZombieMode(uint8_t val)
   mVolume &= 0xF;
 }
 
-void AudioChannel::HandleNRX2Write(uint8_t val)
+void AudioChannel::HandleNRX2Write()
 {
   if (mEnabled)
-    ZombieMode(val);
+    ZombieMode(mDataBus);
 
-  mNRX2 = val;
+  NRX2 = mDataBus;
 
   if (!DacEnabled())
     Disable();
@@ -66,18 +76,11 @@ double AudioChannel::Dac(uint8_t level, double dc_offset)
   return ((level - dc_offset) / 7.5);
 }
 
-void AudioChannel::HandleNRX4Write(uint8_t val)
+void AudioChannel::HandleNRX4Write()
 {
-  bool was_length_enabled = GetLengthEnable();
+  NRX4 = mDataBus;
 
-  mNRX4 = val;
-
-  bool tick_length = !was_length_enabled && GetLengthEnable() && mLengthTimerTick == 1 && mSoundLengthTick != MaxLengthTick();
-
-  if (tick_length)
-    TickSoundLength();
-
-  if (mNRX4 & GetNRX4BitMask(NRX4BitMask::TRIGGER))
+  if (NRX4 & GetNRX4BitMask(NRX4BitMask::TRIGGER))
     Trigger();
 }
 
@@ -90,7 +93,7 @@ void AudioChannel::Disable()
 {
   mEnabled = {};
   mVolume = {};
-  mCHOut = {};
+  mChOut = {};
   mLengthTimerTick = {};
 }
 
@@ -104,12 +107,13 @@ void AudioChannel::Trigger()
   mVolSweepPaceTick = 0;
   mVolume = GetVolume();
   double dc_offset = mVolume / 2;
-  mCHOut = Dac(0, dc_offset);
+  mChOut = Dac(0, dc_offset);
 }
 
 void AudioChannel::TickVolSweep()
 {
-  bool direction = mNRX2 & GetNRX2BitMask(NRX2BitMask::ENV_DIR);
+  bool direction = NRX2 & GetNRX2BitMask(NRX2BitMask::ENV_DIR);
+
   if (direction && mVolume < 0xF)
     mVolume += 1;
   else if (!direction && mVolume > 0)
@@ -118,25 +122,41 @@ void AudioChannel::TickVolSweep()
     mEnvelopeSaturated = true;
 }
 
+void AudioChannel::TickVolSweepPace()
+{
+  mEnvelopeTick += 1;
+
+  if (mEnvelopeTick != 8)
+    return;
+
+  mEnvelopeTick = 0;
+  mVolSweepPaceTick += 1;
+
+  if (mVolSweepPaceTick != (NRX2 & GetNRX2BitMask(NRX2BitMask::SWEEP_PACE)))
+    return;
+
+  mVolSweepPaceTick = 0;
+  TickVolSweep();
+}
+
 void AudioChannel::TickSoundLength()
 {
-  if (GetLengthEnable())
-  {
-    mLengthTimerTick += 1;
+  if (!GetLengthEnable())
+    return;
 
-    if (mLengthTimerTick == 2)
-    {
-      mSoundLengthTick += 1;
+  mLengthTimerTick += 1;
 
-      if (mSoundLengthTick == MaxLengthTick())
-      {
-        Disable();
-        mSoundLengthTick = 0;
-      }
+  if (mLengthTimerTick != 2)
+    return;
 
-      mLengthTimerTick = 0;
-    }
-  }
+  mLengthTimerTick = 0;
+  mSoundLengthTick += 1;
+
+  if (mSoundLengthTick != MaxLengthTick())
+    return;
+
+  mSoundLengthTick = 0;
+  Disable();
 }
 
 void AudioChannel::DivTick()
@@ -152,14 +172,14 @@ void AudioChannel::Reset()
   mEnabled={};
   mVolume={};
   mVolSweepPaceTick={};
-  mCHOut = {};
+  mChOut = {};
   mLengthTimerTick = {};
   mSoundLengthTick = {};
 
-  mNRX1={};
-  mNRX2={};
-  mNRX3={};
-  mNRX4={};
+  NRX1={};
+  NRX2={};
+  NRX3={};
+  NRX4={};
   mEnvelopeTick={};
   mEnvelopeSaturated={};
 }

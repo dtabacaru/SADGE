@@ -19,6 +19,6 @@ constexpr static uint8_t GetInterruptBitMask(InterruptBitMask mask)
 class InterruptReceiver
 {
 public:
-  virtual void ReceiveInterrupt(InterruptBitMask bit_mask) = 0;
+  virtual void ReceiveInterrupt(InterruptBitMask mask) = 0;
   virtual ~InterruptReceiver() = default;
 };

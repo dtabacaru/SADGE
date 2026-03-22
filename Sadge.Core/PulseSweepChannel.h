@@ -13,9 +13,9 @@ public:
     STEP = 0b00000111
   };
 
-  constexpr uint8_t GetNRX0BitMask(Nr10BitMask bit_mask)
+  constexpr uint8_t GetNRX0BitMask(Nr10BitMask mask)
   {
-    return static_cast<uint8_t>(bit_mask);
+    return static_cast<uint8_t>(mask);
   }
 
   PulseSweepChannel(uint8_t& dataBus,

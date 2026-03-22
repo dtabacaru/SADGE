@@ -323,15 +323,15 @@ void Cpu::SRL__HL()
   }
 }
 
-void Cpu::BIT_R(uint8_t bit_mask, uint8_t R)
+void Cpu::BIT_R(uint8_t mask, uint8_t R)
 {
-  (R & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
+  (R & mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   SetFlag(FlagBitMask::HalfCarry);
   mExeCycle = EXE_COMPLETE;
 }
 
-void Cpu::BIT__HL(uint8_t bit_mask)
+void Cpu::BIT__HL(uint8_t mask)
 {
   uint8_t result{};
   switch (mExeCycle)
@@ -343,7 +343,7 @@ void Cpu::BIT__HL(uint8_t bit_mask)
       mExeCycle += 1;
       break;
     case 2:
-      (mWZ.L & bit_mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
+      (mWZ.L & mask) ? ResetFlag(FlagBitMask::Zero) : SetFlag(FlagBitMask::Zero);
       ResetFlag(FlagBitMask::Subtract);
       SetFlag(FlagBitMask::HalfCarry);
       mExeCycle = EXE_COMPLETE;
@@ -353,13 +353,13 @@ void Cpu::BIT__HL(uint8_t bit_mask)
   }
 }
 
-void Cpu::RES_R(uint8_t bit_mask, uint8_t& R)
+void Cpu::RES_R(uint8_t mask, uint8_t& R)
 {
-  R &= ~bit_mask;
+  R &= ~mask;
   mExeCycle = EXE_COMPLETE;
 }
 
-void Cpu::RES__HL(uint8_t bit_mask)
+void Cpu::RES__HL(uint8_t mask)
 {
   uint8_t result{};
   switch (mExeCycle)
@@ -371,7 +371,7 @@ void Cpu::RES__HL(uint8_t bit_mask)
       mExeCycle += 1;
       break;
     case 2:
-      result = mWZ.L & ~bit_mask;
+      result = mWZ.L & ~mask;
       mDataBus = result;
       Write();
       mExeCycle += 1;
@@ -384,13 +384,13 @@ void Cpu::RES__HL(uint8_t bit_mask)
   }
 }
 
-void Cpu::SET_R(uint8_t bit_mask, uint8_t& R)
+void Cpu::SET_R(uint8_t mask, uint8_t& R)
 {
-  R |= bit_mask;
+  R |= mask;
   mExeCycle = EXE_COMPLETE;
 }
 
-void Cpu::SET__HL(uint8_t bit_mask)
+void Cpu::SET__HL(uint8_t mask)
 {
   uint8_t result{};
   switch (mExeCycle)
@@ -402,7 +402,7 @@ void Cpu::SET__HL(uint8_t bit_mask)
       mExeCycle += 1;
       break;
     case 2:
-      result = mWZ.L | bit_mask;
+      result = mWZ.L | mask;
       mDataBus = result;
       Write();
       mExeCycle += 1;
