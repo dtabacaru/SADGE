@@ -29,7 +29,7 @@ void NoiseChannel::ApuTick()
   if (div == 0)
     div = 0.5;
 
-  uint32_t lfsrPeriodCount = static_cast<uint32_t>((1 << 20) / ((1 << 18) / (div * (1 << GetClockShift()))));
+  uint32_t lfsrPeriodCount = static_cast<uint32_t>((1 << 20) / ((1 << 18) / (div * (1 << GetClockShift())))) * 4; // * 4 for T rate
 
   if (mLfsrTick < lfsrPeriodCount)
     return;

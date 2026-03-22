@@ -15,8 +15,6 @@ void Cpu::TickComponents()
   bool frame_ready = mLcdCtrl.Update();
   mTimerCtrl.Tick();
 
-  mAudioCtrl.Tick(mTimerCtrl.GetClk());
-
   if (frame_ready)
     WaitFrame();
 }
@@ -41,6 +39,8 @@ void Cpu::FallingMEvent()
 void Cpu::RisingTEvent()
 {
   mTHighCount += 1;
+
+  mAudioCtrl.Tick(mTimerCtrl.GetClk());
 }
 
 void Cpu::RisingMEvent()

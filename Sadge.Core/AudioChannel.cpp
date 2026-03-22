@@ -188,3 +188,8 @@ int AudioChannel::MaxLengthTick() const
 {
   return 64;
 }
+
+int AudioChannel::MaxPeriodCount() const
+{
+  return 2048 * 4;
+}

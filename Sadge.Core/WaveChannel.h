@@ -44,6 +44,7 @@ private:
   };
 
   int MaxLengthTick() const;
+  int MaxPeriodCount() const;
   uint8_t GetInitLengthTimer();
   uint8_t GetVolume();
   bool DacEnabled() const;

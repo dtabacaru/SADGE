@@ -192,10 +192,13 @@ void AudioController::Write()
 
 void AudioController::Tick(uint16_t clk)
 {
-  if (Utils::FallingEdgeDetect(mClk, clk, DIV_APU_BIT_MASK))
-    DivTick();
+  if (mClk != clk)
+  {
+    if (Utils::FallingEdgeDetect(mClk, clk, DIV_APU_BIT_MASK))
+      DivTick();
 
-  mClk = clk;
+    mClk = clk;
+  }
 
   if (mEnabled)
   {
@@ -204,7 +207,7 @@ void AudioController::Tick(uint16_t clk)
     Sample sample = Mixer();
     mSampleBuf.push_back(sample);
 
-    mCycleCount += 4;
+    mCycleCount += 1;
 
     if (mCycleCount == NUM_CYCLES_TO_BUFFER)
     {
@@ -291,8 +294,8 @@ void AudioController::HandleNr52Write()
 
 void AudioController::SubSample()
 {
-  uint64_t numSubSample  = static_cast<uint64_t>(mSampleBuf.size() * AUDIO_FREQUENCY / M_RATE) * 2; // * 2 for stereo
-  double sampleIdxStep = M_RATE / AUDIO_FREQUENCY;
+  uint64_t numSubSample  = static_cast<uint64_t>(mSampleBuf.size() * AUDIO_FREQUENCY / T_RATE) * 2; // * 2 for stereo
+  double sampleIdxStep = T_RATE / AUDIO_FREQUENCY;
   mSubsampleBuf.resize(numSubSample);
 
   double sampleIdxF = 0;

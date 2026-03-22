@@ -23,7 +23,6 @@ public:
   uint8_t NRX4{};
 
 protected:
-  constexpr static auto MAX_PERIOD_COUNT = 2048;
   constexpr static auto MAX_LENGTH_COUNT = 2;
   constexpr static auto MAX_ENV_COUNT = 8;
 
@@ -62,6 +61,7 @@ protected:
   }
 
   virtual int MaxLengthTick() const;
+  virtual int MaxPeriodCount() const;
   virtual uint8_t GetInitLengthTimer();
   virtual uint8_t GetVolume();
   uint16_t GetPeriodCounter();

@@ -18,10 +18,10 @@ void PulseChannel::ApuTick()
 
   mPeriodCounter += 1;
 
-  if (mPeriodCounter != MAX_PERIOD_COUNT)
+  if (mPeriodCounter != MaxPeriodCount())
     return;
 
-  mPeriodCounter = GetPeriodCounter();
+  mPeriodCounter = GetPeriodCounter() * 4; // * 4 for T rate
   UpdateChOut();
 }
 
