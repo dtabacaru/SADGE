@@ -21,16 +21,24 @@ public:
   PulseSweepChannel(uint8_t& dataBus,
                     uint16_t& addrBus);
 
+  virtual void Reset();
+
+  void DivTick();
+  
+  uint8_t NR10{};
+  
+private:
+
+  constexpr static auto MAX_PERIOD_COUNT = 0x7FF;
+  constexpr static auto MAX_FREQ_COUNT = 4;
+
+  void Trigger();
+
   uint8_t GetFreqSweepPace();
   uint8_t GetFreqStep();
 
   void TickFreqSweep();
-  void DivTick();
 
-  void Trigger();
-  virtual void Reset();
-
-  uint8_t mNR10{};
   int mFreqTick{};
   int mFreqSweepPaceTick{};
 };

@@ -29,18 +29,21 @@ public:
 
   PulseChannel(uint8_t& dataBus,
                uint16_t& addrBus);
-
-  uint8_t GetWaveDuty();
-
-  void Trigger();
-
-  void UpdateChOut();
   
   void Reset();
 
   void DivTick();
   void ApuTick();
 
+protected:
+
   int mPeriodCounter{};
+  void Trigger();
+
+private:
+
+  uint8_t GetWaveDuty();
+  void UpdateChOut();
+  
   int mIdx{};
 };

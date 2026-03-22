@@ -29,7 +29,7 @@ void AudioController::Read() const
 {
   if (mAddressBus >= static_cast<uint16_t>(WaveAddress::START) && mAddressBus <= static_cast<uint16_t>(WaveAddress::END))
   {
-    mDataBus = mCh3.mWaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)];
+    mDataBus = mCh3.WaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)];
     return;
   }
 
@@ -38,7 +38,7 @@ void AudioController::Read() const
   switch (addr)
   {
     case AudioController::Address::NR10:
-      mDataBus = mCh1.mNR10 | GetUnusedBits(UnusedReadBits::NR10);
+      mDataBus = mCh1.NR10 | GetUnusedBits(UnusedReadBits::NR10);
       break;
     case AudioController::Address::NR11:
       mDataBus = mCh1.NRX1 | GetUnusedBits(UnusedReadBits::NRX1);
@@ -65,7 +65,7 @@ void AudioController::Read() const
       mDataBus = mCh2.NRX4 | GetUnusedBits(UnusedReadBits::NRX4);
       break;
     case AudioController::Address::NR30:
-      mDataBus = mCh3.mNR30 | GetUnusedBits(UnusedReadBits::NR30);
+      mDataBus = mCh3.NR30 | GetUnusedBits(UnusedReadBits::NR30);
       break;
       //case AudioController::Address::NR31: // Write only
         //mDataBus = mCH3.NRX1;
@@ -110,7 +110,7 @@ void AudioController::Write()
 {
   if (mAddressBus >= static_cast<uint16_t>(WaveAddress::START) && mAddressBus <= static_cast<uint16_t>(WaveAddress::END))
   {
-    mCh3.mWaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)] = mDataBus;
+    mCh3.WaveRam[mAddressBus - GetWaveAddress(WaveAddress::START)] = mDataBus;
     return;
   }
 
@@ -128,7 +128,7 @@ void AudioController::Write()
   switch (addr)
   {
     case AudioController::Address::NR10:
-      mCh1.mNR10 = mDataBus;
+      mCh1.NR10 = mDataBus;
       break;
     case AudioController::Address::NR11:
       mCh1.NRX1 = mDataBus;

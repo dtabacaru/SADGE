@@ -126,7 +126,7 @@ void AudioChannel::TickVolSweepPace()
 {
   mEnvelopeTick += 1;
 
-  if (mEnvelopeTick != 8)
+  if (mEnvelopeTick != MAX_ENV_COUNT)
     return;
 
   mEnvelopeTick = 0;
@@ -146,7 +146,7 @@ void AudioChannel::TickSoundLength()
 
   mLengthTimerTick += 1;
 
-  if (mLengthTimerTick != 2)
+  if (mLengthTimerTick != MAX_LENGTH_COUNT)
     return;
 
   mLengthTimerTick = 0;

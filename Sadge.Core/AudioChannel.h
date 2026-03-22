@@ -5,7 +5,27 @@
 class AudioChannel
 {
 public:
-  constexpr static uint16_t MAX_PERIOD_COUNT = 2048;
+  AudioChannel(uint8_t& dataBus,
+               uint16_t& addrBus);
+
+  bool Enabled() const;
+  double ChOut() const;
+
+  void HandleNRX2Write();
+  virtual void HandleNRX4Write();
+
+  virtual void DivTick();
+  virtual void ApuTick() = 0;
+
+  uint8_t NRX1{};
+  uint8_t NRX2{};
+  uint8_t NRX3{};
+  uint8_t NRX4{};
+
+protected:
+  constexpr static auto MAX_PERIOD_COUNT = 2048;
+  constexpr static auto MAX_LENGTH_COUNT = 2;
+  constexpr static auto MAX_ENV_COUNT = 8;
 
   enum class NRX1BitMask : uint8_t
   {
@@ -41,24 +61,6 @@ public:
     return static_cast<uint8_t>(mask);
   }
 
-  AudioChannel(uint8_t& dataBus,
-               uint16_t& addrBus);
-
-  bool Enabled() const;
-  double ChOut() const;
-
-  void HandleNRX2Write();
-  virtual void HandleNRX4Write();
-
-  virtual void DivTick();
-  virtual void ApuTick() = 0;
-
-  uint8_t NRX1{};
-  uint8_t NRX2{};
-  uint8_t NRX3{};
-  uint8_t NRX4{};
-
-protected:
   virtual int MaxLengthTick() const;
   virtual uint8_t GetInitLengthTimer();
   virtual uint8_t GetVolume();
@@ -93,6 +95,7 @@ protected:
   uint16_t& mAddressBus;
 
 private:
+
   bool GetLengthEnable();
   void ZombieMode(uint8_t val);
 

@@ -18,11 +18,11 @@ void PulseChannel::ApuTick()
 
   mPeriodCounter += 1;
 
-  if (mPeriodCounter == MAX_PERIOD_COUNT)
-  {
-    UpdateChOut();
-    mPeriodCounter = GetPeriodCounter();
-  }
+  if (mPeriodCounter != MAX_PERIOD_COUNT)
+    return;
+
+  mPeriodCounter = GetPeriodCounter();
+  UpdateChOut();
 }
 
 void PulseChannel::UpdateChOut()

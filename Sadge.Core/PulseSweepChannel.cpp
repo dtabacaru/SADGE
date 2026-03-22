@@ -8,32 +8,32 @@ PulseSweepChannel::PulseSweepChannel(uint8_t& dataBus,
 
 uint8_t PulseSweepChannel::GetFreqSweepPace()
 {
-  return (mNR10 & GetNRX0BitMask(Nr10BitMask::PACE)) >> 4;
+  return (NR10 & GetNRX0BitMask(Nr10BitMask::PACE)) >> 4;
 }
 
 uint8_t PulseSweepChannel::GetFreqStep()
 {
-  return mNR10 & GetNRX0BitMask(Nr10BitMask::STEP);
+  return NR10 & GetNRX0BitMask(Nr10BitMask::STEP);
 }
 
 void PulseSweepChannel::TickFreqSweep()
 {
   mPeriodCounter = GetPeriodCounter();
-  bool direction = mNR10 & GetNRX0BitMask(Nr10BitMask::DIRECTION);
+  bool direction = NR10 & GetNRX0BitMask(Nr10BitMask::DIRECTION);
   uint8_t step = GetFreqStep();
 
-  if (step > 0)
-  {
-    mPeriodCounter = direction ? mPeriodCounter - (mPeriodCounter >> step)
-      : mPeriodCounter + (mPeriodCounter >> step);
+  if (step == 0)
+    return;
 
-    if (mPeriodCounter > 0x7FF)
-      Disable();
+  mPeriodCounter = direction ? mPeriodCounter - (mPeriodCounter >> step)
+                              : mPeriodCounter + (mPeriodCounter >> step);
 
-    NRX3 = mPeriodCounter & 0xFF;
-    NRX4 &= ~GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
-    NRX4 |= (mPeriodCounter >> 8) & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
-  }
+  if (mPeriodCounter > MAX_PERIOD_COUNT)
+    Disable();
+
+  NRX3 = mPeriodCounter & 0xFF;
+  NRX4 &= ~GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
+  NRX4 |= (mPeriodCounter >> 8) & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
 }
 
 void PulseSweepChannel::Trigger()
@@ -48,30 +48,28 @@ void PulseSweepChannel::DivTick()
 {
   PulseChannel::DivTick();
 
-  if (GetFreqSweepPace() > 0 && GetFreqStep() > 0)
-  {
-    mFreqTick += 1;
+  if (GetFreqSweepPace() == 0 || GetFreqStep() == 0)
+    return;
 
-    if (mFreqTick == 4)
-    {
-      mFreqSweepPaceTick += 1;
+  mFreqTick += 1;
 
-      if (mFreqSweepPaceTick == GetFreqSweepPace())
-      {
-        TickFreqSweep();
+  if (mFreqTick != MAX_FREQ_COUNT)
+    return;
+  
+  mFreqTick = 0;
+  mFreqSweepPaceTick += 1;
 
-        mFreqSweepPaceTick = 0;
-      }
+  if (mFreqSweepPaceTick != GetFreqSweepPace())
+    return;
 
-      mFreqTick = 0;
-    }
-  }
+  mFreqSweepPaceTick = 0;
+  TickFreqSweep();
 }
 
 void PulseSweepChannel::Reset()
 {
   AudioChannel::Reset();
-  mNR10 = {};
+  NR10 = {};
   mFreqTick = {};
   mFreqSweepPaceTick = {};
 }

@@ -2,13 +2,13 @@
 
 WaveChannel::WaveChannel(uint8_t& dataBus, uint16_t& addressBus) :
   AudioChannel(dataBus, addressBus),
-  mWaveRam(WAVE_RAM_INIT) // TODO randomize this, but this is one sample from my hardware
+  WaveRam(WAVE_RAM_INIT) // TODO randomize this, but this is one sample from my hardware
 {
 }
 
 bool WaveChannel::DacEnabled() const
 {
-  return mNR30 & static_cast<uint8_t>(Nr30BitMask::DAC_ENABLE);
+  return NR30 & static_cast<uint8_t>(Nr30BitMask::DAC_ENABLE);
 }
 
 uint8_t WaveChannel::GetInitLengthTimer()
@@ -36,8 +36,8 @@ void WaveChannel::UpdateChOut()
 
   int addr = mIdx / 2;
 
-  mCurrentSample = mIdx % 2 == 0 ? mWaveRam[addr] >> 4
-                                 : mWaveRam[addr] & 0xF;
+  mCurrentSample = mIdx % 2 == 0 ? WaveRam[addr] >> 4
+                                 : WaveRam[addr] & 0xF;
 
   OutputCurrentSample();
 }
@@ -53,11 +53,14 @@ void WaveChannel::ApuTick()
   UpdateChOut();
 }
 
-int WaveChannel::MaxLengthTick() const { return 256; }
+int WaveChannel::MaxLengthTick() const 
+{ 
+  return 256; 
+}
 
 void WaveChannel::HandleNR30Write()
 {
-  mNR30 = mDataBus;
+  NR30 = mDataBus;
 
   if (!DacEnabled())
     Disable();
@@ -75,8 +78,8 @@ void WaveChannel::Trigger()
   double sum = 0;
   for (int i = 0; i < WAVE_RAM_SIZE; i += 1)
   {
-    sum += mWaveRam[i] >> 4;
-    sum += mWaveRam[i] & 0xF;
+    sum += WaveRam[i] >> 4;
+    sum += WaveRam[i] & 0xF;
   }
   mDcOffset = sum / (WAVE_RAM_SIZE * 2);
 
@@ -87,7 +90,7 @@ void WaveChannel::Reset()
 {
   AudioChannel::Reset();
 
-  mNR30 = {};
+  NR30 = {};
   mCurrentSample = {};
   mPeriodCounter = {};
   mIdx = {};
