@@ -37,7 +37,7 @@ enum class LevelType : uint8_t
 
 struct TestCycle
 {
-  uint16_t address_bus;
+  uint16_t addr_bus;
   uint8_t  data_bus;
 };
 
@@ -208,13 +208,13 @@ private:
   std::filesystem::path m_rom_file_path{};
   std::filesystem::path m_save_file_path{};
 
-  bool m_external_ram_enable = true;
+  bool mEramEn = true;
   Mbc1Mode m_mbc_mode = Mbc1Mode::SINGLE_RAM;
 
   uint64_t m_num_rom_banks = 2;
   uint64_t m_num_ram_banks = 1;
   int m_rom_bank = 1;
-  int m_ram_bank = 0;
+  int mRamBank = 0;
 
   uint8_t m_lower_bank_bits = 1;
   uint8_t m_upper_bank_bits = 0;
@@ -246,10 +246,10 @@ private:
   };
 
   std::vector<uint8_t> m_rom;
-  std::vector<std::vector<uint8_t>> m_rom_banks;
+  std::vector<std::vector<uint8_t>> mRomBanks;
   std::vector<uint8_t> m_hram = std::vector<uint8_t>(HRAM_SIZE);
   std::vector<uint8_t> m_wram = std::vector<uint8_t>(WRAM_SIZE);
-  std::vector<std::vector<uint8_t>> m_ram_banks;
+  std::vector<std::vector<uint8_t>> mRamBanks;
 #pragma endregion
 
 #pragma region EXECUTION
@@ -340,14 +340,14 @@ private:
   double mCompensationTime = 0; // seconds
   
   std::atomic<bool> mStopped = false;
-  bool mBooted = false;
+  bool mBooted{};
   bool mImeRequest = false;
 
-  virtual uint8_t ReadAddress(uint16_t address);
-  virtual void WriteAddress(uint16_t address, uint8_t val);
+  virtual void Read();
+  virtual void Write();
 
-  uint8_t ReadIo(uint16_t address);
-  void WriteIo(uint16_t address, uint8_t val);
+  void ReadIo();
+  void WriteIo();
 
   virtual void WaitFrame();
 #pragma endregion

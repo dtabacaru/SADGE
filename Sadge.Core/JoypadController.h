@@ -9,10 +9,15 @@ class JoypadController : public InterruptProvider
 {
 public:
 
-  enum class JoypadAddress : uint16_t
+  enum class Address : uint16_t
   {
     STATE = 0xFF00
   };
+
+  constexpr static uint16_t GetAddress(Address addr)
+  {
+    return static_cast<uint16_t>(addr);
+  }
 
   enum class JoypadButtonBitMask : uint8_t
   {
@@ -22,62 +27,39 @@ public:
     BUTTONS_START_DOWN = 0b00001000, // R
   };
 
+  JoypadController(InterruptReceiver& interrupt_receiver,
+                   uint8_t& dataBus,
+                   uint16_t& addrBus);
+
+  void Write();
+  void Read() const;
+
+  void PressActionButton(JoypadButtonBitMask button);
+  void ReleaseActionButton(JoypadButtonBitMask button);
+  void PressDirectionButton(JoypadButtonBitMask button);
+  void ReleaseDirectionButton(JoypadButtonBitMask button);
+
+private:
   // Top 2 bits always 1
   // 0 = set, 1 = reset for joypad
   enum class JoypadSelect : uint8_t
   {
-    NONE_SELECTED      = 0xF0,
+    NONE_SELECTED = 0xF0,
     DIRECTION_SELECTED = 0xE0,
-    ACTION_SELECTED    = 0xD0,
-    BOTH_SELECTED      = 0xC0
+    ACTION_SELECTED = 0xD0,
+    BOTH_SELECTED = 0xC0
   };
-  
-  JoypadController(InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::JOYPAD) {}
-  ~JoypadController() {}
 
-  inline void WriteSelect(uint8_t select)
-  {
-    m_select = static_cast<JoypadSelect>(0xC0 | (select & 0x30));
-  }
-
-  uint8_t ReadJoypad() const;
-
-  // TODO: Fix interrupts
-  inline void PressActionButton(JoypadButtonBitMask button)
-  {
-    m_action_buttons &= ~static_cast<uint8_t>(button);
-    TriggerInterrupt();
-  }
-
-  inline void ReleaseActionButton(JoypadButtonBitMask button)
-  {
-    m_action_buttons |= static_cast<uint8_t>(button);
-    TriggerInterrupt();
-  }
-
-  inline void PressDirectionButton(JoypadButtonBitMask button)
-  {
-    m_direction_buttons &= ~static_cast<uint8_t>(button);
-    TriggerInterrupt();
-  }
-
-  inline void ReleaseDirectionButton(JoypadButtonBitMask button)
-  {
-    m_direction_buttons |= static_cast<uint8_t>(button);
-    TriggerInterrupt();
-  }
-
-private:
   constexpr static uint8_t NO_BUTTONS_PRESSED = 0xF;
 
-  JoypadSelect m_select = JoypadSelect::NONE_SELECTED;
+  JoypadSelect mSelect = JoypadSelect::NONE_SELECTED;
 
-  inline uint8_t GetSelect() const
-  {
-    return static_cast<uint8_t>(m_select);
-  }
+  uint8_t GetSelect() const;
 
-  // Leave this as atomic in case driver/ui calls sets these from a different thread
-  std::atomic<uint8_t> m_action_buttons    = NO_BUTTONS_PRESSED;
-  std::atomic<uint8_t> m_direction_buttons = NO_BUTTONS_PRESSED;
+  // Leave these as atomic in case driver/ui sets these from a different thread
+  std::atomic<uint8_t> mAButtons = NO_BUTTONS_PRESSED;
+  std::atomic<uint8_t> mDButtons = NO_BUTTONS_PRESSED;
+
+  uint8_t& mDataBus;
+  uint16_t& mAddressBus;
 };

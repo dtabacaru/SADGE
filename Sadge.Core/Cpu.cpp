@@ -2,10 +2,12 @@
 
 #include <fstream>
 
-Cpu::Cpu() : mTimerCtrl(mInterruptCtrl),
-  mJoypadCtrl(mInterruptCtrl),
+Cpu::Cpu() : mAudioCtrl(mDataBus, mAddressBus),
+  mInterruptCtrl(mDataBus, mAddressBus),
+  mJoypadCtrl(mInterruptCtrl, mDataBus, mAddressBus),
   mLcdCtrl(mInterruptCtrl),
-  mSerialCtrl(mInterruptCtrl)
+  mSerialCtrl(mInterruptCtrl, mDataBus, mAddressBus),
+  mTimerCtrl(mInterruptCtrl, mDataBus, mAddressBus)
 {
 }
 
@@ -21,7 +23,7 @@ void Cpu::WriteEram()
     std::ofstream sram = std::ofstream(m_save_file_path, std::ios_base::binary);
 
     for (int rom_bank_num = 0; rom_bank_num < m_num_ram_banks; rom_bank_num += 1)
-      sram.write(reinterpret_cast<const char*>(m_ram_banks[rom_bank_num].data()), ERAM_SIZE);
+      sram.write(reinterpret_cast<const char*>(mRamBanks[rom_bank_num].data()), ERAM_SIZE);
   }
 }
 
@@ -46,146 +48,135 @@ void Cpu::Stop()
   mStopped = true;
 }
 
-void Cpu::WriteIo(uint16_t address, uint8_t val)
+void Cpu::WriteIo()
 {
-  if (address == static_cast<uint16_t>(JoypadController::JoypadAddress::STATE))
+  if (mAddressBus == JoypadController::GetAddress(JoypadController::Address::STATE))
   {
-    mJoypadCtrl.WriteSelect(val);
+    mJoypadCtrl.Write();
   }
-  else if (address >= static_cast<uint16_t>(SerialController::Address::START) &&
-           address <= static_cast<uint16_t>(SerialController::Address::END))
+  else if (mAddressBus >= SerialController::GetAddress(SerialController::Address::START) &&
+           mAddressBus <= SerialController::GetAddress(SerialController::Address::END))
   {
-    mSerialCtrl.HandleWrite(address, val);
+    mSerialCtrl.Write();
   }
-  else if (address >= static_cast<uint16_t>(TimerAddress::START) &&
-           address <= static_cast<uint16_t>(TimerAddress::END))
+  else if (mAddressBus >= TimerController::GetAddress(TimerController::Address::START) &&
+           mAddressBus <= TimerController::GetAddress(TimerController::Address::END))
   {
-    mTimerCtrl.HandleWrite(address, val);
+    mTimerCtrl.Write();
   }
-  else if (address == static_cast<uint16_t>(InterruptController::InterruptAddress::FLAG))
+  else if (mAddressBus == InterruptController::GetAddress(InterruptController::InterruptAddress::FLAG))
   {
-    mInterruptCtrl.HandleWrite(address, val);
+    mInterruptCtrl.Write();
   }
-  else if (address >= static_cast<uint16_t>(AudioController::AudioAddress::START) &&
-           address <= static_cast<uint16_t>(AudioController::AudioAddress::END))
+  else if (mAddressBus >= static_cast<uint16_t>(AudioController::Address::START) &&
+           mAddressBus <= static_cast<uint16_t>(AudioController::Address::END))
   {
-    mAudioCtrl.HandleWrite(address, val);
+    mAudioCtrl.Write();
   }
-  else if (address >= static_cast<uint16_t>(AudioController::AudioWaveAddress::START) &&
-           address <= static_cast<uint16_t>(AudioController::AudioWaveAddress::END))
+  else if (mAddressBus >= AudioController::GetWaveAddress(AudioController::WaveAddress::START) &&
+           mAddressBus <= AudioController::GetWaveAddress(AudioController::WaveAddress::END))
   {
-    mAudioCtrl.HandleWrite(address, val);
+    mAudioCtrl.Write();
   }
-  else if (address >= static_cast<uint16_t>(LcdController::Address::START) &&
-           address <= static_cast<uint16_t>(LcdController::Address::END))
+  else if (mAddressBus >= static_cast<uint16_t>(LcdController::Address::START) &&
+           mAddressBus <= static_cast<uint16_t>(LcdController::Address::END))
   {
-    mLcdCtrl.HandleWrite(address, val);
+    mLcdCtrl.HandleWrite(mAddressBus, mDataBus);
   }
-  else if (address == static_cast<uint16_t>(ExecutionAddress::BOOT_COMPLETE))
+  else if (mAddressBus == static_cast<uint16_t>(ExecutionAddress::BOOT_COMPLETE))
   {
-    if (val && !mBooted)
+    if (mDataBus && !mBooted)
     { 
+      std::copy(m_rom.begin(), m_rom.begin() + BOOT_ROM.size(), mRomBanks[0].begin());
       mBooted = true;
-      std::copy(m_rom.begin(), m_rom.begin() + BOOT_ROM.size(), m_rom_banks[0].begin()); // Unmap boot ROM
-    }   
-  }
-  else
-  {
-    (void)val;
-  }
-}
-
-uint8_t Cpu::ReadIo(uint16_t address)
-{
-  if (address == static_cast<uint16_t>(JoypadController::JoypadAddress::STATE))
-  {
-    return mJoypadCtrl.ReadJoypad();
-  }
-  else if (address >= static_cast<uint16_t>(SerialController::Address::START) &&
-           address <= static_cast<uint16_t>(SerialController::Address::END))
-  {
-    return mSerialCtrl.HandleRead(address);
-  }
-  else if (address >= static_cast<uint16_t>(TimerAddress::START) &&
-           address <= static_cast<uint16_t>(TimerAddress::END))
-  {
-    return mTimerCtrl.HandleRead(address);
-  }
-  else if (address == static_cast<uint16_t>(InterruptController::InterruptAddress::FLAG))
-  {
-    return mInterruptCtrl.HandleRead(address);
-  }
-  else if (address >= static_cast<uint16_t>(AudioController::AudioAddress::START) &&
-           address <= static_cast<uint16_t>(AudioController::AudioAddress::END))
-  {
-    return mAudioCtrl.HandleRead(address);
-  }
-  else if (address >= static_cast<uint16_t>(AudioController::AudioWaveAddress::START) &&
-           address <= static_cast<uint16_t>(AudioController::AudioWaveAddress::END))
-  {
-    return mAudioCtrl.HandleRead(address);
-  }
-  else if (address >= static_cast<uint16_t>(LcdController::Address::START) &&
-           address <= static_cast<uint16_t>(LcdController::Address::END))
-  {
-    return mLcdCtrl.HandleRead(address);
-  }
-  else if (address == static_cast<uint16_t>(ExecutionAddress::BOOT_COMPLETE))
-  {
-    return mBooted;
-  }
-  else
-  {
-    return DEFAULT_READ;
-  }
-}
-
-void Cpu::WriteAddress(uint16_t address, uint8_t val)
-{
-  if (address == 0xFFFF) // (FFFF-FFFF) Interrupts Enable Register (IE)
-  {
-    mInterruptCtrl.HandleWrite(address, val);
-  }
-  else if (address >= 0xFF80) // (FF80-FFFE) High RAM (HRAM)
-  {
-    address -= 0xFF80;
-    m_hram[address] = val;
-  }
-  else if (address >= 0xFF00) // (FF00-FF7F) I/O Registers
-  {
-    WriteIo(address, val);
-  }
-  else if (address >= 0xFEA0) // (FEA0-FEFF) Not Usable
-  {
-    (void)val;
-  }
-  else if (address >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
-  {
-    mLcdCtrl.HandleWrite(address, val);
-  }
-  else if (address >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
-  {
-    address -= 0xE000;
-    m_wram[address] = val;
-  }
-  else if (address >= 0xC000) // (C000-DFFF) 8KB Work RAM (WRAM)
-  {
-    address -= 0xC000;
-    m_wram[address] = val;
-  }
-  else if (address >= 0xA000) // (A000-BFFF) 8KB External RAM In cartridge, switchable bank if any
-  {
-    if (m_external_ram_enable)
-    {
-      address -= 0xA000;
-      m_ram_banks[m_ram_bank][address] = val;
     }
   }
-  else if (address >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
+}
+
+void Cpu::ReadIo()
+{
+  if (mAddressBus == JoypadController::GetAddress(JoypadController::Address::STATE))
   {
-    mLcdCtrl.HandleWrite(address, val);
+    mJoypadCtrl.Read();
   }
-  else if (address >= 0x6000) // (6000-7FFF) MBC Mode
+  else if (mAddressBus >= SerialController::GetAddress(SerialController::Address::START) &&
+           mAddressBus <= SerialController::GetAddress(SerialController::Address::END))
+  {
+    mSerialCtrl.Read();
+  }
+  else if (mAddressBus >= TimerController::GetAddress(TimerController::Address::START) &&
+           mAddressBus <= TimerController::GetAddress(TimerController::Address::END))
+  {
+    mTimerCtrl.Read();
+  }
+  else if (mAddressBus == InterruptController::GetAddress(InterruptController::InterruptAddress::FLAG))
+  {
+    mInterruptCtrl.Read();
+  }
+  else if (mAddressBus >= AudioController::GetAddress(AudioController::Address::START) &&
+           mAddressBus <= AudioController::GetAddress(AudioController::Address::END))
+  {
+    mAudioCtrl.Read();
+  }
+  else if (mAddressBus >= AudioController::GetWaveAddress(AudioController::WaveAddress::START) &&
+           mAddressBus <= AudioController::GetWaveAddress(AudioController::WaveAddress::END))
+  {
+    mAudioCtrl.Read();
+  }
+  else if (mAddressBus >= static_cast<uint16_t>(LcdController::Address::START) &&
+           mAddressBus <= static_cast<uint16_t>(LcdController::Address::END))
+  {
+    mDataBus = mLcdCtrl.HandleRead(mAddressBus);
+  }
+  else
+  {
+    mDataBus = DEFAULT_READ;
+  }
+}
+
+void Cpu::Write()
+{
+  if (mAddressBus == 0xFFFF) // (FFFF-FFFF) Interrupts Enable Register (IE)
+  {
+    mInterruptCtrl.Write();
+  }
+  else if (mAddressBus >= 0xFF80) // (FF80-FFFE) High RAM (HRAM)
+  {
+    m_hram[mAddressBus - 0xFF80] = mDataBus;
+  }
+  else if (mAddressBus >= 0xFF00) // (FF00-FF7F) I/O Registers
+  {
+    WriteIo();
+  }
+  else if (mAddressBus >= 0xFEA0) // (FEA0-FEFF) Not Usable
+  {
+    // Ayyyy
+  }
+  else if (mAddressBus >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
+  {
+    mLcdCtrl.HandleWrite(mAddressBus, mDataBus);
+  }
+  else if (mAddressBus >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
+  {
+    m_wram[mAddressBus - 0xE000] = mDataBus;
+  }
+  else if (mAddressBus >= 0xC000) // (C000-DFFF) 8KB Work RAM (WRAM)
+  {
+    m_wram[mAddressBus - 0xC000] = mDataBus;
+  }
+  else if (mAddressBus >= 0xA000) // (A000-BFFF) 8KB External RAM In cartridge, switchable bank if any
+  {
+    if (mEramEn)
+    {
+
+      mRamBanks[mRamBank][mAddressBus - 0xA000] = mDataBus;
+    }
+  }
+  else if (mAddressBus >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
+  {
+    mLcdCtrl.HandleWrite(mAddressBus, mDataBus);
+  }
+  else if (mAddressBus >= 0x6000) // (6000-7FFF) MBC Mode
   {
     switch (m_rom_header.GetCartridgeType())
     {
@@ -194,7 +185,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC1_RAM:
         // Fall through
       case CartridgeType::MBC1_RAM_BATTERY:
-        Mbc1_7FFF(val);
+        Mbc1_7FFF(mDataBus);
         break;
       case CartridgeType::MBC3:
         // Fall through
@@ -209,14 +200,14 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC5_RAM:
         // Fall through
       case CartridgeType::MBC5_RAM_BATTERY:
-        Mbc3_7FFF(val);
+        Mbc3_7FFF(mDataBus);
         break;
       default:
         break;
     }
     
   }
-  else if (address >= 0x4000) // (4000-5FFF) RAM bank or Upper 2 bits of ROM bank
+  else if (mAddressBus >= 0x4000) // (4000-5FFF) RAM bank or Upper 2 bits of ROM bank
   {
     switch (m_rom_header.GetCartridgeType())
     {
@@ -225,7 +216,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC1_RAM:
         // Fall through
       case CartridgeType::MBC1_RAM_BATTERY:
-        Mbc1_5FFF(val);
+        Mbc1_5FFF(mDataBus);
         break;
       case CartridgeType::MBC3:
         // Fall through
@@ -240,13 +231,13 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC5_RAM:
         // Fall through
       case CartridgeType::MBC5_RAM_BATTERY:
-        Mbc3_5FFF(val);
+        Mbc3_5FFF(mDataBus);
         break;
       default:
         break;
     }
   }
-  else if (address >= 0x2000) // (2000-3FFF) Lower 5 bits of ROM bank
+  else if (mAddressBus >= 0x2000) // (2000-3FFF) Lower 5 bits of ROM bank
   {
     switch (m_rom_header.GetCartridgeType())
     {
@@ -255,7 +246,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC1_RAM:
         // Fall through
       case CartridgeType::MBC1_RAM_BATTERY:
-        Mbc1_3FFF(val);
+        Mbc1_3FFF(mDataBus);
         break;
       case CartridgeType::MBC3:
         // Fall through
@@ -270,7 +261,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC5_RAM:
         // Fall through
       case CartridgeType::MBC5_RAM_BATTERY:
-        Mbc3_3FFF(val);
+        Mbc3_3FFF(mDataBus);
         break;
       default:
         break;
@@ -285,7 +276,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC1_RAM:
         // Fall through
       case CartridgeType::MBC1_RAM_BATTERY:
-        Mbc1_1FFF(val);
+        Mbc1_1FFF(mDataBus);
         break;
       case CartridgeType::MBC3:
         // Fall through
@@ -300,7 +291,7 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
       case CartridgeType::MBC5_RAM:
         // Fall through
       case CartridgeType::MBC5_RAM_BATTERY:
-        Mbc3_1FFF(val);
+        Mbc3_1FFF(mDataBus);
         break;
       default:
         break;
@@ -308,61 +299,54 @@ void Cpu::WriteAddress(uint16_t address, uint8_t val)
   }
 }
 
-uint8_t Cpu::ReadAddress(uint16_t address) 
+void Cpu::Read() 
 {
-  if (address > 0xFFFE) // (FFFF-FFFF) Interrupts Enable Register (IE)
+  if (mAddressBus > 0xFFFE) // (FFFF-FFFF) Interrupts Enable Register (IE)
   {
-    return mInterruptCtrl.HandleRead(address);
+    mInterruptCtrl.Read();
   }
-  else if (address > 0xFF7F) // (FF80-FFFE) High RAM (HRAM)
+  else if (mAddressBus > 0xFF7F) // (FF80-FFFE) High RAM (HRAM)
   {
-    address -= 0xFF80;
-    return m_hram[address];
+    mDataBus = m_hram[mAddressBus - 0xFF80];
   }
-  else if (address >= 0xFF00) // (FF00-FF7F) I/O Registers
+  else if (mAddressBus >= 0xFF00) // (FF00-FF7F) I/O Registers
   {
-    return ReadIo(address);
+    ReadIo();
   }
-  else if (address >= 0xFEA0) // (FEA0-FEFF) Not Usable
+  else if (mAddressBus >= 0xFEA0) // (FEA0-FEFF) Not Usable
   {
-    return DEFAULT_READ;
+    mDataBus = DEFAULT_READ;
   }
-  else if (address >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
+  else if (mAddressBus >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
   {
-    return mLcdCtrl.HandleRead(address);
+    mDataBus = mLcdCtrl.HandleRead(mAddressBus);
   }
-  else if (address >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
+  else if (mAddressBus >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
   {
-    address -= 0xE000;
-    return m_wram[address];
+    mDataBus = m_wram[mAddressBus - 0xE000];
   }
-  else if (address >= 0xC000) // (C000-DFFF) 8KB Work RAM (WRAM)
+  else if (mAddressBus >= 0xC000) // (C000-DFFF) 8KB Work RAM (WRAM)
   {
-    address -= 0xC000;
-    return m_wram[address];
+    mDataBus = m_wram[mAddressBus - 0xC000];
   }
-  else if (address >= 0xA000) // (A000-BFFF) 8KB External RAM In cartridge, switchable bank if any
+  else if (mAddressBus >= 0xA000) // (A000-BFFF) 8KB External RAM In cartridge, switchable bank if any
   {
-    if (m_external_ram_enable)
-    {
-      address -= 0xA000;
-      return m_ram_banks[m_ram_bank][address];
-    }
+    if (mEramEn)
+      mDataBus = mRamBanks[mRamBank][mAddressBus - 0xA000];
     else
-      return DEFAULT_READ;
+      mDataBus = DEFAULT_READ;
   }
-  else if (address >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
+  else if (mAddressBus >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
   {
-    return mLcdCtrl.HandleRead(address);
+    mDataBus = mLcdCtrl.HandleRead(mAddressBus);
   }
-  else if (address >= 0x4000) // (4000-7FFF) 16KB ROM bank 01~NN From cartridge, switchable bank via MBC (if any)
+  else if (mAddressBus >= 0x4000) // (4000-7FFF) 16KB ROM bank 01~NN From cartridge, switchable bank via MBC (if any)
   {
-    address -= 0x4000;
-    return m_rom_banks[m_rom_bank][address];
+    mDataBus = mRomBanks[m_rom_bank][mAddressBus - 0x4000];
   }
   else //if (address > 0x0000) // (0000-3FFF) 16KB ROM bank 00 From cartridge, usually a fixed bank, BOOT_ROM mapped to 00-FF at start
   {
-    return m_rom_banks[0][address];
+    mDataBus = mRomBanks[0][mAddressBus];
   }
 }
 

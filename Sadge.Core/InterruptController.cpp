@@ -1,40 +1,102 @@
 #include "InterruptController.h"
 
-uint8_t InterruptController::HandleRead(uint16_t address) const
-{
-  InterruptAddress interrupt_address = static_cast<InterruptAddress>(address);
+#include "Constants.h"
 
-  switch (interrupt_address)
+uint16_t InterruptController::GetInterruptVector(InterruptBitMask mask) const
+{
+  switch (mask)
   {
-    case InterruptController::InterruptAddress::FLAG:
-      return m_if;
-    case InterruptController::InterruptAddress::ENABLE:
-      return m_ie;
+    case InterruptBitMask::VBLANK:
+      return 0x0040;
+    case InterruptBitMask::LCD:
+      return 0x0048;
+    case InterruptBitMask::TIMER:
+      return 0x0050;
+    case InterruptBitMask::SERIAL:
+      return 0x0058;
+    case InterruptBitMask::JOYPAD:
+      return 0x0060;
     default:
-      return DEFAULT_READ;
+      return 0x0000;
   }
 }
 
-void InterruptController::HandleWrite(uint16_t address, uint8_t val)
+InterruptController::InterruptController(uint8_t& dataBus,
+                                         uint16_t& addrBus) :
+  mDataBus(dataBus),
+  mAddressBus(addrBus)
 {
-  InterruptAddress interrupt_address = static_cast<InterruptAddress>(address);
+};
+
+bool InterruptController::InterruptRequested() const
+{
+  return mIME && InterruptExists();
+}
+
+bool InterruptController::InterruptExists() const
+{
+  return mIF & mIE;
+}
+
+void InterruptController::EnableInterrupts()
+{
+  mIME = true;
+}
+
+void InterruptController::DisableInterrupts()
+{
+  mIME = false;
+}
+
+void InterruptController::Update(bool interrupt_enable_request)
+{
+  if (interrupt_enable_request)
+  {
+    mEnableNext = true;
+  }
+  else if (mEnableNext)
+  {
+    mIME = true;
+    mEnableNext = false;
+  }
+}
+
+void InterruptController::Read() const
+{
+  InterruptAddress interrupt_address = static_cast<InterruptAddress>(mAddressBus);
 
   switch (interrupt_address)
   {
     case InterruptController::InterruptAddress::FLAG:
-      m_if = val;
+      mDataBus = mIF;
       break;
     case InterruptController::InterruptAddress::ENABLE:
-      m_ie = val;
+      mDataBus = mIE;
       break;
     default:
-      (void)val;
+      mDataBus = DEFAULT_READ;
+      break;
+  }
+}
+
+void InterruptController::Write()
+{
+  InterruptAddress interrupt_address = static_cast<InterruptAddress>(mAddressBus);
+
+  switch (interrupt_address)
+  {
+    case InterruptController::InterruptAddress::FLAG:
+      mIF = mDataBus;
+      break;
+    case InterruptController::InterruptAddress::ENABLE:
+      mIE = mDataBus;
+      break;
   }
 }
 
 uint16_t InterruptController::HandleInterrupt()
 {
-  bool m_ime = false;
+  mIME = false;
 
   if (InterruptExists(InterruptBitMask::VBLANK))
   {
@@ -61,4 +123,19 @@ uint16_t InterruptController::HandleInterrupt()
     ClearInterrupt(InterruptBitMask::JOYPAD);
     return GetInterruptVector(InterruptBitMask::JOYPAD);
   }
-} 
+}
+
+bool InterruptController::InterruptExists(InterruptBitMask bit_mask) const
+{
+  return (mIF & mIE) & GetInterruptBitMask(bit_mask);
+}
+
+void InterruptController::ReceiveInterrupt(InterruptBitMask bit_mask)
+{
+  mIF |= GetInterruptBitMask(bit_mask);
+}
+
+void InterruptController::ClearInterrupt(InterruptBitMask bit_mask)
+{
+  mIF &= ~GetInterruptBitMask(bit_mask);
+}

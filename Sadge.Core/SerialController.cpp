@@ -1,44 +1,47 @@
 #include "SerialController.h"
 
-#include <iostream>
+#include "Constants.h"
 
-SerialController::SerialController(InterruptReceiver& interrupt_receiver) : InterruptProvider(interrupt_receiver, InterruptBitMask::SERIAL)
+SerialController::SerialController(InterruptReceiver& intRec,
+																	 uint8_t& dataBus,
+																	 uint16_t& addrBus) :
+	InterruptProvider(intRec, InterruptBitMask::SERIAL),
+	mDataBus(dataBus),
+	mAddressBus(addrBus)
 {
 }
 
-SerialController::~SerialController()
+void SerialController::Read() const
 {
-}
+	Address addr = static_cast<Address>(mAddressBus);
 
-uint8_t SerialController::HandleRead(uint16_t address) const
-{
-	Address serial_address = static_cast<Address>(address);
-
-	switch (serial_address)
+	switch (addr)
 	{
-		case SerialController::Address::DATA:
-			return m_data;
-		case SerialController::Address::CONTROL:
-			return m_control;
+		case Address::DATA:
+			mDataBus = mSB;
+			break;
+		case Address::CONTROL:
+			mDataBus = mSC;
+			break;
 		default:
-			return DEFAULT_READ;
+			mDataBus = DEFAULT_READ;
+			break;
 	}
 }
 
-void SerialController::HandleWrite(uint16_t address, uint8_t val)
+void SerialController::Write()
 {
-	Address serial_address = static_cast<Address>(address);
+	Address addr = static_cast<Address>(mAddressBus);
 
-	switch (serial_address)
+	switch (addr)
 	{
-		case SerialController::Address::DATA:
-			m_data = val;
+		case Address::DATA:
+			mSB = mDataBus;
 			break;
-		case SerialController::Address::CONTROL:
-			m_control = val;
+		case Address::CONTROL:
+			mSC = mDataBus;
 			break;
 		default:
-			(void)val;
 			break;
 	}
 }

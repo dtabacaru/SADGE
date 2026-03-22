@@ -45,7 +45,9 @@ static void TestCbOpcode(uint8_t opcode)
 
     for (const auto& ram : initial["ram"])
     {
-      cpu_.WriteAddress(ram[0].asUInt(), ram[1].asUInt());
+      cpu_.mAddressBus = ram[0].asUInt();
+      cpu_.mDataBus = ram[1].asUInt();
+      cpu_.Write();
     }
 
     cpu_.Main();
@@ -68,7 +70,9 @@ static void TestCbOpcode(uint8_t opcode)
 
     for (const auto& ram : final_["ram"])
     {
-      bool ram_passed = cpu_.ReadAddress(ram[0].asUInt()) == ram[1].asUInt();
+      cpu_.mAddressBus = ram[0].asUInt();
+      cpu_.Read();
+      bool ram_passed = cpu_.mDataBus == ram[1].asUInt();
 
       EXPECT_TRUE(ram_passed) << test["name"].asString();
     }
@@ -88,7 +92,7 @@ static void TestCbOpcode(uint8_t opcode)
       if (test_cycle[2].asString() == "---")
         continue;
 
-      bool address_matched = test_cycle[0].asUInt() == cpu_.GetTestCycles()[cycle_num].address_bus;
+      bool address_matched = test_cycle[0].asUInt() == cpu_.GetTestCycles()[cycle_num].addr_bus;
       bool data_matched = test_cycle[1].asUInt() == cpu_.GetTestCycles()[cycle_num].data_bus;
 
       EXPECT_TRUE(address_matched) << test["name"].asString();

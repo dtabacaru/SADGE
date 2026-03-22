@@ -4,24 +4,31 @@
 
 #include <array>
 
-enum class TimerAddress : uint16_t
-{
-  DIV = 0xFF04,
-  TIMA = 0xFF05,
-  TMA = 0xFF06,
-  TAC = 0xFF07,
-  START = DIV,
-  END = TAC
-};
-
 class TimerController : public InterruptProvider
 {
 public:
-  
-  TimerController(InterruptReceiver& interrupt_receiver);
 
-  void HandleWrite(uint16_t address, uint8_t val);
-  uint8_t HandleRead(uint16_t address) const;
+  enum class Address : uint16_t
+  {
+    DIV = 0xFF04,
+    TIMA = 0xFF05,
+    TMA = 0xFF06,
+    TAC = 0xFF07,
+    START = DIV,
+    END = TAC
+  };
+
+  constexpr static uint16_t GetAddress(Address addr)
+  {
+    return static_cast<uint16_t>(addr);
+  }
+
+  TimerController(InterruptReceiver& intRec,
+                  uint8_t& dataBus,
+                  uint16_t& addrBus);
+
+  void Write();
+  void Read() const;
 
   uint16_t GetClk() const;
 
@@ -50,17 +57,24 @@ private:
     HZ16384  = 0b11
   };
 
-  constexpr uint8_t GetTimerBitMask(TimerBitMask mask) const;
-  constexpr uint8_t GetTimerClockSelect(TimerClockSelect cs) const;
+  constexpr static uint8_t GetTimerBitMask(TimerBitMask mask)
+  {
+    return static_cast<uint8_t>(mask);
+  }
+
+  constexpr static uint8_t GetTimerClockSelect(TimerClockSelect cs)
+  {
+    return static_cast<uint8_t>(cs);
+  }
 
   void TickSysClk(uint16_t newClk);
   void TickReload();
   void TickTima();
-  void HandleTimaWrite(uint8_t val);
-  void HandleTmaWrite(uint8_t val);
-  void HandleTacWrite(uint8_t val);
+  void HandleTimaWrite();
+  void HandleTmaWrite();
+  void HandleTacWrite();
 
-  bool mTimerEnabled{};
+  bool mEnabled{};
 
   constexpr static uint8_t TIMA_OVERFLOW = 0;
 
@@ -70,6 +84,9 @@ private:
 
   uint16_t mMask{DIV_BIT_MASK_LUT[GetTimerClockSelect(TimerClockSelect::HZ4096)]};
   uint16_t mClk{};
+
+  uint8_t& mDataBus;
+  uint16_t& mAddrBus;
 
   //
   // Handle timer esoteric behaviour

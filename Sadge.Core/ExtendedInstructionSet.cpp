@@ -18,14 +18,14 @@ void Cpu::RLC__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L << 1 | mWZ.L >> 7;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -58,14 +58,14 @@ void Cpu::RRC__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L >> 1 | mWZ.L << 7;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -99,14 +99,14 @@ void Cpu::RL__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L << 1 | static_cast<uint8_t>(ReadFlag(FlagBitMask::Carry));
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -140,14 +140,14 @@ void Cpu::RR__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L >> 1 | (ReadFlag(FlagBitMask::Carry) << 7);
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -180,14 +180,14 @@ void Cpu::SLA__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L << 1;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -220,14 +220,14 @@ void Cpu::SRA__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L >> 1 | (mWZ.L & 0b10000000);
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -261,14 +261,14 @@ void Cpu::SWAP__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = (mWZ.L >> 4) | (mWZ.L << 4);
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -301,14 +301,14 @@ void Cpu::SRL__HL()
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L >> 1;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetZeroFlag(result);
       ResetFlag(FlagBitMask::Subtract);
       ResetFlag(FlagBitMask::HalfCarry);
@@ -338,7 +338,7 @@ void Cpu::BIT__HL(uint8_t bit_mask)
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -366,14 +366,14 @@ void Cpu::RES__HL(uint8_t bit_mask)
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L & ~bit_mask;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 3:
@@ -397,14 +397,14 @@ void Cpu::SET__HL(uint8_t bit_mask)
   {
     case 1:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       result = mWZ.L | bit_mask;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 3:

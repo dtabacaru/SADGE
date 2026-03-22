@@ -14,9 +14,17 @@ constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536 * 3; // TODO: Non-integer
 constexpr static uint8_t  AUDIO_CHANNELS = 2;
 constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 4) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
 
+struct Sample
+{
+  double left;
+  double right;
+};
+
 class AudioController
 {
 public:
+  typedef void (*AudioCallback)(std::vector<short>& buf);
+
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
   constexpr static uint8_t  NUM_CHANNELS = 4;
   constexpr static uint8_t  DEFAULT_READ = 0xFF;
@@ -30,15 +38,38 @@ public:
     CH1_ON   = 0b00000001
   };
 
-  constexpr uint8_t GetNr52BitMask(Nr52BitMask bit_mask);
+  constexpr static uint8_t GetNr52BitMask(Nr52BitMask bit_mask)
+  {
+    return static_cast<uint8_t>(bit_mask);
+  }
 
-  enum class AudioWaveAddress : uint16_t
+  enum class UnusedReadBits : uint8_t
+  {
+    NR10 = 0b10000000,
+    NRX1 = 0b00111111,
+    NRX4 = 0b10111111,
+    NR30 = 0b01111111,
+    NR32 = 0b10011111,
+    NR52 = 0b01110000
+  };
+
+  constexpr static uint8_t GetUnusedBits(UnusedReadBits bits)
+  {
+    return static_cast<uint8_t>(bits);
+  }
+
+  enum class WaveAddress : uint16_t
   {
     START = 0xFF30,
     END   = 0xFF3F
   };
 
-  enum class AudioAddress : uint16_t
+  constexpr static uint16_t GetWaveAddress(WaveAddress addr)
+  {
+    return static_cast<uint16_t>(addr);
+  }
+
+  enum class Address : uint16_t
   {
     NR10  = 0xFF10,
     NR11  = 0xFF11,
@@ -65,38 +96,41 @@ public:
     END   = NR52
   };
 
+  constexpr static uint16_t GetAddress(Address addr)
+  {
+    return static_cast<uint16_t>(addr);
+  }
+
+  AudioController(uint8_t& dataBus,
+                  uint16_t& addrBus);
+
+  void SetAudioCallback(AudioCallback callback);
+
   void ClearSamples();
+  
+  void Read() const;
+  void Write();
 
-  typedef void (*AudioCallback)(std::vector<short>& audio_buffer);
-
-  AudioCallback m_audio_callback = NULL;
-
-  void SetAudioCallback(AudioCallback audio_callback);
-
-  AudioController();
-
-  void ApuDivTick();
-
-  void UpdateApu();
-
-  inline void Mixer(double& left, double& right);
-
-  uint8_t HandleRead(uint16_t address) const;
-  void HandleWrite(uint16_t address, uint8_t val);
-  void Update(uint16_t clk);
-
+  void Tick(uint16_t clk);
+  void ApuTick();
+  void DivTick();
+  
 private:
   uint8_t GetChOnBits() const;
 
-  void HandleNr52Write(uint8_t val);
+  void HandleNr52Write();
+
+  Sample Mixer();
   void SubSample();
+
   void Reset();
   
-  std::vector<double> mLBuf;
-  std::vector<double> mRBuf;
-
+  std::vector<Sample> mSampleBuf;
   std::vector<short>  mSubsampleBuf;
+
   uint64_t mCycleCount{};
+
+  AudioCallback mCallback = NULL;
 
   PulseSweepChannel mCH1;
   PulseChannel      mCH2;
@@ -110,4 +144,7 @@ private:
   uint16_t mClk{};
 
   bool mEnabled{};
+
+  uint8_t&  mDataBus;
+  uint16_t& mAddressBus;
 };

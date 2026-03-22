@@ -65,7 +65,7 @@ void Cpu::LD_r__HL(uint8_t& r)
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -90,7 +90,7 @@ void Cpu::LD__HL_n()
     case 1:
       mAddressBus = mHL.HL;
       mDataBus = mWZ.L;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 2:
@@ -106,7 +106,7 @@ void Cpu::LD__rr_r(Register rr, uint8_t r)
     case 0:
       mAddressBus = rr.HL;
       mDataBus = r;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 1:
@@ -139,7 +139,7 @@ void Cpu::LD__nn_A()
     case 2:
       mAddressBus = mWZ.HL;
       mDataBus = _af.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 3:
@@ -171,7 +171,7 @@ void Cpu::LD_A__rr(Register rr)
   {
     case 0:
       mAddressBus = rr.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -200,7 +200,7 @@ void Cpu::LD_A__nn()
       break;
     case 2:
       mAddressBus = mWZ.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -245,14 +245,14 @@ void Cpu::LD__nn_SP()
     case 2:
       mAddressBus = mWZ.HL;
       mDataBus = mSP.L;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mWZ.HL += 1;
       mExeCycle += 1;
       break;
     case 3:
       mAddressBus = mWZ.HL;
       mDataBus = mSP.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 4:
@@ -355,7 +355,7 @@ void Cpu::LDH__n_A()
     case 1:
       mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mWZ.L;
       mDataBus = _af.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 2:
@@ -373,7 +373,7 @@ void Cpu::LDH__C_A()
     case 0:
       mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.L;
       mDataBus = _af.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 1:
@@ -390,7 +390,7 @@ void Cpu::LDH_A__C()
   {
     case 0:
       mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.L;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -414,7 +414,7 @@ void Cpu::LDH_A__n()
       break;
     case 1:
       mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mWZ.L;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -475,14 +475,14 @@ void Cpu::ADD__HL(int val)
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
       result = mWZ.L + val;
       mDataBus = result;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       SetHalfCarryFlag(mWZ.L, val);
       SetZeroFlag(result);
       SetSubtractionFlag(val);
@@ -524,7 +524,7 @@ void Cpu::ADC_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -573,7 +573,7 @@ void Cpu::SBC_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -619,7 +619,7 @@ void Cpu::AND_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -665,7 +665,7 @@ void Cpu::XOR_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -711,7 +711,7 @@ void Cpu::OR_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -757,7 +757,7 @@ void Cpu::CP_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -800,7 +800,7 @@ void Cpu::ADD_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -843,7 +843,7 @@ void Cpu::SUB_A__HL()
   {
     case 0:
       mAddressBus = mHL.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
@@ -982,14 +982,14 @@ void Cpu::PUSH_rr(Register rr)
     case 1:
       mAddressBus = mSP.HL;
       mDataBus = rr.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 2:
       mAddressBus = mSP.HL;
       mDataBus = rr.L;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 3:
@@ -1025,14 +1025,14 @@ void Cpu::CALL(bool call)
     case 3:
       mAddressBus = mSP.HL;
       mDataBus = mPC.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 4:
       mAddressBus = mSP.HL;
       mDataBus = mPC.L;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mPC = mWZ;
       mExeCycle += 1;
       break;
@@ -1100,14 +1100,14 @@ void Cpu::POP_rr(Register& rr)
   {
     case 0:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 1:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.H = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
@@ -1125,14 +1125,14 @@ void Cpu::RET(bool set_ime)
   {
     case 0:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 1:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.H = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
@@ -1163,14 +1163,14 @@ void Cpu::RET_cc(bool ret)
         break;
       }
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 2:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.H = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
@@ -1191,14 +1191,14 @@ void Cpu::POP_AF()
   {
     case 0:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.L = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 1:
       mAddressBus = mSP.HL;
-      mDataBus = ReadAddress(mAddressBus);
+      Read();
       mWZ.H = mDataBus;
       mSP.HL += 1;
       mExeCycle += 1;
@@ -1223,14 +1223,14 @@ void Cpu::RST(RestartVector vec)
     case 1:
       mAddressBus = mSP.HL;
       mDataBus = mPC.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 2:
       mAddressBus = mSP.HL;
       mDataBus = mPC.L;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mPC.HL = GetRestartVectorAddress(vec);
       mExeCycle += 1;
       break;

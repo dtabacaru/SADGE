@@ -195,20 +195,20 @@ void LcdController::RenderObjects()
 	}
 }
 
-uint8_t LcdController::HandleRead(uint16_t address) const
+uint8_t LcdController::HandleRead(uint16_t addr) const
 {
-	if (address >= 0x8000 && address <= 0x9FFF)
+	if (addr >= 0x8000 && addr <= 0x9FFF)
 	{
-		address -= 0x8000;
-		return m_vram[address];
+		addr -= 0x8000;
+		return m_vram[addr];
 	}
-	else if (address >= 0xFE00 && address <= 0xFE9F)
+	else if (addr >= 0xFE00 && addr <= 0xFE9F)
 	{
-		address -= 0xFE00;
-		return m_oam[address];
+		addr -= 0xFE00;
+		return m_oam[addr];
 	}
 
-	Address lcd_address = static_cast<Address>(address);
+	Address lcd_address = static_cast<Address>(addr);
 
 	switch (lcd_address)
 	{
@@ -241,22 +241,22 @@ uint8_t LcdController::HandleRead(uint16_t address) const
 	}
 }
 
-void LcdController::HandleWrite(uint16_t address, uint8_t val)
+void LcdController::HandleWrite(uint16_t addr, uint8_t val)
 {
-  if (address >= 0x8000 && address <= 0x9FFF)
+  if (addr >= 0x8000 && addr <= 0x9FFF)
 	{
-		address -= 0x8000;
-		m_vram[address] = val;
+		addr -= 0x8000;
+		m_vram[addr] = val;
 		return;
 	}
-	else if (address >= 0xFE00 && address <= 0xFE9F)
+	else if (addr >= 0xFE00 && addr <= 0xFE9F)
 	{
-		address -= 0xFE00;
-		m_oam[address] = val;
+		addr -= 0xFE00;
+		m_oam[addr] = val;
 		return;
 	}
 
-	Address lcd_address = static_cast<Address>(address);
+	Address lcd_address = static_cast<Address>(addr);
 
 	switch (lcd_address)
 	{

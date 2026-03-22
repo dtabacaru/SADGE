@@ -7,7 +7,7 @@ void Cpu::Mbc3_7FFF(uint8_t val)
 
 void Cpu::Mbc3_5FFF(uint8_t val)
 {
-  m_ram_bank = val & 0b11;
+  mRamBank = val & 0b11;
 }
 
 void Cpu::Mbc3_3FFF(uint8_t val)
@@ -19,7 +19,7 @@ void Cpu::Mbc3_3FFF(uint8_t val)
 
 void Cpu::Mbc3_1FFF(uint8_t val)
 {
-  m_external_ram_enable = ((val & 0xF) == 0xA);
+  mEramEn = ((val & 0xF) == 0xA);
 }
 
 void Cpu::Mbc1_7FFF(uint8_t val)
@@ -30,7 +30,7 @@ void Cpu::Mbc1_7FFF(uint8_t val)
 void Cpu::Mbc1_5FFF(uint8_t val)
 {
   if (m_mbc_mode == Mbc1Mode::MULTIPLE_RAM)
-    m_ram_bank = val & 0b11;
+    mRamBank = val & 0b11;
   else
   {
     m_upper_bank_bits = (val & 0b11) << 5;
@@ -49,5 +49,5 @@ void Cpu::Mbc1_3FFF(uint8_t val)
 
 void Cpu::Mbc1_1FFF(uint8_t val)
 {
-  m_external_ram_enable = ((val & 0xF) == 0xA);
+  mEramEn = ((val & 0xF) == 0xA);
 }

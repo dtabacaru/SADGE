@@ -197,8 +197,8 @@ public:
     return frame_ready;
   }
 
-  uint8_t HandleRead(uint16_t address) const;
-  void HandleWrite(uint16_t address, uint8_t val);
+  uint8_t HandleRead(uint16_t addr) const;
+  void HandleWrite(uint16_t addr, uint8_t val);
 
   std::array<Pixel, SCREEN_SIZE>& GetCurrentFrameBuffer()
   {

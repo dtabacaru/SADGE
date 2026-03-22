@@ -7,14 +7,15 @@ void Cpu::TickComponents()
 
   if (mLcdCtrl.DmaRequested())
   {
-    uint16_t dma_address = mLcdCtrl.GetCurrentDmaAddress();
-    mLcdCtrl.ServiceDma(ReadAddress(dma_address));
+    mAddressBus = mLcdCtrl.GetCurrentDmaAddress();
+    Read();
+    mLcdCtrl.ServiceDma(mDataBus);
   }
 
   bool frame_ready = mLcdCtrl.Update();
   mTimerCtrl.Tick();
 
-  mAudioCtrl.Update(mTimerCtrl.GetClk());
+  mAudioCtrl.Tick(mTimerCtrl.GetClk());
 
   if (frame_ready)
     WaitFrame();
@@ -123,7 +124,7 @@ void Cpu::WaitFrame()
 void Cpu::ReadNextUint8()
 {
   mAddressBus = mPC.HL;
-  mDataBus = ReadAddress(mAddressBus);
+  Read();
   mPC.HL += 1;
 }
 
@@ -1204,14 +1205,14 @@ void Cpu::InterruptHandler()
     case 2:
       mAddressBus = mSP.HL;
       mDataBus = mPC.H;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 3:
       mAddressBus = mSP.HL;
       mDataBus = mPC.L;
-      WriteAddress(mAddressBus, mDataBus);
+      Write();
       mExeCycle += 1;
       break;
     case 4:

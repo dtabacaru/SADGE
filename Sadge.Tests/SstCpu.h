@@ -7,14 +7,14 @@ class SstCpu : public Cpu
 public:
   SstCpu() : Cpu() {}
 
-  uint8_t ReadAddress(uint16_t address)
+  void Read()
   {
-    return m_test_ram[address];
+    mDataBus = mFlatRam[mAddressBus];
   }
 
-  void WriteAddress(uint16_t address, uint8_t val)
+  void Write()
   {
-    m_test_ram[address] = val;
+    mFlatRam[mAddressBus] = mDataBus;
   }
 
   void InstructionCompleteEvent() 
@@ -24,23 +24,23 @@ public:
 
   void Main()
   {
-    m_test_cycles.clear();
+    mTestCycles.clear();
 
     Fetch();
 
     do
     {
-      m_test_cycles.push_back({mAddressBus, mDataBus});
+      mTestCycles.push_back({mAddressBus, mDataBus});
       TickExecution();
     } while (mExeCycle > 0);
   }
 
   std::vector<TestCycle> GetTestCycles()
   {
-    return m_test_cycles;
+    return mTestCycles;
   }
 
 private:
-  std::vector<uint8_t>   m_test_ram = std::vector<uint8_t>(64 * 1024); // Cpu tests require flat ram
-  std::vector<TestCycle> m_test_cycles;
+  std::vector<uint8_t>   mFlatRam = std::vector<uint8_t>(64 * 1024);
+  std::vector<TestCycle> mTestCycles;
 };

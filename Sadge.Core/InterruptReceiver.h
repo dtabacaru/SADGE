@@ -11,6 +11,11 @@ enum class InterruptBitMask : uint8_t
   JOYPAD = 0b00010000, // R/W
 };
 
+constexpr static uint8_t GetInterruptBitMask(InterruptBitMask mask)
+{
+  return static_cast<uint8_t>(mask);
+}
+
 class InterruptReceiver
 {
 public:

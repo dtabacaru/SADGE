@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AudioChannel.cpp" />
     <ClCompile Include="AudioController.cpp" />
     <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="Cpu.cpp" />
@@ -30,10 +31,14 @@
     <ClCompile Include="InterruptController.cpp" />
     <ClCompile Include="JoypadController.cpp" />
     <ClCompile Include="LcdController.cpp" />
+    <ClCompile Include="NoiseChannel.cpp" />
+    <ClCompile Include="PulseChannel.cpp" />
+    <ClCompile Include="PulseSweepChannel.cpp" />
     <ClCompile Include="RomHeader.cpp" />
     <ClCompile Include="RomHeaderEnums.cpp" />
     <ClCompile Include="SerialController.cpp" />
     <ClCompile Include="TimerController.cpp" />
+    <ClCompile Include="WaveChannel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioChannel.h" />

@@ -3,105 +3,44 @@
 #include "AudioChannel.h"
 
 #include <array>
-#include <stdint.h>
 
 class PulseChannel : public AudioChannel
 {
 public:
 
-  enum class Nrx1BitMask : uint8_t
+  constexpr static std::array<std::array<uint8_t, 8>, 4> DUTY
+  {{
+    {{0, 0, 0, 0, 0, 0, 0, 1}},
+    {{1, 0, 0, 0, 0, 0, 0, 1}},
+    {{1, 0, 0, 0, 0, 1, 1, 1}},
+    {{0, 1, 1, 1, 1, 1, 1, 0}}
+  }};
+
+  enum class NRX1BitMask : uint8_t
   {
     WAVE_DUTY = 0b11000000,
     INIT_LEN_TIM = 0b00111111,
   };
 
-  inline constexpr uint8_t GetNrx1BitMask(Nrx1BitMask bit_mask)
+  constexpr uint8_t GetNRX1BitMask(NRX1BitMask bit_mask)
   {
     return static_cast<uint8_t>(bit_mask);
   }
 
-  inline uint8_t GetWaveDuty()
-  {
-    return (nrx1 & GetNrx1BitMask(Nrx1BitMask::WAVE_DUTY)) >> 6;
-  }
+  PulseChannel(uint8_t& dataBus,
+               uint16_t& addrBus);
 
-  inline void Update()
-  {
-    period_counter += 1;
+  uint8_t GetWaveDuty();
 
-    if (period_counter == MAX_PERIOD_COUNT)
-    {
-      UpdateChOut();
-      period_counter = GetPeriodCounter();
-    }
-  }
+  void Trigger();
 
-  inline void UpdateChOut()
-  {
-    wave_form_index += 1;
-    wave_form_index %= 8;
+  void UpdateChOut();
+  
+  void Reset();
 
-    uint8_t level = 0;
-    switch (GetWaveDuty())
-    {
-      case 0b00:
-        level = DUTY_12_5_WAVE_FORM[wave_form_index] ? volume : 0;
-        break;
-      case 0b01:
-        level = DUTY_25_WAVE_FORM[wave_form_index] ? volume : 0;
-        break;
-      case 0b10:
-        level = DUTY_50_WAVE_FORM[wave_form_index] ? volume : 0;
-        break;
-      case 0b11:
-        level = DUTY_75_WAVE_FORM[wave_form_index] ? volume : 0;
-        break;
-      default:
-        break;
-    }
+  void DivTick();
+  void ApuTick();
 
-    double dc_offset = volume / 2;
-    ch_out = Dac(level, dc_offset);
-  }
-
-  inline virtual void ApuDivTick()
-  {
-    AudioChannel::ApuDivTick();
-
-    envelope_tick += 1;
-
-    if (envelope_tick == 8)
-    {
-      vol_sweep_pace_tick += 1;
-
-      if (vol_sweep_pace_tick == (nrx2 & GetNrx2BitMask(Nrx2BitMask::SWEEP_PACE)))
-      {
-        TickVolSweep();
-        vol_sweep_pace_tick = 0;
-      }
-
-      envelope_tick = 0;
-    }
-  }
-
-  inline virtual void Trigger()
-  {
-    AudioChannel::Trigger();
-    period_counter = GetPeriodCounter();
-  }
-
-  inline virtual void Reset()
-  {
-    AudioChannel::Reset();
-    period_counter = {};
-    wave_form_index = {};
-  }
-
-  int period_counter{};
-  int wave_form_index{};
-
-  constexpr static std::array<uint8_t, 8> DUTY_12_5_WAVE_FORM{0, 0, 0, 0, 0, 0, 0, 1};
-  constexpr static std::array<uint8_t, 8> DUTY_25_WAVE_FORM  {1, 0, 0, 0, 0, 0, 0, 1};
-  constexpr static std::array<uint8_t, 8> DUTY_50_WAVE_FORM  {1, 0, 0, 0, 0, 1, 1, 1};
-  constexpr static std::array<uint8_t, 8> DUTY_75_WAVE_FORM  {0, 1, 1, 1, 1, 1, 1, 0};
+  int mPeriodCounter{};
+  int mIdx{};
 };
