@@ -132,21 +132,21 @@ private:
   {
     struct
     {
-      uint8_t l;
-      uint8_t h;
+      uint8_t L;
+      uint8_t H;
     };
-    uint16_t hl{};
+    uint16_t HL{};
   };
 
   Register _af{};
   Register _bc{};
   Register _de{};
-  Register _hl{};
+  Register mHL{};
 
-  Register _sp{};
-  Register _pc{};
+  Register mSP{};
+  Register mPC{};
 
-  Register _wz{};
+  Register mWZ{};
 #pragma endregion
 
 #pragma region FLAGS
@@ -310,7 +310,7 @@ private:
 
   void TickComponents();
 
-  uint8_t ReadNextUint8();
+  void ReadNextUint8();
 
   // Presumably, cycles start at rising edges, and the system powers on triggering a rising edge
   // Initialize these as falling/low/-1 such that the very first cycle mimics the behaviour

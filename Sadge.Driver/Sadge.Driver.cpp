@@ -254,7 +254,7 @@ constexpr auto WINDOW_TITLE = "Sadge.Driver";
 
 constexpr auto RENDER_SCALE = 5;
 
-constexpr auto FPS_BUFFER_SIZE = 100;
+constexpr auto FPS_BUFFER_SIZE = 32;
 constexpr auto FPS_FONT_SIZE = 20;
 constexpr auto FPS_FONT_COLOR = LIME;
 constexpr auto FPS_WINDOW_OFFSET = 10;
@@ -368,6 +368,9 @@ int main(int num_args, char* args[])
 		SetAudioStreamBufferSizeDefault(AUDIO_STREAM_BUFFER_SIZE);
 		audio_stream = LoadAudioStream(AUDIO_FREQUENCY, AUDIO_BITS, AUDIO_CHANNELS);
 		SetAudioStreamCallback(audio_stream, AudioInputCallback);
+
+		while (!IsWindowReady())
+			std::this_thread::sleep_for(std::chrono::duration<double>(1));
 
 		game_boy_cpu.GetLcdController().SetFrameCallback(DrawFrame);
 		game_boy_cpu.GetAudioController().SetAudioCallback(PlayAudio);

@@ -21,12 +21,6 @@ public:
   constexpr static uint8_t  NUM_CHANNELS = 4;
   constexpr static uint8_t  DEFAULT_READ = 0xFF;
 
-  struct AudioSample
-  {
-    uint64_t cycle{};
-    double   level{};
-  };
-
   enum class Nr52BitMask : uint8_t
   {
     AUDIO_ON = 0b10000000, 
@@ -36,10 +30,7 @@ public:
     CH1_ON   = 0b00000001
   };
 
-  inline constexpr uint8_t GetNr52BitMask(Nr52BitMask bit_mask)
-  {
-    return static_cast<uint8_t>(bit_mask);
-  }
+  constexpr uint8_t GetNr52BitMask(Nr52BitMask bit_mask);
 
   enum class AudioWaveAddress : uint16_t
   {
@@ -74,106 +65,49 @@ public:
     END   = NR52
   };
 
-  void Init();
-
   void ClearSamples();
 
   typedef void (*AudioCallback)(std::vector<short>& audio_buffer);
 
   AudioCallback m_audio_callback = NULL;
 
-  void SetAudioCallback(AudioCallback audio_callback)
-  {
-    m_audio_callback = audio_callback;
-  }
+  void SetAudioCallback(AudioCallback audio_callback);
 
   AudioController();
-  ~AudioController();
 
-  inline void ApuDivTick()
-  {
-    if(m_ch1.enabled)
-      m_ch1.ApuDivTick();
-    if (m_ch2.enabled)
-      m_ch2.ApuDivTick();
-    if (m_ch3.enabled)
-      m_ch3.ApuDivTick();
-    if (m_ch4.enabled)
-      m_ch4.ApuDivTick();
-  }
+  void ApuDivTick();
 
-  inline void UpdateApu()
-  {
-    if (m_ch1.enabled)
-      m_ch1.Update();
-    if (m_ch2.enabled)
-      m_ch2.Update();
-    if (m_ch3.enabled)
-      m_ch3.Update();
-    if (m_ch4.enabled)
-      m_ch4.Update();
-  }
+  void UpdateApu();
 
-  inline void Mixer(double& left, double& right)
-  {
-    if (m_nr51 & (1 << 4))
-      left += m_ch1.ch_out;
-    if (m_nr51 & (1 << 5))
-      left += m_ch2.ch_out;
-    if (m_nr51 & (1 << 6))
-      left += m_ch3.ch_out;
-    if (m_nr51 & (1 << 7))
-      left += m_ch4.ch_out;
-
-    if (m_nr51 & (1 << 0))
-      right += m_ch1.ch_out;
-    if (m_nr51 & (1 << 1))
-      right += m_ch2.ch_out;
-    if (m_nr51 & (1 << 2))
-      right += m_ch3.ch_out;
-    if (m_nr51 & (1 << 3))
-      right += m_ch4.ch_out;
-
-    uint8_t left_vol  = (m_nr50 >> 4) & 0x7;
-    uint8_t right_vol = (m_nr50 >> 0) & 0x7;
-
-    double left_scale  = ((left_vol  + 1) / 8.0) / NUM_CHANNELS; 
-    double right_scale = ((right_vol + 1) / 8.0) / NUM_CHANNELS;
-
-    left  *= left_scale;
-    right *= right_scale;
-  }
+  inline void Mixer(double& left, double& right);
 
   uint8_t HandleRead(uint16_t address) const;
   void HandleWrite(uint16_t address, uint8_t val);
   void Update(uint16_t clk);
 
 private:
-  inline uint8_t GetChOnBits() const
-  {
-    return (static_cast<int>(m_ch4.enabled) << 3) | (static_cast<int>(m_ch3.enabled) << 2) | (static_cast<int>(m_ch2.enabled) << 1) | static_cast<int>(m_ch1.enabled);
-  }
+  uint8_t GetChOnBits() const;
 
   void HandleNr52Write(uint8_t val);
   void SubSample();
   void Reset();
   
-  std::vector<double> m_left_samples_buffer;
-  std::vector<double> m_right_samples_buffer;
+  std::vector<double> mLBuf;
+  std::vector<double> mRBuf;
 
-  std::vector<short>  m_subsample_buffer;
-  uint64_t m_cycle_count{};
+  std::vector<short>  mSubsampleBuf;
+  uint64_t mCycleCount{};
 
-  PulseSweepChannel m_ch1;
-  PulseChannel      m_ch2;
-  WaveChannel       m_ch3;
-  NoiseChannel      m_ch4;
+  PulseSweepChannel mCH1;
+  PulseChannel      mCH2;
+  WaveChannel       mCH3;
+  NoiseChannel      mCH4;
 
-  uint8_t m_nr50{};
-  uint8_t m_nr51{};
-  uint8_t m_nr52{};
+  uint8_t mNR50{};
+  uint8_t mNR51{};
+  uint8_t mNR52{};
 
   uint16_t mClk{};
 
-  bool m_audio_enabled{};
+  bool mEnabled{};
 };

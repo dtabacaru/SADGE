@@ -17,17 +17,17 @@ void Cpu::LD_rr_nn(Register& rr)
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mDataBus = ReadNextUint8();
-      _wz.h = mDataBus;
+      ReadNextUint8();
+      mWZ.H = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
-      rr = _wz;
+      rr = mWZ;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -40,12 +40,12 @@ void Cpu::LD_r_n(uint8_t& r)
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      r = _wz.l;
+      r = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -64,13 +64,13 @@ void Cpu::LD_r__HL(uint8_t& r)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      r = _wz.l;
+      r = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -83,13 +83,13 @@ void Cpu::LD__HL_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _hl.hl;
-      mDataBus = _wz.l;
+      mAddressBus = mHL.HL;
+      mDataBus = mWZ.L;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
@@ -104,7 +104,7 @@ void Cpu::LD__rr_r(Register rr, uint8_t r)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = rr.hl;
+      mAddressBus = rr.HL;
       mDataBus = r;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
@@ -119,7 +119,7 @@ void Cpu::LD__rr_r(Register rr, uint8_t r)
 
 void Cpu::LD__rr_A(Register rr)
 {
-  LD__rr_r(rr, _af.h);
+  LD__rr_r(rr, _af.H);
 }
 
 void Cpu::LD__nn_A()
@@ -127,18 +127,18 @@ void Cpu::LD__nn_A()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mDataBus = ReadNextUint8();
-      _wz.h = mDataBus;
+      ReadNextUint8();
+      mWZ.H = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _wz.hl;
-      mDataBus = _af.h;
+      mAddressBus = mWZ.HL;
+      mDataBus = _af.H;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
@@ -152,12 +152,12 @@ void Cpu::LD__nn_A()
 
 void Cpu::LD__HLx_A(int val)
 {
-  LD__rr_r(_hl, _af.h);
+  LD__rr_r(mHL, _af.H);
 
   switch (mExeCycle)
   {
     case 0:
-      _hl.hl += val;
+      mHL.HL += val;
       break;
     case 1:
     default:
@@ -170,13 +170,13 @@ void Cpu::LD_A__rr(Register rr)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = rr.hl;
+      mAddressBus = rr.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      _af.h = _wz.l;
+      _af.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -189,23 +189,23 @@ void Cpu::LD_A__nn()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mDataBus = ReadNextUint8();
-      _wz.h = mDataBus;
+      ReadNextUint8();
+      mWZ.H = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _wz.hl;
+      mAddressBus = mWZ.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 3:
-      _af.h = _wz.l;
+      _af.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -215,12 +215,12 @@ void Cpu::LD_A__nn()
 
 void Cpu::LD_A__HLx(int val)
 {
-  LD_A__rr(_hl);
+  LD_A__rr(mHL);
 
   switch (mExeCycle)
   {
     case 0:
-      _hl.hl += val;
+      mHL.HL += val;
       break;
     case 1:
     default:
@@ -233,25 +233,25 @@ void Cpu::LD__nn_SP()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mDataBus = ReadNextUint8();
-      _wz.h = mDataBus;
+      ReadNextUint8();
+      mWZ.H = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _wz.hl;
-      mDataBus = _sp.l;
+      mAddressBus = mWZ.HL;
+      mDataBus = mSP.L;
       WriteAddress(mAddressBus, mDataBus);
-      _wz.hl += 1;
+      mWZ.HL += 1;
       mExeCycle += 1;
       break;
     case 3:
-      mAddressBus = _wz.hl;
-      mDataBus = _sp.h;
+      mAddressBus = mWZ.HL;
+      mDataBus = mSP.H;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
@@ -268,7 +268,7 @@ void Cpu::LD_SP_HL()
   switch (mExeCycle)
   {
     case 0:
-      _sp = _hl;
+      mSP = mHL;
       mExeCycle += 1;
       break;
     case 1:
@@ -286,19 +286,19 @@ void Cpu::LD_HL_SP_e()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
       mAddressBus = 0x0000;
-      val = static_cast<int8_t>(_wz.l);
-      result = _sp.hl + val;
+      val = static_cast<int8_t>(mWZ.L);
+      result = mSP.HL + val;
       ResetFlag(FlagBitMask::Zero);
       ResetFlag(FlagBitMask::Subtract);
-      SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
-      SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
-      _hl.hl = static_cast<uint16_t>(result);
+      SetHalfCarryFlag(static_cast<uint8_t>(mSP.HL), static_cast<uint8_t>(val));
+      SetCarry8Bit(static_cast<uint8_t>(mSP.HL) + static_cast<uint8_t>(val));
+      mHL.HL = static_cast<uint16_t>(result);
       mExeCycle += 1;
       break;
     case 2:
@@ -316,26 +316,26 @@ void Cpu::ADD_SP_e()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
       mAddressBus = 0x0000;
-      val = static_cast<int8_t>(_wz.l);
-      result = _sp.hl + val;
+      val = static_cast<int8_t>(mWZ.L);
+      result = mSP.HL + val;
       ResetFlag(FlagBitMask::Zero);
       ResetFlag(FlagBitMask::Subtract);
-      SetHalfCarryFlag(static_cast<uint8_t>(_sp.hl), static_cast<uint8_t>(val));
-      SetCarry8Bit(static_cast<uint8_t>(_sp.hl) + static_cast<uint8_t>(val));
-      _wz.hl = static_cast<uint16_t>(result);
+      SetHalfCarryFlag(static_cast<uint8_t>(mSP.HL), static_cast<uint8_t>(val));
+      SetCarry8Bit(static_cast<uint8_t>(mSP.HL) + static_cast<uint8_t>(val));
+      mWZ.HL = static_cast<uint16_t>(result);
       mExeCycle += 1;
       break;
     case 2:
       mExeCycle += 1;
       break;
     case 3:
-      _sp = _wz;
+      mSP = mWZ;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -348,13 +348,13 @@ void Cpu::LDH__n_A()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _wz.l;
-      mDataBus = _af.h;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mWZ.L;
+      mDataBus = _af.H;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
@@ -371,8 +371,8 @@ void Cpu::LDH__C_A()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.l;
-      mDataBus = _af.h;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.L;
+      mDataBus = _af.H;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
@@ -389,13 +389,13 @@ void Cpu::LDH_A__C()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.l;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.L;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      _af.h = _wz.l;
+      _af.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -408,18 +408,18 @@ void Cpu::LDH_A__n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _wz.l;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mWZ.L;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
-      _af.h = _wz.l;
+      _af.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -432,8 +432,8 @@ void Cpu::ADD_rr(Register& rr, int val)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = rr.hl;
-      rr.hl += val;
+      mAddressBus = rr.HL;
+      rr.HL += val;
       mExeCycle += 1;
       break;
     case 1:
@@ -455,11 +455,11 @@ void Cpu::ADD_HL_rr(Register rr)
       mExeCycle += 1;
       break;
     case 1:
-      result = _hl.hl + rr.hl;
+      result = mHL.HL + rr.HL;
       ResetFlag(FlagBitMask::Subtract);
-      SetHalfCarryFlag(_hl.hl, rr.hl);
+      SetHalfCarryFlag(mHL.HL, rr.HL);
       SetCarry16Bit(result);
-      _hl.hl = result;
+      mHL.HL = result;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -474,16 +474,16 @@ void Cpu::ADD__HL(int val)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      result = _wz.l + val;
+      result = mWZ.L + val;
       mDataBus = result;
       WriteAddress(mAddressBus, mDataBus);
-      SetHalfCarryFlag(_wz.l, val);
+      SetHalfCarryFlag(mWZ.L, val);
       SetZeroFlag(result);
       SetSubtractionFlag(val);
       mExeCycle += 1;
@@ -509,10 +509,10 @@ void Cpu::ADD_x(uint8_t& r, int val, bool set_carry)
 void Cpu::ADC_A_x(int val)
 {
   int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-  int result = _af.h + val + carry;
-  SetHalfCarryFlag(_af.h, val, carry);
-  _af.h = result;
-  SetZeroFlag(_af.h);
+  int result = _af.H + val + carry;
+  SetHalfCarryFlag(_af.H, val, carry);
+  _af.H = result;
+  SetZeroFlag(_af.H);
   ResetFlag(FlagBitMask::Subtract);
   SetCarry8Bit(result);
   //_opcycle = INSTRUCTION_COMPLETE;
@@ -523,13 +523,13 @@ void Cpu::ADC_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      ADC_A_x(_wz.l);
+      ADC_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -542,12 +542,12 @@ void Cpu::ADC_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      ADC_A_x(_wz.l);
+      ADC_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -558,10 +558,10 @@ void Cpu::ADC_A_n()
 void Cpu::SBC_A_x(int val)
 {
   int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-  int result = _af.h - val - carry;
-  SetHalfCarryFlag(_af.h, -val, -carry);
-  _af.h = result;
-  SetZeroFlag(_af.h);
+  int result = _af.H - val - carry;
+  SetHalfCarryFlag(_af.H, -val, -carry);
+  _af.H = result;
+  SetZeroFlag(_af.H);
   SetFlag(FlagBitMask::Subtract);
   SetCarry8Bit(result);
   //_opcycle = INSTRUCTION_COMPLETE;
@@ -572,13 +572,13 @@ void Cpu::SBC_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      SBC_A_x(_wz.l);
+      SBC_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -591,12 +591,12 @@ void Cpu::SBC_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      SBC_A_x(_wz.l);
+      SBC_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -606,8 +606,8 @@ void Cpu::SBC_A_n()
 
 void Cpu::AND_A_x(uint8_t val)
 {
-  _af.h &= val;
-  SetZeroFlag(_af.h);
+  _af.H &= val;
+  SetZeroFlag(_af.H);
   ResetFlag(FlagBitMask::Subtract);
   SetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
@@ -618,13 +618,13 @@ void Cpu::AND_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      AND_A_x(_wz.l);
+      AND_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -637,12 +637,12 @@ void Cpu::AND_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      AND_A_x(_wz.l);
+      AND_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -652,8 +652,8 @@ void Cpu::AND_A_n()
 
 void Cpu::XOR_A_x(uint8_t val)
 {
-  _af.h ^= val;
-  SetZeroFlag(_af.h);
+  _af.H ^= val;
+  SetZeroFlag(_af.H);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
@@ -664,13 +664,13 @@ void Cpu::XOR_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      XOR_A_x(_wz.l);
+      XOR_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -683,12 +683,12 @@ void Cpu::XOR_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      XOR_A_x(_wz.l);
+      XOR_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -698,8 +698,8 @@ void Cpu::XOR_A_n()
 
 void Cpu::OR_A_X(uint8_t val)
 {
-  _af.h |= val;
-  SetZeroFlag(_af.h);
+  _af.H |= val;
+  SetZeroFlag(_af.H);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
@@ -710,13 +710,13 @@ void Cpu::OR_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      OR_A_X(_wz.l);
+      OR_A_X(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -729,12 +729,12 @@ void Cpu::OR_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      OR_A_X(_wz.l);
+      OR_A_X(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -744,10 +744,10 @@ void Cpu::OR_A_n()
 
 void Cpu::CP_A_x(uint8_t val)
 {
-  int result = _af.h - val;
+  int result = _af.H - val;
   SetZeroFlag(result);
   SetFlag(FlagBitMask::Subtract);
-  SetHalfCarryFlag(_af.h, -val);
+  SetHalfCarryFlag(_af.H, -val);
   SetCarry8Bit(result);
 }
 
@@ -756,13 +756,13 @@ void Cpu::CP_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      CP_A_x(_wz.l);
+      CP_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -775,12 +775,12 @@ void Cpu::CP_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      CP_A_x(_wz.l);
+      CP_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -790,7 +790,7 @@ void Cpu::CP_A_n()
 
 void Cpu::ADD_A_x(int val)
 {
-  ADD_x(_af.h, val, true);
+  ADD_x(_af.H, val, true);
   ResetFlag(FlagBitMask::Subtract);
 }
 
@@ -799,13 +799,13 @@ void Cpu::ADD_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      ADD_A_x(_wz.l);
+      ADD_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -818,12 +818,12 @@ void Cpu::ADD_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      ADD_A_x(_wz.l);
+      ADD_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -833,7 +833,7 @@ void Cpu::ADD_A_n()
 
 void Cpu::SUB_A_x(int val)
 {
-  ADD_x(_af.h, -val, true);
+  ADD_x(_af.H, -val, true);
   SetFlag(FlagBitMask::Subtract);
 }
 
@@ -842,13 +842,13 @@ void Cpu::SUB_A__HL()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _hl.hl;
+      mAddressBus = mHL.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      SUB_A_x(_wz.l);
+      SUB_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -861,12 +861,12 @@ void Cpu::SUB_A_n()
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      SUB_A_x(_wz.l);
+      SUB_A_x(mWZ.L);
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -888,8 +888,8 @@ void Cpu::DEC_r(uint8_t& r)
 
 void Cpu::RLCA()
 {
-  _af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.h = _af.h << 1 | _af.h >> 7;
+  _af.H & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  _af.H = _af.H << 1 | _af.H >> 7;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -898,8 +898,8 @@ void Cpu::RLCA()
 
 void Cpu::RRCA()
 {
-  _af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.h = _af.h >> 1 | _af.h << 7;
+  _af.H & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  _af.H = _af.H >> 1 | _af.H << 7;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -909,8 +909,8 @@ void Cpu::RRCA()
 void Cpu::RLA()
 {
   uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-  _af.h & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.h = _af.h << 1 | carry_bit;
+  _af.H & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  _af.H = _af.H << 1 | carry_bit;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -920,8 +920,8 @@ void Cpu::RLA()
 void Cpu::RRA()
 {
   uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-  _af.h & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.h = _af.h >> 1 | carry_bit << 7;
+  _af.H & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  _af.H = _af.H >> 1 | carry_bit << 7;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -932,23 +932,23 @@ void Cpu::DAA()
 {
   if (!ReadFlag(FlagBitMask::Subtract))
   {
-    if (ReadFlag(FlagBitMask::Carry) || _af.h > 0x99) { _af.h += 0x60; SetFlag(FlagBitMask::Carry); }
-    if (ReadFlag(FlagBitMask::HalfCarry) || (_af.h & 0x0f) > 0x09)   _af.h += 0x06;
+    if (ReadFlag(FlagBitMask::Carry) || _af.H > 0x99) { _af.H += 0x60; SetFlag(FlagBitMask::Carry); }
+    if (ReadFlag(FlagBitMask::HalfCarry) || (_af.H & 0x0f) > 0x09)   _af.H += 0x06;
   }
   else
   {
-    if (ReadFlag(FlagBitMask::Carry))     _af.h -= 0x60;
-    if (ReadFlag(FlagBitMask::HalfCarry)) _af.h -= 0x06;
+    if (ReadFlag(FlagBitMask::Carry))     _af.H -= 0x60;
+    if (ReadFlag(FlagBitMask::HalfCarry)) _af.H -= 0x06;
   }
 
-  SetZeroFlag(_af.h);
+  SetZeroFlag(_af.H);
   ResetFlag(FlagBitMask::HalfCarry);
   //_opcycle = INSTRUCTION_COMPLETE;
 }
 
 void Cpu::CPL()
 {
-  _af.h = ~_af.h;
+  _af.H = ~_af.H;
   SetFlag(FlagBitMask::Subtract);
   SetFlag(FlagBitMask::HalfCarry);
   //_opcycle = INSTRUCTION_COMPLETE;
@@ -975,20 +975,20 @@ void Cpu::PUSH_rr(Register rr)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _sp.hl;
-      _sp.hl -= 1;
+      mAddressBus = mSP.HL;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _sp.hl;
-      mDataBus = rr.h;
+      mAddressBus = mSP.HL;
+      mDataBus = rr.H;
       WriteAddress(mAddressBus, mDataBus);
-      _sp.hl -= 1;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _sp.hl;
-      mDataBus = rr.l;
+      mAddressBus = mSP.HL;
+      mDataBus = rr.L;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
@@ -1003,13 +1003,13 @@ void Cpu::CALL(bool call)
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mDataBus = ReadNextUint8();
-      _wz.h = mDataBus;
+      ReadNextUint8();
+      mWZ.H = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
@@ -1018,22 +1018,22 @@ void Cpu::CALL(bool call)
         mExeCycle = EXE_COMPLETE;
         break;
       }
-      mAddressBus = _sp.hl;
-      _sp.hl -= 1;
+      mAddressBus = mSP.HL;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 3:
-      mAddressBus = _sp.hl;
-      mDataBus = _pc.h;
+      mAddressBus = mSP.HL;
+      mDataBus = mPC.H;
       WriteAddress(mAddressBus, mDataBus);
-      _sp.hl -= 1;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 4:
-      mAddressBus = _sp.hl;
-      mDataBus = _pc.l;
+      mAddressBus = mSP.HL;
+      mDataBus = mPC.L;
       WriteAddress(mAddressBus, mDataBus);
-      _pc = _wz;
+      mPC = mWZ;
       mExeCycle += 1;
       break;
     case 5:
@@ -1044,7 +1044,7 @@ void Cpu::CALL(bool call)
 
 void Cpu::JP_HL()
 {
-  _pc = _hl;
+  mPC = mHL;
 }
 
 void Cpu::JP_cc_nn(bool jump)
@@ -1052,18 +1052,18 @@ void Cpu::JP_cc_nn(bool jump)
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mDataBus = ReadNextUint8();
-      _wz.h = mDataBus;
+      ReadNextUint8();
+      mWZ.H = mDataBus;
       mExeCycle += 1;
       break;
     case 2:
       mAddressBus = 0x0000;
-      if (jump) _pc = _wz;
+      if (jump) mPC = mWZ;
       mExeCycle = jump ? mExeCycle + 1 : EXE_COMPLETE;
       break;
     case 3:
@@ -1078,17 +1078,17 @@ void Cpu::JR_cc_e(bool jump)
   switch (mExeCycle)
   {
     case 0:
-      mDataBus = ReadNextUint8();
-      _wz.l = mDataBus;
+      ReadNextUint8();
+      mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _pc.h;
+      mAddressBus = mPC.H;
       mExeCycle = jump ? mExeCycle + 1 : EXE_COMPLETE;
       break;
     case 2:
-      val = static_cast<int8_t>(_wz.l);
-      _pc.hl += val;
+      val = static_cast<int8_t>(mWZ.L);
+      mPC.HL += val;
       mExeCycle = EXE_COMPLETE;
       break;
   }
@@ -1099,21 +1099,21 @@ void Cpu::POP_rr(Register& rr)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
-      _sp.hl += 1;
+      mWZ.L = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.h = mDataBus;
-      _sp.hl += 1;
+      mWZ.H = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 2:
-      rr = _wz;
+      rr = mWZ;
       mExeCycle = EXE_COMPLETE;
       break;
   }
@@ -1124,21 +1124,21 @@ void Cpu::RET(bool set_ime)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
-      _sp.hl += 1;
+      mWZ.L = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.h = mDataBus;
-      _sp.hl += 1;
+      mWZ.H = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 2:
-      _pc = _wz;
+      mPC = mWZ;
       if (set_ime) mInterruptCtrl.EnableInterrupts();
       mExeCycle += 1;
       break;
@@ -1162,21 +1162,21 @@ void Cpu::RET_cc(bool ret)
         mExeCycle = EXE_COMPLETE;
         break;
       }
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
-      _sp.hl += 1;
+      mWZ.L = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.h = mDataBus;
-      _sp.hl += 1;
+      mWZ.H = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 3:
-      _pc = _wz;
+      mPC = mWZ;
       mExeCycle += 1;
       break;
     case 4:
@@ -1190,22 +1190,22 @@ void Cpu::POP_AF()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.l = mDataBus;
-      _sp.hl += 1;
+      mWZ.L = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _sp.hl;
+      mAddressBus = mSP.HL;
       mDataBus = ReadAddress(mAddressBus);
-      _wz.h = mDataBus;
-      _sp.hl += 1;
+      mWZ.H = mDataBus;
+      mSP.HL += 1;
       mExeCycle += 1;
       break;
     case 2:
-      _af = _wz;
-      _af.l &= 0xF0;
+      _af = mWZ;
+      _af.L &= 0xF0;
       mExeCycle = EXE_COMPLETE;
       break;
   }
@@ -1216,22 +1216,22 @@ void Cpu::RST(RestartVector vec)
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _sp.hl;
-      _sp.hl -= 1;
+      mAddressBus = mSP.HL;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _sp.hl;
-      mDataBus = _pc.h;
+      mAddressBus = mSP.HL;
+      mDataBus = mPC.H;
       WriteAddress(mAddressBus, mDataBus);
-      _sp.hl -= 1;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _sp.hl;
-      mDataBus = _pc.l;
+      mAddressBus = mSP.HL;
+      mDataBus = mPC.L;
       WriteAddress(mAddressBus, mDataBus);
-      _pc.hl = GetRestartVectorAddress(vec);
+      mPC.HL = GetRestartVectorAddress(vec);
       mExeCycle += 1;
       break;
     case 3:
@@ -1262,17 +1262,17 @@ void Cpu::Op0x03()
 
 void Cpu::Op0x04()
 {
-  INC_r(_bc.h);
+  INC_r(_bc.H);
 }
 
 void Cpu::Op0x05()
 {
-  DEC_r(_bc.h);
+  DEC_r(_bc.H);
 }
 
 void Cpu::Op0x06()
 {
-  LD_r_n(_bc.h);
+  LD_r_n(_bc.H);
 }
 
 void Cpu::Op0x07()
@@ -1302,17 +1302,17 @@ void Cpu::Op0x0B()
 
 void Cpu::Op0x0C()
 {
-  INC_r(_bc.l);
+  INC_r(_bc.L);
 }
 
 void Cpu::Op0x0D()
 {
-  DEC_r(_bc.l);
+  DEC_r(_bc.L);
 }
 
 void Cpu::Op0x0E()
 {
-  LD_r_n(_bc.l);
+  LD_r_n(_bc.L);
 }
 
 void Cpu::Op0x0F()
@@ -1342,17 +1342,17 @@ void Cpu::Op0x13()
 
 void Cpu::Op0x14()
 {
-  INC_r(_de.h);
+  INC_r(_de.H);
 }
 
 void Cpu::Op0x15()
 {
-  DEC_r(_de.h);
+  DEC_r(_de.H);
 }
 
 void Cpu::Op0x16()
 {
-  LD_r_n(_de.h);
+  LD_r_n(_de.H);
 }
 
 void Cpu::Op0x17()
@@ -1387,17 +1387,17 @@ void Cpu::Op0x1B()
 
 void Cpu::Op0x1C()
 {
-  INC_r(_de.l);
+  INC_r(_de.L);
 }
 
 void Cpu::Op0x1D()
 {
-  DEC_r(_de.l);
+  DEC_r(_de.L);
 }
 
 void Cpu::Op0x1E()
 {
-  LD_r_n(_de.l);
+  LD_r_n(_de.L);
 }
 
 void Cpu::Op0x1F()
@@ -1407,7 +1407,7 @@ void Cpu::Op0x1F()
 
 void Cpu::Op0x21()
 {
-  LD_rr_nn(_hl);
+  LD_rr_nn(mHL);
 }
 
 void Cpu::Op0x22()
@@ -1417,22 +1417,22 @@ void Cpu::Op0x22()
 
 void Cpu::Op0x23()
 {
-  ADD_rr(_hl, 1);
+  ADD_rr(mHL, 1);
 }
 
 void Cpu::Op0x24()
 {
-  INC_r(_hl.h);
+  INC_r(mHL.H);
 }
 
 void Cpu::Op0x25()
 {
-  DEC_r(_hl.h);
+  DEC_r(mHL.H);
 }
 
 void Cpu::Op0x26()
 {
-  LD_r_n(_hl.h);
+  LD_r_n(mHL.H);
 }
 
 void Cpu::Op0x27()
@@ -1447,7 +1447,7 @@ void Cpu::Op0x28()
 
 void Cpu::Op0x29()
 {
-  ADD_HL_rr(_hl);
+  ADD_HL_rr(mHL);
 }
 
 void Cpu::Op0x2A()
@@ -1457,22 +1457,22 @@ void Cpu::Op0x2A()
 
 void Cpu::Op0x2B()
 {
-  ADD_rr(_hl, -1);
+  ADD_rr(mHL, -1);
 }
 
 void Cpu::Op0x2C()
 {
-  INC_r(_hl.l);
+  INC_r(mHL.L);
 }
 
 void Cpu::Op0x2D()
 {
-  DEC_r(_hl.l);
+  DEC_r(mHL.L);
 }
 
 void Cpu::Op0x2E()
 {
-  LD_r_n(_hl.l);
+  LD_r_n(mHL.L);
 }
 
 void Cpu::Op0x2F()
@@ -1487,7 +1487,7 @@ void Cpu::Op0x30()
 
 void Cpu::Op0x31()
 {
-  LD_rr_nn(_sp);
+  LD_rr_nn(mSP);
 }
 
 void Cpu::Op0x32()
@@ -1497,7 +1497,7 @@ void Cpu::Op0x32()
 
 void Cpu::Op0x33()
 {
-  ADD_rr(_sp, 1);
+  ADD_rr(mSP, 1);
 }
 
 void Cpu::Op0x34()
@@ -1527,7 +1527,7 @@ void Cpu::Op0x38()
 
 void Cpu::Op0x39()
 {
-  ADD_HL_rr(_sp);
+  ADD_HL_rr(mSP);
 }
 
 void Cpu::Op0x3A()
@@ -1537,22 +1537,22 @@ void Cpu::Op0x3A()
 
 void Cpu::Op0x3B()
 {
-  ADD_rr(_sp, -1);
+  ADD_rr(mSP, -1);
 }
 
 void Cpu::Op0x3C()
 {
-  INC_r(_af.h);
+  INC_r(_af.H);
 }
 
 void Cpu::Op0x3D()
 {
-  DEC_r(_af.h);
+  DEC_r(_af.H);
 }
 
 void Cpu::Op0x3E()
 {
-  LD_r_n(_af.h);
+  LD_r_n(_af.H);
 }
 
 void Cpu::Op0x3F()
@@ -1562,277 +1562,277 @@ void Cpu::Op0x3F()
 
 void Cpu::Op0x40()
 {
-  LD_r_x(_bc.h, _bc.h);
+  LD_r_x(_bc.H, _bc.H);
 }
 
 void Cpu::Op0x41()
 {
-  LD_r_x(_bc.h, _bc.l);
+  LD_r_x(_bc.H, _bc.L);
 }
 
 void Cpu::Op0x42()
 {
-  LD_r_x(_bc.h, _de.h);
+  LD_r_x(_bc.H, _de.H);
 }
 
 void Cpu::Op0x43()
 {
-  LD_r_x(_bc.h, _de.l);
+  LD_r_x(_bc.H, _de.L);
 }
 
 void Cpu::Op0x44()
 {
-  LD_r_x(_bc.h, _hl.h);
+  LD_r_x(_bc.H, mHL.H);
 }
 
 void Cpu::Op0x45()
 {
-  LD_r_x(_bc.h, _hl.l);
+  LD_r_x(_bc.H, mHL.L);
 }
 
 void Cpu::Op0x46()
 {
-  LD_r__HL(_bc.h);
+  LD_r__HL(_bc.H);
 }
 
 void Cpu::Op0x47()
 {
-  LD_r_x(_bc.h, _af.h);
+  LD_r_x(_bc.H, _af.H);
 
 }
 
 void Cpu::Op0x48()
 {
-  LD_r_x(_bc.l, _bc.h);
+  LD_r_x(_bc.L, _bc.H);
 
 }
 
 void Cpu::Op0x49()
 {
-  LD_r_x(_bc.l, _bc.l);
+  LD_r_x(_bc.L, _bc.L);
 
 }
 
 void Cpu::Op0x4A()
 {
-  LD_r_x(_bc.l, _de.h);
+  LD_r_x(_bc.L, _de.H);
 
 }
 
 void Cpu::Op0x4B()
 {
-  LD_r_x(_bc.l, _de.l);
+  LD_r_x(_bc.L, _de.L);
 }
 
 void Cpu::Op0x4C()
 {
-  LD_r_x(_bc.l, _hl.h);
+  LD_r_x(_bc.L, mHL.H);
 }
 
 void Cpu::Op0x4D()
 {
-  LD_r_x(_bc.l, _hl.l);
+  LD_r_x(_bc.L, mHL.L);
 }
 
 void Cpu::Op0x4E()
 {
-  LD_r__HL(_bc.l);
+  LD_r__HL(_bc.L);
 }
 
 void Cpu::Op0x4F()
 {
-  LD_r_x(_bc.l, _af.h);
+  LD_r_x(_bc.L, _af.H);
 }
 
 void Cpu::Op0x50()
 {
-  LD_r_x(_de.h, _bc.h);
+  LD_r_x(_de.H, _bc.H);
 }
 
 void Cpu::Op0x51()
 {
-  LD_r_x(_de.h, _bc.l);
+  LD_r_x(_de.H, _bc.L);
 }
 
 void Cpu::Op0x52()
 {
-  LD_r_x(_de.h, _de.h);
+  LD_r_x(_de.H, _de.H);
 }
 
 void Cpu::Op0x53()
 {
-  LD_r_x(_de.h, _de.l);
+  LD_r_x(_de.H, _de.L);
 }
 
 void Cpu::Op0x54()
 {
-  LD_r_x(_de.h, _hl.h);
+  LD_r_x(_de.H, mHL.H);
 }
 
 void Cpu::Op0x55()
 {
-  LD_r_x(_de.h, _hl.l);
+  LD_r_x(_de.H, mHL.L);
 }
 
 void Cpu::Op0x56()
 {
-  LD_r__HL(_de.h);
+  LD_r__HL(_de.H);
 }
 
 void Cpu::Op0x57()
 {
-  LD_r_x(_de.h, _af.h);
+  LD_r_x(_de.H, _af.H);
 }
 
 void Cpu::Op0x58()
 {
-  LD_r_x(_de.l, _bc.h);
+  LD_r_x(_de.L, _bc.H);
 }
 
 void Cpu::Op0x59()
 {
-  LD_r_x(_de.l, _bc.l);
+  LD_r_x(_de.L, _bc.L);
 }
 
 void Cpu::Op0x5A()
 {
-  LD_r_x(_de.l, _de.h);
+  LD_r_x(_de.L, _de.H);
 }
 
 void Cpu::Op0x5B()
 {
-  LD_r_x(_de.l, _de.l);
+  LD_r_x(_de.L, _de.L);
 }
 
 void Cpu::Op0x5C()
 {
-  LD_r_x(_de.l, _hl.h);
+  LD_r_x(_de.L, mHL.H);
 
 }
 
 void Cpu::Op0x5D()
 {
-  LD_r_x(_de.l, _hl.l);
+  LD_r_x(_de.L, mHL.L);
 }
 
 void Cpu::Op0x5E()
 {
-  LD_r__HL(_de.l);
+  LD_r__HL(_de.L);
 }
 
 void Cpu::Op0x5F()
 {
-  LD_r_x(_de.l, _af.h);
+  LD_r_x(_de.L, _af.H);
 }
 
 void Cpu::Op0x60()
 {
-  LD_r_x(_hl.h, _bc.h);
+  LD_r_x(mHL.H, _bc.H);
 }
 
 void Cpu::Op0x61()
 {
-  LD_r_x(_hl.h, _bc.l);
+  LD_r_x(mHL.H, _bc.L);
 }
 
 void Cpu::Op0x62()
 {
-  LD_r_x(_hl.h, _de.h);
+  LD_r_x(mHL.H, _de.H);
 }
 
 void Cpu::Op0x63()
 {
-  LD_r_x(_hl.h, _de.l);
+  LD_r_x(mHL.H, _de.L);
 }
 
 void Cpu::Op0x64()
 {
-  LD_r_x(_hl.h, _hl.h);
+  LD_r_x(mHL.H, mHL.H);
 }
 
 void Cpu::Op0x65()
 {
-  LD_r_x(_hl.h, _hl.l);
+  LD_r_x(mHL.H, mHL.L);
 }
 
 void Cpu::Op0x66()
 {
-  LD_r__HL(_hl.h);
+  LD_r__HL(mHL.H);
 }
 
 void Cpu::Op0x67()
 {
-  LD_r_x(_hl.h, _af.h);
+  LD_r_x(mHL.H, _af.H);
 }
 
 void Cpu::Op0x68()
 {
-  LD_r_x(_hl.l, _bc.h);
+  LD_r_x(mHL.L, _bc.H);
 }
 
 void Cpu::Op0x69()
 {
-  LD_r_x(_hl.l, _bc.l);
+  LD_r_x(mHL.L, _bc.L);
 }
 
 void Cpu::Op0x6A()
 {
-  LD_r_x(_hl.l, _de.h);
+  LD_r_x(mHL.L, _de.H);
 }
 
 void Cpu::Op0x6B()
 {
-  LD_r_x(_hl.l, _de.l);
+  LD_r_x(mHL.L, _de.L);
 }
 
 void Cpu::Op0x6C()
 {
-  LD_r_x(_hl.l, _hl.h);
+  LD_r_x(mHL.L, mHL.H);
 }
 
 void Cpu::Op0x6D()
 {
-  LD_r_x(_hl.l, _hl.l);
+  LD_r_x(mHL.L, mHL.L);
 }
 
 void Cpu::Op0x6E()
 {
-  LD_r__HL(_hl.l);
+  LD_r__HL(mHL.L);
 }
 
 void Cpu::Op0x6F()
 {
-  LD_r_x(_hl.l, _af.h);
+  LD_r_x(mHL.L, _af.H);
 }
 
 void Cpu::Op0x70()
 {
-  LD__rr_r(_hl, _bc.h);
+  LD__rr_r(mHL, _bc.H);
 }
 
 void Cpu::Op0x71()
 {
-  LD__rr_r(_hl, _bc.l);
+  LD__rr_r(mHL, _bc.L);
 }
 
 void Cpu::Op0x72()
 {
-  LD__rr_r(_hl, _de.h);
+  LD__rr_r(mHL, _de.H);
 }
 
 void Cpu::Op0x73()
 {
-  LD__rr_r(_hl, _de.l);
+  LD__rr_r(mHL, _de.L);
 }
 
 void Cpu::Op0x74()
 {
-  LD__rr_r(_hl, _hl.h);
+  LD__rr_r(mHL, mHL.H);
 }
 
 void Cpu::Op0x75()
 {
-  LD__rr_r(_hl, _hl.l);
+  LD__rr_r(mHL, mHL.L);
 }
 
 void Cpu::Op0x76()
@@ -1842,77 +1842,77 @@ void Cpu::Op0x76()
 
 void Cpu::Op0x77()
 {
-  LD__rr_r(_hl, _af.h);
+  LD__rr_r(mHL, _af.H);
 }
 
 void Cpu::Op0x78()
 {
-  LD_r_x(_af.h, _bc.h);
+  LD_r_x(_af.H, _bc.H);
 }
 
 void Cpu::Op0x79()
 {
-  LD_r_x(_af.h, _bc.l);
+  LD_r_x(_af.H, _bc.L);
 }
 
 void Cpu::Op0x7A()
 {
-  LD_r_x(_af.h, _de.h);
+  LD_r_x(_af.H, _de.H);
 }
 
 void Cpu::Op0x7B()
 {
-  LD_r_x(_af.h, _de.l);
+  LD_r_x(_af.H, _de.L);
 }
 
 void Cpu::Op0x7C()
 {
-  LD_r_x(_af.h, _hl.h);
+  LD_r_x(_af.H, mHL.H);
 }
 
 void Cpu::Op0x7D()
 {
-  LD_r_x(_af.h, _hl.l);
+  LD_r_x(_af.H, mHL.L);
 }
 
 void Cpu::Op0x7E()
 {
-  LD_r__HL(_af.h);
+  LD_r__HL(_af.H);
 }
 
 void Cpu::Op0x7F()
 {
-  LD_r_x(_af.h, _af.h);
+  LD_r_x(_af.H, _af.H);
 }
 
 void Cpu::Op0x80()
 {
-  ADD_A_x(_bc.h);
+  ADD_A_x(_bc.H);
 }
 
 void Cpu::Op0x81()
 {
-  ADD_A_x(_bc.l);
+  ADD_A_x(_bc.L);
 }
 
 void Cpu::Op0x82()
 {
-  ADD_A_x(_de.h);
+  ADD_A_x(_de.H);
 }
 
 void Cpu::Op0x83()
 {
-  ADD_A_x(_de.l);
+  ADD_A_x(_de.L);
 }
 
 void Cpu::Op0x84()
 {
-  ADD_A_x(_hl.h);
+  ADD_A_x(mHL.H);
 }
 
 void Cpu::Op0x85()
 {
-  ADD_A_x(_hl.l);
+  ADD_A_x(mHL.L);
 }
 
 void Cpu::Op0x86()
@@ -1922,37 +1922,37 @@ void Cpu::Op0x86()
 
 void Cpu::Op0x87()
 {
-  ADD_A_x(_af.h);
+  ADD_A_x(_af.H);
 }
 
 void Cpu::Op0x88()
 {
-  ADC_A_x(_bc.h);
+  ADC_A_x(_bc.H);
 }
 
 void Cpu::Op0x89()
 {
-  ADC_A_x(_bc.l);
+  ADC_A_x(_bc.L);
 }
 
 void Cpu::Op0x8A()
 {
-  ADC_A_x(_de.h);
+  ADC_A_x(_de.H);
 }
 
 void Cpu::Op0x8B()
 {
-  ADC_A_x(_de.l);
+  ADC_A_x(_de.L);
 }
 
 void Cpu::Op0x8C()
 {
-  ADC_A_x(_hl.h);
+  ADC_A_x(mHL.H);
 }
 
 void Cpu::Op0x8D()
 {
-  ADC_A_x(_hl.l);
+  ADC_A_x(mHL.L);
 }
 
 void Cpu::Op0x8E()
@@ -1962,37 +1962,37 @@ void Cpu::Op0x8E()
 
 void Cpu::Op0x8F()
 {
-  ADC_A_x(_af.h);
+  ADC_A_x(_af.H);
 }
 
 void Cpu::Op0x90()
 {
-  SUB_A_x(_bc.h);
+  SUB_A_x(_bc.H);
 }
 
 void Cpu::Op0x91()
 {
-  SUB_A_x(_bc.l);
+  SUB_A_x(_bc.L);
 }
 
 void Cpu::Op0x92()
 {
-  SUB_A_x(_de.h);
+  SUB_A_x(_de.H);
 }
 
 void Cpu::Op0x93()
 {
-  SUB_A_x(_de.l);
+  SUB_A_x(_de.L);
 }
 
 void Cpu::Op0x94()
 {
-  SUB_A_x(_hl.h);
+  SUB_A_x(mHL.H);
 }
 
 void Cpu::Op0x95()
 {
-  SUB_A_x(_hl.l);
+  SUB_A_x(mHL.L);
 }
 
 void Cpu::Op0x96()
@@ -2002,37 +2002,37 @@ void Cpu::Op0x96()
 
 void Cpu::Op0x97()
 {
-  SUB_A_x(_af.h);
+  SUB_A_x(_af.H);
 }
 
 void Cpu::Op0x98()
 {
-  SBC_A_x(_bc.h);
+  SBC_A_x(_bc.H);
 }
 
 void Cpu::Op0x99()
 {
-  SBC_A_x(_bc.l);
+  SBC_A_x(_bc.L);
 }
 
 void Cpu::Op0x9A()
 {
-  SBC_A_x(_de.h);
+  SBC_A_x(_de.H);
 }
 
 void Cpu::Op0x9B()
 {
-  SBC_A_x(_de.l);
+  SBC_A_x(_de.L);
 }
 
 void Cpu::Op0x9C()
 {
-  SBC_A_x(_hl.h);
+  SBC_A_x(mHL.H);
 }
 
 void Cpu::Op0x9D()
 {
-  SBC_A_x(_hl.l);
+  SBC_A_x(mHL.L);
 }
 
 void Cpu::Op0x9E()
@@ -2042,37 +2042,37 @@ void Cpu::Op0x9E()
 
 void Cpu::Op0x9F()
 {
-  SBC_A_x(_af.h);
+  SBC_A_x(_af.H);
 }
 
 void Cpu::Op0xA0()
 {
-  AND_A_x(_bc.h);
+  AND_A_x(_bc.H);
 }
 
 void Cpu::Op0xA1()
 {
-  AND_A_x(_bc.l);
+  AND_A_x(_bc.L);
 }
 
 void Cpu::Op0xA2()
 {
-  AND_A_x(_de.h);
+  AND_A_x(_de.H);
 }
 
 void Cpu::Op0xA3()
 {
-  AND_A_x(_de.l);
+  AND_A_x(_de.L);
 }
 
 void Cpu::Op0xA4()
 {
-  AND_A_x(_hl.h);
+  AND_A_x(mHL.H);
 }
 
 void Cpu::Op0xA5()
 {
-  AND_A_x(_hl.l);
+  AND_A_x(mHL.L);
 }
 
 void Cpu::Op0xA6()
@@ -2082,37 +2082,37 @@ void Cpu::Op0xA6()
 
 void Cpu::Op0xA7()
 {
-  AND_A_x(_af.h);
+  AND_A_x(_af.H);
 }
 
 void Cpu::Op0xA8()
 {
-  XOR_A_x(_bc.h);
+  XOR_A_x(_bc.H);
 }
 
 void Cpu::Op0xA9()
 {
-  XOR_A_x(_bc.l);
+  XOR_A_x(_bc.L);
 }
 
 void Cpu::Op0xAA()
 {
-  XOR_A_x(_de.h);
+  XOR_A_x(_de.H);
 }
 
 void Cpu::Op0xAB()
 {
-  XOR_A_x(_de.l);
+  XOR_A_x(_de.L);
 }
 
 void Cpu::Op0xAC()
 {
-  XOR_A_x(_hl.h);
+  XOR_A_x(mHL.H);
 }
 
 void Cpu::Op0xAD()
 {
-  XOR_A_x(_hl.l);
+  XOR_A_x(mHL.L);
 }
 
 void Cpu::Op0xAE()
@@ -2122,37 +2122,37 @@ void Cpu::Op0xAE()
 
 void Cpu::Op0xAF()
 {
-  XOR_A_x(_af.h);
+  XOR_A_x(_af.H);
 }
 
 void Cpu::Op0xB0()
 {
-  OR_A_X(_bc.h);
+  OR_A_X(_bc.H);
 }
 
 void Cpu::Op0xB1()
 {
-  OR_A_X(_bc.l);
+  OR_A_X(_bc.L);
 }
 
 void Cpu::Op0xB2()
 {
-  OR_A_X(_de.h);
+  OR_A_X(_de.H);
 }
 
 void Cpu::Op0xB3()
 {
-  OR_A_X(_de.l);
+  OR_A_X(_de.L);
 }
 
 void Cpu::Op0xB4()
 {
-  OR_A_X(_hl.h);
+  OR_A_X(mHL.H);
 }
 
 void Cpu::Op0xB5()
 {
-  OR_A_X(_hl.l);
+  OR_A_X(mHL.L);
 }
 
 void Cpu::Op0xB6()
@@ -2162,37 +2162,37 @@ void Cpu::Op0xB6()
 
 void Cpu::Op0xB7()
 {
-  OR_A_X(_af.h);
+  OR_A_X(_af.H);
 }
 
 void Cpu::Op0xB8()
 {
-  CP_A_x(_bc.h);
+  CP_A_x(_bc.H);
 }
 
 void Cpu::Op0xB9()
 {
-  CP_A_x(_bc.l);
+  CP_A_x(_bc.L);
 }
 
 void Cpu::Op0xBA()
 {
-  CP_A_x(_de.h);
+  CP_A_x(_de.H);
 }
 
 void Cpu::Op0xBB()
 {
-  CP_A_x(_de.l);
+  CP_A_x(_de.L);
 }
 
 void Cpu::Op0xBC()
 {
-  CP_A_x(_hl.h);
+  CP_A_x(mHL.H);
 }
 
 void Cpu::Op0xBD()
 {
-  CP_A_x(_hl.l);
+  CP_A_x(mHL.L);
 }
 
 void Cpu::Op0xBE()
@@ -2202,7 +2202,7 @@ void Cpu::Op0xBE()
 
 void Cpu::Op0xBF()
 {
-  CP_A_x(_af.h);
+  CP_A_x(_af.H);
 }
 
 void Cpu::Op0xC0()
@@ -2372,7 +2372,7 @@ void Cpu::Op0xE0()
 
 void Cpu::Op0xE1()
 {
-  POP_rr(_hl);
+  POP_rr(mHL);
 }
 
 void Cpu::Op0xE2()
@@ -2392,7 +2392,7 @@ void Cpu::Op0xE4()
 
 void Cpu::Op0xE5()
 {
-  PUSH_rr(_hl);
+  PUSH_rr(mHL);
 }
 
 void Cpu::Op0xE6()

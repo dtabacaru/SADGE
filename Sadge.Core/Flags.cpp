@@ -46,15 +46,15 @@ void Cpu::SetSubtractionFlag(int val)
 
 void Cpu::SetFlag(FlagBitMask flag)
 {
-  _af.l |= static_cast<uint8_t>(flag);
+  _af.L |= static_cast<uint8_t>(flag);
 }
 
 void Cpu::ResetFlag(FlagBitMask flag)
 {
-  _af.l &= ~static_cast<uint8_t>(flag);
+  _af.L &= ~static_cast<uint8_t>(flag);
 }
 
 bool Cpu::ReadFlag(FlagBitMask flag) const
 {
-  return _af.l & static_cast<uint8_t>(flag);
+  return _af.L & static_cast<uint8_t>(flag);
 }

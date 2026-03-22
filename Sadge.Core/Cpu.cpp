@@ -371,41 +371,41 @@ void Cpu::SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, ui
   ime;
   ie;
 
-  _pc.hl = pc;
-  _sp.hl = sp;
-  _af.h = a;
-  _bc.h = b;
-  _bc.l = c;
-  _de.h = d;
-  _de.l = e;
-  _af.l = f;
-  _hl.h = h;
-  _hl.l = l;
+  mPC.HL = pc;
+  mSP.HL = sp;
+  _af.H = a;
+  _bc.H = b;
+  _bc.L = c;
+  _de.H = d;
+  _de.L = e;
+  _af.L = f;
+  mHL.H = h;
+  mHL.L = l;
 }
 
 bool Cpu::CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
 {
   ime;
 
-  if (pc != _pc.hl)
+  if (pc != mPC.HL)
     return false;
-  else if (sp != _sp.hl)
+  else if (sp != mSP.HL)
     return false;
-  else if (a != _af.h)
+  else if (a != _af.H)
     return false;
-  else if (b != _bc.h)
+  else if (b != _bc.H)
     return false;
-  else if (c != _bc.l)
+  else if (c != _bc.L)
     return false;
-  else if (d != _de.h)
+  else if (d != _de.H)
     return false;
-  else if (e != _de.l)
+  else if (e != _de.L)
     return false;
-  else if (f != _af.l)
+  else if (f != _af.L)
     return false;
-  else if (h != _hl.h)
+  else if (h != mHL.H)
     return false;
-  else if (l != _hl.l)
+  else if (l != mHL.L)
     return false;
   else
     return true;

@@ -3,6 +3,7 @@
 #include "InterruptProvider.h"
 #include <iostream>
 #include <array>
+#include <vector>
 
 struct Pixel
 {
@@ -262,12 +263,12 @@ private:
     for (int x = 0; x < SCREEN_WIDTH; x += 1)
     {
       auto frame_index = (m_ly * SCREEN_WIDTH) + x;
-
+      
       Pixel pixel{};
       switch (m_line[x] >> 2)
       {
         case 0:
-          pixel = m_bg_palette[(m_bgp  >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
+          pixel = m_bg_palette[(mPixelBgp[x] >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
           break;
         case 1:
           pixel = m_obj0_palette[(m_obp0 >> ((m_line[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
@@ -363,6 +364,8 @@ private:
     m_mode_transition_cycles = 80;
   }
 
+  std::array<uint8_t, SCREEN_WIDTH> mPixelBgp;
+
   inline void Mode3()
   {
     m_next_mode = Modes::MODE_0_HBLANK;
@@ -435,6 +438,15 @@ private:
     {
       m_ly = m_cycle_count / CYCLES_PER_ROW;
       CheckLyc();
+    }
+
+    if ((m_current_mode == Modes::MODE_3_DRAW) && (m_mode_transition_cycles <= 160) && (m_mode_transition_cycles >0))
+    {
+      uint8_t pixel = (160 - m_mode_transition_cycles);
+      mPixelBgp[pixel] = m_bgp;
+      mPixelBgp[pixel+1] = m_bgp;
+      mPixelBgp[pixel+2] = m_bgp;
+      mPixelBgp[pixel+3] = m_bgp;
     }
 
     if (m_mode_transition_cycles == 0)

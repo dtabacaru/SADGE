@@ -102,8 +102,8 @@ void Cpu::WaitFrame()
   double frame_expected_time = (mFrameCycles / T_RATE) - mCompensationTime;
   double wait_time = frame_expected_time - mExeStopwatch.Elapsed();
 
-  std::this_thread::sleep_for(std::chrono::duration<double>(wait_time));
-  //while (mExeStopwatch.Elapsed() < frame_expected_time) {}
+  //std::this_thread::sleep_for(std::chrono::duration<double>(wait_time));
+  while (mExeStopwatch.Elapsed() < frame_expected_time) {}
 
   mFrameTime = mExeStopwatch.Elapsed();
   mLcdCtrl.UpdateFrameTime(mFrameTime);
@@ -120,13 +120,11 @@ void Cpu::WaitFrame()
   mFrameCycles = 0;
 }
 
-uint8_t Cpu::ReadNextUint8()
+void Cpu::ReadNextUint8()
 {
-  mAddressBus = _pc.hl;
-  uint8_t val = ReadAddress(mAddressBus);
-  _pc.hl += 1;
-
-  return val;
+  mAddressBus = mPC.HL;
+  mDataBus = ReadAddress(mAddressBus);
+  mPC.HL += 1;
 }
 
 void Cpu::InstructionHandler()
@@ -1179,7 +1177,7 @@ void Cpu::ExtInstructionHandler()
 
 void Cpu::Fetch()
 {
-  mDataBus = ReadNextUint8();
+  ReadNextUint8();
   mOpcode = mDataBus;
 }
 
@@ -1194,30 +1192,30 @@ void Cpu::InterruptHandler()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = _pc.hl;
-      _pc.hl -= 1;
+      mAddressBus = mPC.HL;
+      mPC.HL -= 1;
       mExeCycle += 1;
       break;
     case 1:
-      mAddressBus = _sp.hl;
-      _sp.hl -= 1;
+      mAddressBus = mSP.HL;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 2:
-      mAddressBus = _sp.hl;
-      mDataBus = _pc.h;
+      mAddressBus = mSP.HL;
+      mDataBus = mPC.H;
       WriteAddress(mAddressBus, mDataBus);
-      _sp.hl -= 1;
+      mSP.HL -= 1;
       mExeCycle += 1;
       break;
     case 3:
-      mAddressBus = _sp.hl;
-      mDataBus = _pc.l;
+      mAddressBus = mSP.HL;
+      mDataBus = mPC.L;
       WriteAddress(mAddressBus, mDataBus);
       mExeCycle += 1;
       break;
     case 4:
-      _pc.hl = mInterruptCtrl.HandleInterrupt();
+      mPC.HL = mInterruptCtrl.HandleInterrupt();
       mExeCycle = EXE_COMPLETE;
       InterruptCompleteEvent();
       break;

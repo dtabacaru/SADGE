@@ -5,7 +5,7 @@
 
 #include <fstream>
 
-//#define ENABLED
+#define ENABLED
 
 static SstCpu cpu_;
 
