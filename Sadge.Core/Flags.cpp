@@ -2,24 +2,21 @@
 
 void Cpu::SetHalfCarryFlag(uint8_t val1, int val2)
 {
-  bool bit_4_set = val2 < 0 ? ((val1 & 0xF) - (-val2 & 0xF)) & 0x10
-    : ((val1 & 0xF) + (+val2 & 0xF)) & 0x10;
+  bool bit_4_set = ((val1 & 0xF) + (val2 % 0x10)) & 0x10;
 
   bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
 }
 
 void Cpu::SetHalfCarryFlag(uint8_t val1, int val2, int carry)
 {
-  bool bit_4_set = val2 < 0 || carry < 0 ? ((val1 & 0xF) - (-val2 & 0xF) - (-carry & 0xF)) & 0x10
-    : ((val1 & 0xF) + (+val2 & 0xF) + (+carry & 0xF)) & 0x10;
+  bool bit_4_set = ((val1 & 0xF) + (val2 % 0x10) + (carry % 0x10)) & 0x10;
 
   bit_4_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
 }
 
 void Cpu::SetHalfCarryFlag(uint16_t val1, int val2)
 {
-  bool bit_12_set = val2 < 0 ? ((val1 & 0xFFF) - (-val2 & 0xFFF)) & 0x1000
-    : ((val1 & 0xFFF) + (+val2 & 0xFFF)) & 0x1000;
+  bool bit_12_set = ((val1 & 0xFFF) + (val2 & 0xFFF)) & 0x1000;
 
   bit_12_set ? SetFlag(FlagBitMask::HalfCarry) : ResetFlag(FlagBitMask::HalfCarry);
 }
@@ -46,15 +43,15 @@ void Cpu::SetSubtractionFlag(int val)
 
 void Cpu::SetFlag(FlagBitMask flag)
 {
-  _af.L |= static_cast<uint8_t>(flag);
+  mAF.L |= static_cast<uint8_t>(flag);
 }
 
 void Cpu::ResetFlag(FlagBitMask flag)
 {
-  _af.L &= ~static_cast<uint8_t>(flag);
+  mAF.L &= ~static_cast<uint8_t>(flag);
 }
 
 bool Cpu::ReadFlag(FlagBitMask flag) const
 {
-  return _af.L & static_cast<uint8_t>(flag);
+  return mAF.L & static_cast<uint8_t>(flag);
 }

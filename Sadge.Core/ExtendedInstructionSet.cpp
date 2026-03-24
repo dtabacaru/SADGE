@@ -417,22 +417,22 @@ void Cpu::SET__HL(uint8_t mask)
 
 void Cpu::OpCb0x00()
 {
-  RLC_R(_bc.H);
+  RLC_R(mBC.H);
 }
 
 void Cpu::OpCb0x01()
 {
-  RLC_R(_bc.L);
+  RLC_R(mBC.L);
 }
 
 void Cpu::OpCb0x02()
 {
-  RLC_R(_de.H);
+  RLC_R(mDE.H);
 }
 
 void Cpu::OpCb0x03()
 {
-  RLC_R(_de.L);
+  RLC_R(mDE.L);
 }
 
 void Cpu::OpCb0x04()
@@ -452,27 +452,27 @@ void Cpu::OpCb0x06()
 
 void Cpu::OpCb0x07()
 {
-  RLC_R(_af.H);
+  RLC_R(mAF.H);
 }
 
 void Cpu::OpCb0x08()
 {
-  RRC_R(_bc.H);
+  RRC_R(mBC.H);
 }
 
 void Cpu::OpCb0x09()
 {
-  RRC_R(_bc.L);
+  RRC_R(mBC.L);
 }
 
 void Cpu::OpCb0x0A()
 {
-  RRC_R(_de.H);
+  RRC_R(mDE.H);
 }
 
 void Cpu::OpCb0x0B()
 {
-  RRC_R(_de.L);
+  RRC_R(mDE.L);
 }
 
 void Cpu::OpCb0x0C()
@@ -492,27 +492,27 @@ void Cpu::OpCb0x0E()
 
 void Cpu::OpCb0x0F()
 {
-  RRC_R(_af.H);
+  RRC_R(mAF.H);
 }
 
 void Cpu::OpCb0x10()
 {
-  RL_R(_bc.H);
+  RL_R(mBC.H);
 }
 
 void Cpu::OpCb0x11()
 {
-  RL_R(_bc.L);
+  RL_R(mBC.L);
 }
 
 void Cpu::OpCb0x12()
 {
-  RL_R(_de.H);
+  RL_R(mDE.H);
 }
 
 void Cpu::OpCb0x13()
 {
-  RL_R(_de.L);
+  RL_R(mDE.L);
 }
 
 void Cpu::OpCb0x14()
@@ -532,27 +532,27 @@ void Cpu::OpCb0x16()
 
 void Cpu::OpCb0x17()
 {
-  RL_R(_af.H);
+  RL_R(mAF.H);
 }
 
 void Cpu::OpCb0x18()
 {
-  RR_R(_bc.H);
+  RR_R(mBC.H);
 }
 
 void Cpu::OpCb0x19()
 {
-  RR_R(_bc.L);
+  RR_R(mBC.L);
 }
 
 void Cpu::OpCb0x1A()
 {
-  RR_R(_de.H);
+  RR_R(mDE.H);
 }
 
 void Cpu::OpCb0x1B()
 {
-  RR_R(_de.L);
+  RR_R(mDE.L);
 }
 
 void Cpu::OpCb0x1C()
@@ -572,27 +572,27 @@ void Cpu::OpCb0x1E()
 
 void Cpu::OpCb0x1F()
 {
-  RR_R(_af.H);
+  RR_R(mAF.H);
 }
 
 void Cpu::OpCb0x20()
 {
-  SLA_R(_bc.H);
+  SLA_R(mBC.H);
 }
 
 void Cpu::OpCb0x21()
 {
-  SLA_R(_bc.L);
+  SLA_R(mBC.L);
 }
 
 void Cpu::OpCb0x22()
 {
-  SLA_R(_de.H);
+  SLA_R(mDE.H);
 }
 
 void Cpu::OpCb0x23()
 {
-  SLA_R(_de.L);
+  SLA_R(mDE.L);
 }
 
 void Cpu::OpCb0x24()
@@ -612,27 +612,27 @@ void Cpu::OpCb0x26()
 
 void Cpu::OpCb0x27()
 {
-  SLA_R(_af.H);
+  SLA_R(mAF.H);
 }
 
 void Cpu::OpCb0x28()
 {
-  SRA_R(_bc.H);
+  SRA_R(mBC.H);
 }
 
 void Cpu::OpCb0x29()
 {
-  SRA_R(_bc.L);
+  SRA_R(mBC.L);
 }
 
 void Cpu::OpCb0x2A()
 {
-  SRA_R(_de.H);
+  SRA_R(mDE.H);
 }
 
 void Cpu::OpCb0x2B()
 {
-  SRA_R(_de.L);
+  SRA_R(mDE.L);
 }
 
 void Cpu::OpCb0x2C()
@@ -652,27 +652,27 @@ void Cpu::OpCb0x2E()
 
 void Cpu::OpCb0x2F()
 {
-  SRA_R(_af.H);
+  SRA_R(mAF.H);
 }
 
 void Cpu::OpCb0x30()
 {
-  SWAP_R(_bc.H);
+  SWAP_R(mBC.H);
 }
 
 void Cpu::OpCb0x31()
 {
-  SWAP_R(_bc.L);
+  SWAP_R(mBC.L);
 }
 
 void Cpu::OpCb0x32()
 {
-  SWAP_R(_de.H);
+  SWAP_R(mDE.H);
 }
 
 void Cpu::OpCb0x33()
 {
-  SWAP_R(_de.L);
+  SWAP_R(mDE.L);
 }
 
 void Cpu::OpCb0x34()
@@ -692,27 +692,27 @@ void Cpu::OpCb0x36()
 
 void Cpu::OpCb0x37()
 {
-  SWAP_R(_af.H);
+  SWAP_R(mAF.H);
 }
 
 void Cpu::OpCb0x38()
 {
-  SRL_R(_bc.H);
+  SRL_R(mBC.H);
 }
 
 void Cpu::OpCb0x39()
 {
-  SRL_R(_bc.L);
+  SRL_R(mBC.L);
 }
 
 void Cpu::OpCb0x3A()
 {
-  SRL_R(_de.H);
+  SRL_R(mDE.H);
 }
 
 void Cpu::OpCb0x3B()
 {
-  SRL_R(_de.L);
+  SRL_R(mDE.L);
 }
 
 void Cpu::OpCb0x3C()
@@ -732,27 +732,27 @@ void Cpu::OpCb0x3E()
 
 void Cpu::OpCb0x3F()
 {
-  SRL_R(_af.H);
+  SRL_R(mAF.H);
 }
 
 void Cpu::OpCb0x40()
 {
-  BIT_R(0b00000001, _bc.H);
+  BIT_R(0b00000001, mBC.H);
 }
 
 void Cpu::OpCb0x41()
 {
-  BIT_R(0b00000001, _bc.L);
+  BIT_R(0b00000001, mBC.L);
 }
 
 void Cpu::OpCb0x42()
 {
-  BIT_R(0b00000001, _de.H);
+  BIT_R(0b00000001, mDE.H);
 }
 
 void Cpu::OpCb0x43()
 {
-  BIT_R(0b00000001, _de.L);
+  BIT_R(0b00000001, mDE.L);
 }
 
 void Cpu::OpCb0x44()
@@ -772,27 +772,27 @@ void Cpu::OpCb0x46()
 
 void Cpu::OpCb0x47()
 {
-  BIT_R(0b00000001, _af.H);
+  BIT_R(0b00000001, mAF.H);
 }
 
 void Cpu::OpCb0x48()
 {
-  BIT_R(0b00000010, _bc.H);
+  BIT_R(0b00000010, mBC.H);
 }
 
 void Cpu::OpCb0x49()
 {
-  BIT_R(0b00000010, _bc.L);
+  BIT_R(0b00000010, mBC.L);
 }
 
 void Cpu::OpCb0x4A()
 {
-  BIT_R(0b00000010, _de.H);
+  BIT_R(0b00000010, mDE.H);
 }
 
 void Cpu::OpCb0x4B()
 {
-  BIT_R(0b00000010, _de.L);
+  BIT_R(0b00000010, mDE.L);
 }
 
 void Cpu::OpCb0x4C()
@@ -812,27 +812,27 @@ void Cpu::OpCb0x4E()
 
 void Cpu::OpCb0x4F()
 {
-  BIT_R(0b00000010, _af.H);
+  BIT_R(0b00000010, mAF.H);
 }
 
 void Cpu::OpCb0x50()
 {
-  BIT_R(0b00000100, _bc.H);
+  BIT_R(0b00000100, mBC.H);
 }
 
 void Cpu::OpCb0x51()
 {
-  BIT_R(0b00000100, _bc.L);
+  BIT_R(0b00000100, mBC.L);
 }
 
 void Cpu::OpCb0x52()
 {
-  BIT_R(0b00000100, _de.H);
+  BIT_R(0b00000100, mDE.H);
 }
 
 void Cpu::OpCb0x53()
 {
-  BIT_R(0b00000100, _de.L);
+  BIT_R(0b00000100, mDE.L);
 }
 
 void Cpu::OpCb0x54()
@@ -852,27 +852,27 @@ void Cpu::OpCb0x56()
 
 void Cpu::OpCb0x57()
 {
-  BIT_R(0b00000100, _af.H);
+  BIT_R(0b00000100, mAF.H);
 }
 
 void Cpu::OpCb0x58()
 {
-  BIT_R(0b00001000, _bc.H);
+  BIT_R(0b00001000, mBC.H);
 }
 
 void Cpu::OpCb0x59()
 {
-  BIT_R(0b00001000, _bc.L);
+  BIT_R(0b00001000, mBC.L);
 }
 
 void Cpu::OpCb0x5A()
 {
-  BIT_R(0b00001000, _de.H);
+  BIT_R(0b00001000, mDE.H);
 }
 
 void Cpu::OpCb0x5B()
 {
-  BIT_R(0b00001000, _de.L);
+  BIT_R(0b00001000, mDE.L);
 }
 
 void Cpu::OpCb0x5C()
@@ -892,27 +892,27 @@ void Cpu::OpCb0x5E()
 
 void Cpu::OpCb0x5F()
 {
-  BIT_R(0b00001000, _af.H);
+  BIT_R(0b00001000, mAF.H);
 }
 
 void Cpu::OpCb0x60()
 {
-  BIT_R(0b00010000, _bc.H);
+  BIT_R(0b00010000, mBC.H);
 }
 
 void Cpu::OpCb0x61()
 {
-  BIT_R(0b00010000, _bc.L);
+  BIT_R(0b00010000, mBC.L);
 }
 
 void Cpu::OpCb0x62()
 {
-  BIT_R(0b00010000, _de.H);
+  BIT_R(0b00010000, mDE.H);
 }
 
 void Cpu::OpCb0x63()
 {
-  BIT_R(0b00010000, _de.L);
+  BIT_R(0b00010000, mDE.L);
 }
 
 void Cpu::OpCb0x64()
@@ -932,27 +932,27 @@ void Cpu::OpCb0x66()
 
 void Cpu::OpCb0x67()
 {
-  BIT_R(0b00010000, _af.H);
+  BIT_R(0b00010000, mAF.H);
 }
 
 void Cpu::OpCb0x68()
 {
-  BIT_R(0b00100000, _bc.H);
+  BIT_R(0b00100000, mBC.H);
 }
 
 void Cpu::OpCb0x69()
 {
-  BIT_R(0b00100000, _bc.L);
+  BIT_R(0b00100000, mBC.L);
 }
 
 void Cpu::OpCb0x6A()
 {
-  BIT_R(0b00100000, _de.H);
+  BIT_R(0b00100000, mDE.H);
 }
 
 void Cpu::OpCb0x6B()
 {
-  BIT_R(0b00100000, _de.L);
+  BIT_R(0b00100000, mDE.L);
 }
 
 void Cpu::OpCb0x6C()
@@ -972,27 +972,27 @@ void Cpu::OpCb0x6E()
 
 void Cpu::OpCb0x6F()
 {
-  BIT_R(0b00100000, _af.H);
+  BIT_R(0b00100000, mAF.H);
 }
 
 void Cpu::OpCb0x70()
 {
-  BIT_R(0b01000000, _bc.H);
+  BIT_R(0b01000000, mBC.H);
 }
 
 void Cpu::OpCb0x71()
 {
-  BIT_R(0b01000000, _bc.L);
+  BIT_R(0b01000000, mBC.L);
 }
 
 void Cpu::OpCb0x72()
 {
-  BIT_R(0b01000000, _de.H);
+  BIT_R(0b01000000, mDE.H);
 }
 
 void Cpu::OpCb0x73()
 {
-  BIT_R(0b01000000, _de.L);
+  BIT_R(0b01000000, mDE.L);
 }
 
 void Cpu::OpCb0x74()
@@ -1012,27 +1012,27 @@ void Cpu::OpCb0x76()
 
 void Cpu::OpCb0x77()
 {
-  BIT_R(0b01000000, _af.H);
+  BIT_R(0b01000000, mAF.H);
 }
 
 void Cpu::OpCb0x78()
 {
-  BIT_R(0b10000000, _bc.H);
+  BIT_R(0b10000000, mBC.H);
 }
 
 void Cpu::OpCb0x79()
 {
-  BIT_R(0b10000000, _bc.L);
+  BIT_R(0b10000000, mBC.L);
 }
 
 void Cpu::OpCb0x7A()
 {
-  BIT_R(0b10000000, _de.H);
+  BIT_R(0b10000000, mDE.H);
 }
 
 void Cpu::OpCb0x7B()
 {
-  BIT_R(0b10000000, _de.L);
+  BIT_R(0b10000000, mDE.L);
 }
 
 void Cpu::OpCb0x7C()
@@ -1052,27 +1052,27 @@ void Cpu::OpCb0x7E()
 
 void Cpu::OpCb0x7F()
 {
-  BIT_R(0b10000000, _af.H);
+  BIT_R(0b10000000, mAF.H);
 }
 
 void Cpu::OpCb0x80()
 {
-  RES_R(0b00000001, _bc.H);
+  RES_R(0b00000001, mBC.H);
 }
 
 void Cpu::OpCb0x81()
 {
-  RES_R(0b00000001, _bc.L);
+  RES_R(0b00000001, mBC.L);
 }
 
 void Cpu::OpCb0x82()
 {
-  RES_R(0b00000001, _de.H);
+  RES_R(0b00000001, mDE.H);
 }
 
 void Cpu::OpCb0x83()
 {
-  RES_R(0b00000001, _de.L);
+  RES_R(0b00000001, mDE.L);
 }
 
 void Cpu::OpCb0x84()
@@ -1092,27 +1092,27 @@ void Cpu::OpCb0x86()
 
 void Cpu::OpCb0x87()
 {
-  RES_R(0b00000001, _af.H);
+  RES_R(0b00000001, mAF.H);
 }
 
 void Cpu::OpCb0x88()
 {
-  RES_R(0b00000010, _bc.H);
+  RES_R(0b00000010, mBC.H);
 }
 
 void Cpu::OpCb0x89()
 {
-  RES_R(0b00000010, _bc.L);
+  RES_R(0b00000010, mBC.L);
 }
 
 void Cpu::OpCb0x8A()
 {
-  RES_R(0b00000010, _de.H);
+  RES_R(0b00000010, mDE.H);
 }
 
 void Cpu::OpCb0x8B()
 {
-  RES_R(0b00000010, _de.L);
+  RES_R(0b00000010, mDE.L);
 }
 
 void Cpu::OpCb0x8C()
@@ -1132,27 +1132,27 @@ void Cpu::OpCb0x8E()
 
 void Cpu::OpCb0x8F()
 {
-  RES_R(0b00000010, _af.H);
+  RES_R(0b00000010, mAF.H);
 }
 
 void Cpu::OpCb0x90()
 {
-  RES_R(0b00000100, _bc.H);
+  RES_R(0b00000100, mBC.H);
 }
 
 void Cpu::OpCb0x91()
 {
-  RES_R(0b00000100, _bc.L);
+  RES_R(0b00000100, mBC.L);
 }
 
 void Cpu::OpCb0x92()
 {
-  RES_R(0b00000100, _de.H);
+  RES_R(0b00000100, mDE.H);
 }
 
 void Cpu::OpCb0x93()
 {
-  RES_R(0b00000100, _de.L);
+  RES_R(0b00000100, mDE.L);
 }
 
 void Cpu::OpCb0x94()
@@ -1172,27 +1172,27 @@ void Cpu::OpCb0x96()
 
 void Cpu::OpCb0x97()
 {
-  RES_R(0b00000100, _af.H);
+  RES_R(0b00000100, mAF.H);
 }
 
 void Cpu::OpCb0x98()
 {
-  RES_R(0b00001000, _bc.H);
+  RES_R(0b00001000, mBC.H);
 }
 
 void Cpu::OpCb0x99()
 {
-  RES_R(0b00001000, _bc.L);
+  RES_R(0b00001000, mBC.L);
 }
 
 void Cpu::OpCb0x9A()
 {
-  RES_R(0b00001000, _de.H);
+  RES_R(0b00001000, mDE.H);
 }
 
 void Cpu::OpCb0x9B()
 {
-  RES_R(0b00001000, _de.L);
+  RES_R(0b00001000, mDE.L);
 }
 
 void Cpu::OpCb0x9C()
@@ -1212,27 +1212,27 @@ void Cpu::OpCb0x9E()
 
 void Cpu::OpCb0x9F()
 {
-  RES_R(0b00001000, _af.H);
+  RES_R(0b00001000, mAF.H);
 }
 
 void Cpu::OpCb0xA0()
 {
-  RES_R(0b00010000, _bc.H);
+  RES_R(0b00010000, mBC.H);
 }
 
 void Cpu::OpCb0xA1()
 {
-  RES_R(0b00010000, _bc.L);
+  RES_R(0b00010000, mBC.L);
 }
 
 void Cpu::OpCb0xA2()
 {
-  RES_R(0b00010000, _de.H);
+  RES_R(0b00010000, mDE.H);
 }
 
 void Cpu::OpCb0xA3()
 {
-  RES_R(0b00010000, _de.L);
+  RES_R(0b00010000, mDE.L);
 }
 
 void Cpu::OpCb0xA4()
@@ -1252,27 +1252,27 @@ void Cpu::OpCb0xA6()
 
 void Cpu::OpCb0xA7()
 {
-  RES_R(0b00010000, _af.H);
+  RES_R(0b00010000, mAF.H);
 }
 
 void Cpu::OpCb0xA8()
 {
-  RES_R(0b00100000, _bc.H);
+  RES_R(0b00100000, mBC.H);
 }
 
 void Cpu::OpCb0xA9()
 {
-  RES_R(0b00100000, _bc.L);
+  RES_R(0b00100000, mBC.L);
 }
 
 void Cpu::OpCb0xAA()
 {
-  RES_R(0b00100000, _de.H);
+  RES_R(0b00100000, mDE.H);
 }
 
 void Cpu::OpCb0xAB()
 {
-  RES_R(0b00100000, _de.L);
+  RES_R(0b00100000, mDE.L);
 }
 
 void Cpu::OpCb0xAC()
@@ -1292,27 +1292,27 @@ void Cpu::OpCb0xAE()
 
 void Cpu::OpCb0xAF()
 {
-  RES_R(0b00100000, _af.H);
+  RES_R(0b00100000, mAF.H);
 }
 
 void Cpu::OpCb0xB0()
 {
-  RES_R(0b01000000, _bc.H);
+  RES_R(0b01000000, mBC.H);
 }
 
 void Cpu::OpCb0xB1()
 {
-  RES_R(0b01000000, _bc.L);
+  RES_R(0b01000000, mBC.L);
 }
 
 void Cpu::OpCb0xB2()
 {
-  RES_R(0b01000000, _de.H);
+  RES_R(0b01000000, mDE.H);
 }
 
 void Cpu::OpCb0xB3()
 {
-  RES_R(0b01000000, _de.L);
+  RES_R(0b01000000, mDE.L);
 }
 
 void Cpu::OpCb0xB4()
@@ -1332,27 +1332,27 @@ void Cpu::OpCb0xB6()
 
 void Cpu::OpCb0xB7()
 {
-  RES_R(0b01000000, _af.H);
+  RES_R(0b01000000, mAF.H);
 }
 
 void Cpu::OpCb0xB8()
 {
-  RES_R(0b10000000, _bc.H);
+  RES_R(0b10000000, mBC.H);
 }
 
 void Cpu::OpCb0xB9()
 {
-  RES_R(0b10000000, _bc.L);
+  RES_R(0b10000000, mBC.L);
 }
 
 void Cpu::OpCb0xBA()
 {
-  RES_R(0b10000000, _de.H);
+  RES_R(0b10000000, mDE.H);
 }
 
 void Cpu::OpCb0xBB()
 {
-  RES_R(0b10000000, _de.L);
+  RES_R(0b10000000, mDE.L);
 }
 
 void Cpu::OpCb0xBC()
@@ -1372,27 +1372,27 @@ void Cpu::OpCb0xBE()
 
 void Cpu::OpCb0xBF()
 {
-  RES_R(0b10000000, _af.H);
+  RES_R(0b10000000, mAF.H);
 }
 
 void Cpu::OpCb0xC0()
 {
-  SET_R(0b00000001, _bc.H);
+  SET_R(0b00000001, mBC.H);
 }
 
 void Cpu::OpCb0xC1()
 {
-  SET_R(0b00000001, _bc.L);
+  SET_R(0b00000001, mBC.L);
 }
 
 void Cpu::OpCb0xC2()
 {
-  SET_R(0b00000001, _de.H);
+  SET_R(0b00000001, mDE.H);
 }
 
 void Cpu::OpCb0xC3()
 {
-  SET_R(0b00000001, _de.L);
+  SET_R(0b00000001, mDE.L);
 }
 
 void Cpu::OpCb0xC4()
@@ -1412,27 +1412,27 @@ void Cpu::OpCb0xC6()
 
 void Cpu::OpCb0xC7()
 {
-  SET_R(0b00000001, _af.H);
+  SET_R(0b00000001, mAF.H);
 }
 
 void Cpu::OpCb0xC8()
 {
-  SET_R(0b00000010, _bc.H);
+  SET_R(0b00000010, mBC.H);
 }
 
 void Cpu::OpCb0xC9()
 {
-  SET_R(0b00000010, _bc.L);
+  SET_R(0b00000010, mBC.L);
 }
 
 void Cpu::OpCb0xCA()
 {
-  SET_R(0b00000010, _de.H);
+  SET_R(0b00000010, mDE.H);
 }
 
 void Cpu::OpCb0xCB()
 {
-  SET_R(0b00000010, _de.L);
+  SET_R(0b00000010, mDE.L);
 }
 
 void Cpu::OpCb0xCC()
@@ -1452,27 +1452,27 @@ void Cpu::OpCb0xCE()
 
 void Cpu::OpCb0xCF()
 {
-  SET_R(0b00000010, _af.H);
+  SET_R(0b00000010, mAF.H);
 }
 
 void Cpu::OpCb0xD0()
 {
-  SET_R(0b00000100, _bc.H);
+  SET_R(0b00000100, mBC.H);
 }
 
 void Cpu::OpCb0xD1()
 {
-  SET_R(0b00000100, _bc.L);
+  SET_R(0b00000100, mBC.L);
 }
 
 void Cpu::OpCb0xD2()
 {
-  SET_R(0b00000100, _de.H);
+  SET_R(0b00000100, mDE.H);
 }
 
 void Cpu::OpCb0xD3()
 {
-  SET_R(0b00000100, _de.L);
+  SET_R(0b00000100, mDE.L);
 }
 
 void Cpu::OpCb0xD4()
@@ -1492,27 +1492,27 @@ void Cpu::OpCb0xD6()
 
 void Cpu::OpCb0xD7()
 {
-  SET_R(0b00000100, _af.H);
+  SET_R(0b00000100, mAF.H);
 }
 
 void Cpu::OpCb0xD8()
 {
-  SET_R(0b00001000, _bc.H);
+  SET_R(0b00001000, mBC.H);
 }
 
 void Cpu::OpCb0xD9()
 {
-  SET_R(0b00001000, _bc.L);
+  SET_R(0b00001000, mBC.L);
 }
 
 void Cpu::OpCb0xDA()
 {
-  SET_R(0b00001000, _de.H);
+  SET_R(0b00001000, mDE.H);
 }
 
 void Cpu::OpCb0xDB()
 {
-  SET_R(0b00001000, _de.L);
+  SET_R(0b00001000, mDE.L);
 }
 
 void Cpu::OpCb0xDC()
@@ -1532,27 +1532,27 @@ void Cpu::OpCb0xDE()
 
 void Cpu::OpCb0xDF()
 {
-  SET_R(0b00001000, _af.H);
+  SET_R(0b00001000, mAF.H);
 }
 
 void Cpu::OpCb0xE0()
 {
-  SET_R(0b00010000, _bc.H);
+  SET_R(0b00010000, mBC.H);
 }
 
 void Cpu::OpCb0xE1()
 {
-  SET_R(0b00010000, _bc.L);
+  SET_R(0b00010000, mBC.L);
 }
 
 void Cpu::OpCb0xE2()
 {
-  SET_R(0b00010000, _de.H);
+  SET_R(0b00010000, mDE.H);
 }
 
 void Cpu::OpCb0xE3()
 {
-  SET_R(0b00010000, _de.L);
+  SET_R(0b00010000, mDE.L);
 }
 
 void Cpu::OpCb0xE4()
@@ -1572,27 +1572,27 @@ void Cpu::OpCb0xE6()
 
 void Cpu::OpCb0xE7()
 {
-  SET_R(0b00010000, _af.H);
+  SET_R(0b00010000, mAF.H);
 }
 
 void Cpu::OpCb0xE8()
 {
-  SET_R(0b00100000, _bc.H);
+  SET_R(0b00100000, mBC.H);
 }
 
 void Cpu::OpCb0xE9()
 {
-  SET_R(0b00100000, _bc.L);
+  SET_R(0b00100000, mBC.L);
 }
 
 void Cpu::OpCb0xEA()
 {
-  SET_R(0b00100000, _de.H);
+  SET_R(0b00100000, mDE.H);
 }
 
 void Cpu::OpCb0xEB()
 {
-  SET_R(0b00100000, _de.L);
+  SET_R(0b00100000, mDE.L);
 }
 
 void Cpu::OpCb0xEC()
@@ -1612,27 +1612,27 @@ void Cpu::OpCb0xEE()
 
 void Cpu::OpCb0xEF()
 {
-  SET_R(0b00100000, _af.H);
+  SET_R(0b00100000, mAF.H);
 }
 
 void Cpu::OpCb0xF0()
 {
-  SET_R(0b01000000, _bc.H);
+  SET_R(0b01000000, mBC.H);
 }
 
 void Cpu::OpCb0xF1()
 {
-  SET_R(0b01000000, _bc.L);
+  SET_R(0b01000000, mBC.L);
 }
 
 void Cpu::OpCb0xF2()
 {
-  SET_R(0b01000000, _de.H);
+  SET_R(0b01000000, mDE.H);
 }
 
 void Cpu::OpCb0xF3()
 {
-  SET_R(0b01000000, _de.L);
+  SET_R(0b01000000, mDE.L);
 }
 
 void Cpu::OpCb0xF4()
@@ -1652,27 +1652,27 @@ void Cpu::OpCb0xF6()
 
 void Cpu::OpCb0xF7()
 {
-  SET_R(0b01000000, _af.H);
+  SET_R(0b01000000, mAF.H);
 }
 
 void Cpu::OpCb0xF8()
 {
-  SET_R(0b10000000, _bc.H);
+  SET_R(0b10000000, mBC.H);
 }
 
 void Cpu::OpCb0xF9()
 {
-  SET_R(0b10000000, _bc.L);
+  SET_R(0b10000000, mBC.L);
 }
 
 void Cpu::OpCb0xFA()
 {
-  SET_R(0b10000000, _de.H);
+  SET_R(0b10000000, mDE.H);
 }
 
 void Cpu::OpCb0xFB()
 {
-  SET_R(0b10000000, _de.L);
+  SET_R(0b10000000, mDE.L);
 }
 
 void Cpu::OpCb0xFC()
@@ -1692,5 +1692,5 @@ void Cpu::OpCb0xFE()
 
 void Cpu::OpCb0xFF()
 {
-  SET_R(0b10000000, _af.H);
+  SET_R(0b10000000, mAF.H);
 }

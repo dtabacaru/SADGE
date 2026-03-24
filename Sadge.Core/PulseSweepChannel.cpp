@@ -26,9 +26,10 @@ void PulseSweepChannel::TickFreqSweep()
     return;
 
   mPeriodCounter = direction ? mPeriodCounter - (mPeriodCounter >> step)
-                              : mPeriodCounter + (mPeriodCounter >> step);
+                             : mPeriodCounter + (mPeriodCounter >> step);
 
-  if (mPeriodCounter > MAX_PERIOD_COUNT)
+
+  if (mPeriodCounter >= MAX_PERIOD_COUNT)
     Disable();
 
   NRX3 = mPeriodCounter & 0xFF;

@@ -37,8 +37,8 @@ enum class LevelType : uint8_t
 
 struct TestCycle
 {
-  uint16_t addr_bus;
-  uint8_t  data_bus;
+  uint16_t addrBus;
+  uint8_t  dataBus;
 };
 
 class Cpu
@@ -57,6 +57,7 @@ public:
   ~Cpu();
 
   constexpr static auto DRAG_WINDOW_DETECT_TIME = (70224.0 / T_RATE) * 1;
+  constexpr static auto MIN_SLEEP_TIME = 0.002;
   
   Status SetRom(const std::filesystem::path& romPath, std::vector<uint8_t> rom);
   virtual void Main();
@@ -65,51 +66,11 @@ public:
   void Run();
   void Stop();
 
-  AudioController&  GetAudioController()  { return mAudioCtrl; }
-  LcdController&    GetLcdController()    { return mLcdCtrl; }
+  AudioController&  GetAudioController()  { return mAudioCtrl;  }
+  LcdController&    GetLcdController()    { return mLcdCtrl;    }
   JoypadController& GetJoypadController() { return mJoypadCtrl; }
 
-  Status InsertRom(const std::filesystem::path& rom_path)
-  {
-    Status status;
-
-    size_t rom_size = std::filesystem::file_size(rom_path);
-
-    if (rom_size > Cpu::MAX_ROM_SIZE)
-    {
-      std::string msg = "ROM too large to load.";
-
-      status.SetMsg(msg);
-      return status;
-    }
-
-    std::ifstream rom_stream(rom_path, std::ios_base::binary);
-
-    if (!rom_stream)
-    {
-      std::string msg = "Could not open ROM file.";
-
-      status.SetMsg(msg);
-      return status;
-    }
-
-    std::vector<uint8_t> rom;
-    rom.resize(rom_size);
-
-    rom_stream.read(reinterpret_cast<char*>(rom.data()), rom_size);
-
-    if (!rom_stream)
-    {
-      std::string msg = "Could not read ROM file.";
-
-      status.SetMsg(msg);
-      return status;
-    }
-
-    SetRom(rom_path, std::move(rom));
-
-    return status;
-  }
+  Status InsertRom(const std::filesystem::path& rom_path);
 
   Palettes GetPalettes(std::string title);
   uint8_t  GetTitleHash(std::string title);
@@ -138,9 +99,9 @@ private:
     uint16_t HL{};
   };
 
-  Register _af{};
-  Register _bc{};
-  Register _de{};
+  Register mAF{};
+  Register mBC{};
+  Register mDE{};
   Register mHL{};
 
   Register mSP{};
@@ -213,7 +174,7 @@ private:
 
   uint64_t m_num_rom_banks = 2;
   uint64_t m_num_ram_banks = 1;
-  int m_rom_bank = 1;
+  int mRomBank = 1;
   int mRamBank = 0;
 
   uint8_t m_lower_bank_bits = 1;
@@ -291,12 +252,14 @@ private:
 
   void Init();
 
-  void TickEdge(EdgeType& edge, LevelType& level, uint64_t& count);
+  void TickEdge(EdgeType& edge, LevelType& level);
 
-  void RisingTEvent();
+  void TEvent();
   void FallingTEvent();
-  void RisingMEvent();
+  void RisingTEvent();
+  void MEvent();
   void FallingMEvent();
+  void RisingMEvent();
 
   virtual void InstructionCompleteEvent();
   void InterruptCompleteEvent();
@@ -307,8 +270,6 @@ private:
   void ExtInstructionHandler();
   void InterruptHandler();
   void HaltHandler();
-
-  void TickComponents();
 
   void ReadNextUint8();
 
@@ -331,8 +292,7 @@ private:
 
   uint8_t  mOpcode{0};
 
-  uint64_t mTotalCycles = 0;
-  uint64_t mFrameCycles = 0;
+  uint64_t mMFrameCycles = 0;
 
   StopWatch mExeStopwatch;
   

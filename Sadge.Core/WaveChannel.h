@@ -12,6 +12,8 @@ public:
 
   WaveChannel(uint8_t& dataBus, uint16_t& addressBus);
 
+  bool DacEnabled() const;
+
   void HandleNR30Write();
 
   void Reset();
@@ -44,10 +46,8 @@ private:
   };
 
   int MaxLengthTick() const;
-  int MaxPeriodCount() const;
   uint8_t GetInitLengthTimer();
   uint8_t GetVolume();
-  bool DacEnabled() const;
 
   void Trigger();
 
@@ -55,7 +55,6 @@ private:
   void UpdateChOut();
 
   uint8_t  mCurrentSample{};
-  int      mPeriodCounter{};
   int      mIdx{};
   double   mDcOffset{};
 };

@@ -119,7 +119,7 @@ void Cpu::LD__rr_r(Register rr, uint8_t r)
 
 void Cpu::LD__rr_A(Register rr)
 {
-  LD__rr_r(rr, _af.H);
+  LD__rr_r(rr, mAF.H);
 }
 
 void Cpu::LD__nn_A()
@@ -138,7 +138,7 @@ void Cpu::LD__nn_A()
       break;
     case 2:
       mAddressBus = mWZ.HL;
-      mDataBus = _af.H;
+      mDataBus = mAF.H;
       Write();
       mExeCycle += 1;
       break;
@@ -152,7 +152,7 @@ void Cpu::LD__nn_A()
 
 void Cpu::LD__HLx_A(int val)
 {
-  LD__rr_r(mHL, _af.H);
+  LD__rr_r(mHL, mAF.H);
 
   switch (mExeCycle)
   {
@@ -176,7 +176,7 @@ void Cpu::LD_A__rr(Register rr)
       mExeCycle += 1;
       break;
     case 1:
-      _af.H = mWZ.L;
+      mAF.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -205,7 +205,7 @@ void Cpu::LD_A__nn()
       mExeCycle += 1;
       break;
     case 3:
-      _af.H = mWZ.L;
+      mAF.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -354,7 +354,7 @@ void Cpu::LDH__n_A()
       break;
     case 1:
       mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mWZ.L;
-      mDataBus = _af.H;
+      mDataBus = mAF.H;
       Write();
       mExeCycle += 1;
       break;
@@ -371,8 +371,8 @@ void Cpu::LDH__C_A()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.L;
-      mDataBus = _af.H;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mBC.L;
+      mDataBus = mAF.H;
       Write();
       mExeCycle += 1;
       break;
@@ -389,13 +389,13 @@ void Cpu::LDH_A__C()
   switch (mExeCycle)
   {
     case 0:
-      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + _bc.L;
+      mAddressBus = static_cast<uint16_t>(ExecutionAddress::IO) + mBC.L;
       Read();
       mWZ.L = mDataBus;
       mExeCycle += 1;
       break;
     case 1:
-      _af.H = mWZ.L;
+      mAF.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -419,7 +419,7 @@ void Cpu::LDH_A__n()
       mExeCycle += 1;
       break;
     case 2:
-      _af.H = mWZ.L;
+      mAF.H = mWZ.L;
       mExeCycle = EXE_COMPLETE;
       break;
     default:
@@ -509,10 +509,10 @@ void Cpu::ADD_x(uint8_t& r, int val, bool set_carry)
 void Cpu::ADC_A_x(int val)
 {
   int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-  int result = _af.H + val + carry;
-  SetHalfCarryFlag(_af.H, val, carry);
-  _af.H = result;
-  SetZeroFlag(_af.H);
+  int result = mAF.H + val + carry;
+  SetHalfCarryFlag(mAF.H, val, carry);
+  mAF.H = result;
+  SetZeroFlag(mAF.H);
   ResetFlag(FlagBitMask::Subtract);
   SetCarry8Bit(result);
   //_opcycle = INSTRUCTION_COMPLETE;
@@ -558,10 +558,10 @@ void Cpu::ADC_A_n()
 void Cpu::SBC_A_x(int val)
 {
   int carry = ReadFlag(FlagBitMask::Carry) ? 1 : 0;
-  int result = _af.H - val - carry;
-  SetHalfCarryFlag(_af.H, -val, -carry);
-  _af.H = result;
-  SetZeroFlag(_af.H);
+  int result = mAF.H - val - carry;
+  SetHalfCarryFlag(mAF.H, -val, -carry);
+  mAF.H = result;
+  SetZeroFlag(mAF.H);
   SetFlag(FlagBitMask::Subtract);
   SetCarry8Bit(result);
   //_opcycle = INSTRUCTION_COMPLETE;
@@ -606,8 +606,8 @@ void Cpu::SBC_A_n()
 
 void Cpu::AND_A_x(uint8_t val)
 {
-  _af.H &= val;
-  SetZeroFlag(_af.H);
+  mAF.H &= val;
+  SetZeroFlag(mAF.H);
   ResetFlag(FlagBitMask::Subtract);
   SetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
@@ -652,8 +652,8 @@ void Cpu::AND_A_n()
 
 void Cpu::XOR_A_x(uint8_t val)
 {
-  _af.H ^= val;
-  SetZeroFlag(_af.H);
+  mAF.H ^= val;
+  SetZeroFlag(mAF.H);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
@@ -698,8 +698,8 @@ void Cpu::XOR_A_n()
 
 void Cpu::OR_A_X(uint8_t val)
 {
-  _af.H |= val;
-  SetZeroFlag(_af.H);
+  mAF.H |= val;
+  SetZeroFlag(mAF.H);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
   ResetFlag(FlagBitMask::Carry);
@@ -744,10 +744,10 @@ void Cpu::OR_A_n()
 
 void Cpu::CP_A_x(uint8_t val)
 {
-  int result = _af.H - val;
+  int result = mAF.H - val;
   SetZeroFlag(result);
   SetFlag(FlagBitMask::Subtract);
-  SetHalfCarryFlag(_af.H, -val);
+  SetHalfCarryFlag(mAF.H, -val);
   SetCarry8Bit(result);
 }
 
@@ -790,7 +790,7 @@ void Cpu::CP_A_n()
 
 void Cpu::ADD_A_x(int val)
 {
-  ADD_x(_af.H, val, true);
+  ADD_x(mAF.H, val, true);
   ResetFlag(FlagBitMask::Subtract);
 }
 
@@ -833,7 +833,7 @@ void Cpu::ADD_A_n()
 
 void Cpu::SUB_A_x(int val)
 {
-  ADD_x(_af.H, -val, true);
+  ADD_x(mAF.H, -val, true);
   SetFlag(FlagBitMask::Subtract);
 }
 
@@ -888,8 +888,8 @@ void Cpu::DEC_r(uint8_t& r)
 
 void Cpu::RLCA()
 {
-  _af.H & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.H = _af.H << 1 | _af.H >> 7;
+  mAF.H & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  mAF.H = mAF.H << 1 | mAF.H >> 7;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -898,8 +898,8 @@ void Cpu::RLCA()
 
 void Cpu::RRCA()
 {
-  _af.H & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.H = _af.H >> 1 | _af.H << 7;
+  mAF.H & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  mAF.H = mAF.H >> 1 | mAF.H << 7;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -909,8 +909,8 @@ void Cpu::RRCA()
 void Cpu::RLA()
 {
   uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-  _af.H & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.H = _af.H << 1 | carry_bit;
+  mAF.H & 0b10000000 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  mAF.H = mAF.H << 1 | carry_bit;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -920,8 +920,8 @@ void Cpu::RLA()
 void Cpu::RRA()
 {
   uint8_t carry_bit = ReadFlag(FlagBitMask::Carry);
-  _af.H & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
-  _af.H = _af.H >> 1 | carry_bit << 7;
+  mAF.H & 0b00000001 ? SetFlag(FlagBitMask::Carry) : ResetFlag(FlagBitMask::Carry);
+  mAF.H = mAF.H >> 1 | carry_bit << 7;
   ResetFlag(FlagBitMask::Zero);
   ResetFlag(FlagBitMask::Subtract);
   ResetFlag(FlagBitMask::HalfCarry);
@@ -932,23 +932,23 @@ void Cpu::DAA()
 {
   if (!ReadFlag(FlagBitMask::Subtract))
   {
-    if (ReadFlag(FlagBitMask::Carry) || _af.H > 0x99) { _af.H += 0x60; SetFlag(FlagBitMask::Carry); }
-    if (ReadFlag(FlagBitMask::HalfCarry) || (_af.H & 0x0f) > 0x09)   _af.H += 0x06;
+    if (ReadFlag(FlagBitMask::Carry) || mAF.H > 0x99) { mAF.H += 0x60; SetFlag(FlagBitMask::Carry); }
+    if (ReadFlag(FlagBitMask::HalfCarry) || (mAF.H & 0x0f) > 0x09)   mAF.H += 0x06;
   }
   else
   {
-    if (ReadFlag(FlagBitMask::Carry))     _af.H -= 0x60;
-    if (ReadFlag(FlagBitMask::HalfCarry)) _af.H -= 0x06;
+    if (ReadFlag(FlagBitMask::Carry))     mAF.H -= 0x60;
+    if (ReadFlag(FlagBitMask::HalfCarry)) mAF.H -= 0x06;
   }
 
-  SetZeroFlag(_af.H);
+  SetZeroFlag(mAF.H);
   ResetFlag(FlagBitMask::HalfCarry);
   //_opcycle = INSTRUCTION_COMPLETE;
 }
 
 void Cpu::CPL()
 {
-  _af.H = ~_af.H;
+  mAF.H = ~mAF.H;
   SetFlag(FlagBitMask::Subtract);
   SetFlag(FlagBitMask::HalfCarry);
   //_opcycle = INSTRUCTION_COMPLETE;
@@ -1204,8 +1204,8 @@ void Cpu::POP_AF()
       mExeCycle += 1;
       break;
     case 2:
-      _af = mWZ;
-      _af.L &= 0xF0;
+      mAF = mWZ;
+      mAF.L &= 0xF0;
       mExeCycle = EXE_COMPLETE;
       break;
   }
@@ -1247,32 +1247,32 @@ void Cpu::Op0x00()
 
 void Cpu::Op0x01()
 {
-  LD_rr_nn(_bc);
+  LD_rr_nn(mBC);
 }
 
 void Cpu::Op0x02()
 {
-  LD__rr_A(_bc);
+  LD__rr_A(mBC);
 }
 
 void Cpu::Op0x03()
 {
-  ADD_rr(_bc, 1);
+  ADD_rr(mBC, 1);
 }
 
 void Cpu::Op0x04()
 {
-  INC_r(_bc.H);
+  INC_r(mBC.H);
 }
 
 void Cpu::Op0x05()
 {
-  DEC_r(_bc.H);
+  DEC_r(mBC.H);
 }
 
 void Cpu::Op0x06()
 {
-  LD_r_n(_bc.H);
+  LD_r_n(mBC.H);
 }
 
 void Cpu::Op0x07()
@@ -1287,32 +1287,32 @@ void Cpu::Op0x08()
 
 void Cpu::Op0x09()
 {
-  ADD_HL_rr(_bc);
+  ADD_HL_rr(mBC);
 }
 
 void Cpu::Op0x0A()
 {
-  LD_A__rr(_bc);
+  LD_A__rr(mBC);
 }
 
 void Cpu::Op0x0B()
 {
-  ADD_rr(_bc, -1);;
+  ADD_rr(mBC, -1);;
 }
 
 void Cpu::Op0x0C()
 {
-  INC_r(_bc.L);
+  INC_r(mBC.L);
 }
 
 void Cpu::Op0x0D()
 {
-  DEC_r(_bc.L);
+  DEC_r(mBC.L);
 }
 
 void Cpu::Op0x0E()
 {
-  LD_r_n(_bc.L);
+  LD_r_n(mBC.L);
 }
 
 void Cpu::Op0x0F()
@@ -1327,32 +1327,32 @@ void Cpu::Op0x10()
 
 void Cpu::Op0x11()
 {
-  LD_rr_nn(_de);
+  LD_rr_nn(mDE);
 }
 
 void Cpu::Op0x12()
 {
-  LD__rr_A(_de);
+  LD__rr_A(mDE);
 }
 
 void Cpu::Op0x13()
 {
-  ADD_rr(_de, 1);
+  ADD_rr(mDE, 1);
 }
 
 void Cpu::Op0x14()
 {
-  INC_r(_de.H);
+  INC_r(mDE.H);
 }
 
 void Cpu::Op0x15()
 {
-  DEC_r(_de.H);
+  DEC_r(mDE.H);
 }
 
 void Cpu::Op0x16()
 {
-  LD_r_n(_de.H);
+  LD_r_n(mDE.H);
 }
 
 void Cpu::Op0x17()
@@ -1367,7 +1367,7 @@ void Cpu::Op0x18()
 
 void Cpu::Op0x19()
 {
-  ADD_HL_rr(_de);
+  ADD_HL_rr(mDE);
 }
 
 void Cpu::Op0x20()
@@ -1377,27 +1377,27 @@ void Cpu::Op0x20()
 
 void Cpu::Op0x1A()
 {
-  LD_A__rr(_de);
+  LD_A__rr(mDE);
 }
 
 void Cpu::Op0x1B()
 {
-  ADD_rr(_de, -1);
+  ADD_rr(mDE, -1);
 }
 
 void Cpu::Op0x1C()
 {
-  INC_r(_de.L);
+  INC_r(mDE.L);
 }
 
 void Cpu::Op0x1D()
 {
-  DEC_r(_de.L);
+  DEC_r(mDE.L);
 }
 
 void Cpu::Op0x1E()
 {
-  LD_r_n(_de.L);
+  LD_r_n(mDE.L);
 }
 
 void Cpu::Op0x1F()
@@ -1542,17 +1542,17 @@ void Cpu::Op0x3B()
 
 void Cpu::Op0x3C()
 {
-  INC_r(_af.H);
+  INC_r(mAF.H);
 }
 
 void Cpu::Op0x3D()
 {
-  DEC_r(_af.H);
+  DEC_r(mAF.H);
 }
 
 void Cpu::Op0x3E()
 {
-  LD_r_n(_af.H);
+  LD_r_n(mAF.H);
 }
 
 void Cpu::Op0x3F()
@@ -1562,187 +1562,187 @@ void Cpu::Op0x3F()
 
 void Cpu::Op0x40()
 {
-  LD_r_x(_bc.H, _bc.H);
+  LD_r_x(mBC.H, mBC.H);
 }
 
 void Cpu::Op0x41()
 {
-  LD_r_x(_bc.H, _bc.L);
+  LD_r_x(mBC.H, mBC.L);
 }
 
 void Cpu::Op0x42()
 {
-  LD_r_x(_bc.H, _de.H);
+  LD_r_x(mBC.H, mDE.H);
 }
 
 void Cpu::Op0x43()
 {
-  LD_r_x(_bc.H, _de.L);
+  LD_r_x(mBC.H, mDE.L);
 }
 
 void Cpu::Op0x44()
 {
-  LD_r_x(_bc.H, mHL.H);
+  LD_r_x(mBC.H, mHL.H);
 }
 
 void Cpu::Op0x45()
 {
-  LD_r_x(_bc.H, mHL.L);
+  LD_r_x(mBC.H, mHL.L);
 }
 
 void Cpu::Op0x46()
 {
-  LD_r__HL(_bc.H);
+  LD_r__HL(mBC.H);
 }
 
 void Cpu::Op0x47()
 {
-  LD_r_x(_bc.H, _af.H);
+  LD_r_x(mBC.H, mAF.H);
 
 }
 
 void Cpu::Op0x48()
 {
-  LD_r_x(_bc.L, _bc.H);
+  LD_r_x(mBC.L, mBC.H);
 
 }
 
 void Cpu::Op0x49()
 {
-  LD_r_x(_bc.L, _bc.L);
+  LD_r_x(mBC.L, mBC.L);
 
 }
 
 void Cpu::Op0x4A()
 {
-  LD_r_x(_bc.L, _de.H);
+  LD_r_x(mBC.L, mDE.H);
 
 }
 
 void Cpu::Op0x4B()
 {
-  LD_r_x(_bc.L, _de.L);
+  LD_r_x(mBC.L, mDE.L);
 }
 
 void Cpu::Op0x4C()
 {
-  LD_r_x(_bc.L, mHL.H);
+  LD_r_x(mBC.L, mHL.H);
 }
 
 void Cpu::Op0x4D()
 {
-  LD_r_x(_bc.L, mHL.L);
+  LD_r_x(mBC.L, mHL.L);
 }
 
 void Cpu::Op0x4E()
 {
-  LD_r__HL(_bc.L);
+  LD_r__HL(mBC.L);
 }
 
 void Cpu::Op0x4F()
 {
-  LD_r_x(_bc.L, _af.H);
+  LD_r_x(mBC.L, mAF.H);
 }
 
 void Cpu::Op0x50()
 {
-  LD_r_x(_de.H, _bc.H);
+  LD_r_x(mDE.H, mBC.H);
 }
 
 void Cpu::Op0x51()
 {
-  LD_r_x(_de.H, _bc.L);
+  LD_r_x(mDE.H, mBC.L);
 }
 
 void Cpu::Op0x52()
 {
-  LD_r_x(_de.H, _de.H);
+  LD_r_x(mDE.H, mDE.H);
 }
 
 void Cpu::Op0x53()
 {
-  LD_r_x(_de.H, _de.L);
+  LD_r_x(mDE.H, mDE.L);
 }
 
 void Cpu::Op0x54()
 {
-  LD_r_x(_de.H, mHL.H);
+  LD_r_x(mDE.H, mHL.H);
 }
 
 void Cpu::Op0x55()
 {
-  LD_r_x(_de.H, mHL.L);
+  LD_r_x(mDE.H, mHL.L);
 }
 
 void Cpu::Op0x56()
 {
-  LD_r__HL(_de.H);
+  LD_r__HL(mDE.H);
 }
 
 void Cpu::Op0x57()
 {
-  LD_r_x(_de.H, _af.H);
+  LD_r_x(mDE.H, mAF.H);
 }
 
 void Cpu::Op0x58()
 {
-  LD_r_x(_de.L, _bc.H);
+  LD_r_x(mDE.L, mBC.H);
 }
 
 void Cpu::Op0x59()
 {
-  LD_r_x(_de.L, _bc.L);
+  LD_r_x(mDE.L, mBC.L);
 }
 
 void Cpu::Op0x5A()
 {
-  LD_r_x(_de.L, _de.H);
+  LD_r_x(mDE.L, mDE.H);
 }
 
 void Cpu::Op0x5B()
 {
-  LD_r_x(_de.L, _de.L);
+  LD_r_x(mDE.L, mDE.L);
 }
 
 void Cpu::Op0x5C()
 {
-  LD_r_x(_de.L, mHL.H);
+  LD_r_x(mDE.L, mHL.H);
 
 }
 
 void Cpu::Op0x5D()
 {
-  LD_r_x(_de.L, mHL.L);
+  LD_r_x(mDE.L, mHL.L);
 }
 
 void Cpu::Op0x5E()
 {
-  LD_r__HL(_de.L);
+  LD_r__HL(mDE.L);
 }
 
 void Cpu::Op0x5F()
 {
-  LD_r_x(_de.L, _af.H);
+  LD_r_x(mDE.L, mAF.H);
 }
 
 void Cpu::Op0x60()
 {
-  LD_r_x(mHL.H, _bc.H);
+  LD_r_x(mHL.H, mBC.H);
 }
 
 void Cpu::Op0x61()
 {
-  LD_r_x(mHL.H, _bc.L);
+  LD_r_x(mHL.H, mBC.L);
 }
 
 void Cpu::Op0x62()
 {
-  LD_r_x(mHL.H, _de.H);
+  LD_r_x(mHL.H, mDE.H);
 }
 
 void Cpu::Op0x63()
 {
-  LD_r_x(mHL.H, _de.L);
+  LD_r_x(mHL.H, mDE.L);
 }
 
 void Cpu::Op0x64()
@@ -1762,27 +1762,27 @@ void Cpu::Op0x66()
 
 void Cpu::Op0x67()
 {
-  LD_r_x(mHL.H, _af.H);
+  LD_r_x(mHL.H, mAF.H);
 }
 
 void Cpu::Op0x68()
 {
-  LD_r_x(mHL.L, _bc.H);
+  LD_r_x(mHL.L, mBC.H);
 }
 
 void Cpu::Op0x69()
 {
-  LD_r_x(mHL.L, _bc.L);
+  LD_r_x(mHL.L, mBC.L);
 }
 
 void Cpu::Op0x6A()
 {
-  LD_r_x(mHL.L, _de.H);
+  LD_r_x(mHL.L, mDE.H);
 }
 
 void Cpu::Op0x6B()
 {
-  LD_r_x(mHL.L, _de.L);
+  LD_r_x(mHL.L, mDE.L);
 }
 
 void Cpu::Op0x6C()
@@ -1802,27 +1802,27 @@ void Cpu::Op0x6E()
 
 void Cpu::Op0x6F()
 {
-  LD_r_x(mHL.L, _af.H);
+  LD_r_x(mHL.L, mAF.H);
 }
 
 void Cpu::Op0x70()
 {
-  LD__rr_r(mHL, _bc.H);
+  LD__rr_r(mHL, mBC.H);
 }
 
 void Cpu::Op0x71()
 {
-  LD__rr_r(mHL, _bc.L);
+  LD__rr_r(mHL, mBC.L);
 }
 
 void Cpu::Op0x72()
 {
-  LD__rr_r(mHL, _de.H);
+  LD__rr_r(mHL, mDE.H);
 }
 
 void Cpu::Op0x73()
 {
-  LD__rr_r(mHL, _de.L);
+  LD__rr_r(mHL, mDE.L);
 }
 
 void Cpu::Op0x74()
@@ -1842,67 +1842,67 @@ void Cpu::Op0x76()
 
 void Cpu::Op0x77()
 {
-  LD__rr_r(mHL, _af.H);
+  LD__rr_r(mHL, mAF.H);
 }
 
 void Cpu::Op0x78()
 {
-  LD_r_x(_af.H, _bc.H);
+  LD_r_x(mAF.H, mBC.H);
 }
 
 void Cpu::Op0x79()
 {
-  LD_r_x(_af.H, _bc.L);
+  LD_r_x(mAF.H, mBC.L);
 }
 
 void Cpu::Op0x7A()
 {
-  LD_r_x(_af.H, _de.H);
+  LD_r_x(mAF.H, mDE.H);
 }
 
 void Cpu::Op0x7B()
 {
-  LD_r_x(_af.H, _de.L);
+  LD_r_x(mAF.H, mDE.L);
 }
 
 void Cpu::Op0x7C()
 {
-  LD_r_x(_af.H, mHL.H);
+  LD_r_x(mAF.H, mHL.H);
 }
 
 void Cpu::Op0x7D()
 {
-  LD_r_x(_af.H, mHL.L);
+  LD_r_x(mAF.H, mHL.L);
 }
 
 void Cpu::Op0x7E()
 {
-  LD_r__HL(_af.H);
+  LD_r__HL(mAF.H);
 }
 
 void Cpu::Op0x7F()
 {
-  LD_r_x(_af.H, _af.H);
+  LD_r_x(mAF.H, mAF.H);
 }
 
 void Cpu::Op0x80()
 {
-  ADD_A_x(_bc.H);
+  ADD_A_x(mBC.H);
 }
 
 void Cpu::Op0x81()
 {
-  ADD_A_x(_bc.L);
+  ADD_A_x(mBC.L);
 }
 
 void Cpu::Op0x82()
 {
-  ADD_A_x(_de.H);
+  ADD_A_x(mDE.H);
 }
 
 void Cpu::Op0x83()
 {
-  ADD_A_x(_de.L);
+  ADD_A_x(mDE.L);
 }
 
 void Cpu::Op0x84()
@@ -1922,27 +1922,27 @@ void Cpu::Op0x86()
 
 void Cpu::Op0x87()
 {
-  ADD_A_x(_af.H);
+  ADD_A_x(mAF.H);
 }
 
 void Cpu::Op0x88()
 {
-  ADC_A_x(_bc.H);
+  ADC_A_x(mBC.H);
 }
 
 void Cpu::Op0x89()
 {
-  ADC_A_x(_bc.L);
+  ADC_A_x(mBC.L);
 }
 
 void Cpu::Op0x8A()
 {
-  ADC_A_x(_de.H);
+  ADC_A_x(mDE.H);
 }
 
 void Cpu::Op0x8B()
 {
-  ADC_A_x(_de.L);
+  ADC_A_x(mDE.L);
 }
 
 void Cpu::Op0x8C()
@@ -1962,27 +1962,27 @@ void Cpu::Op0x8E()
 
 void Cpu::Op0x8F()
 {
-  ADC_A_x(_af.H);
+  ADC_A_x(mAF.H);
 }
 
 void Cpu::Op0x90()
 {
-  SUB_A_x(_bc.H);
+  SUB_A_x(mBC.H);
 }
 
 void Cpu::Op0x91()
 {
-  SUB_A_x(_bc.L);
+  SUB_A_x(mBC.L);
 }
 
 void Cpu::Op0x92()
 {
-  SUB_A_x(_de.H);
+  SUB_A_x(mDE.H);
 }
 
 void Cpu::Op0x93()
 {
-  SUB_A_x(_de.L);
+  SUB_A_x(mDE.L);
 }
 
 void Cpu::Op0x94()
@@ -2002,27 +2002,27 @@ void Cpu::Op0x96()
 
 void Cpu::Op0x97()
 {
-  SUB_A_x(_af.H);
+  SUB_A_x(mAF.H);
 }
 
 void Cpu::Op0x98()
 {
-  SBC_A_x(_bc.H);
+  SBC_A_x(mBC.H);
 }
 
 void Cpu::Op0x99()
 {
-  SBC_A_x(_bc.L);
+  SBC_A_x(mBC.L);
 }
 
 void Cpu::Op0x9A()
 {
-  SBC_A_x(_de.H);
+  SBC_A_x(mDE.H);
 }
 
 void Cpu::Op0x9B()
 {
-  SBC_A_x(_de.L);
+  SBC_A_x(mDE.L);
 }
 
 void Cpu::Op0x9C()
@@ -2042,27 +2042,27 @@ void Cpu::Op0x9E()
 
 void Cpu::Op0x9F()
 {
-  SBC_A_x(_af.H);
+  SBC_A_x(mAF.H);
 }
 
 void Cpu::Op0xA0()
 {
-  AND_A_x(_bc.H);
+  AND_A_x(mBC.H);
 }
 
 void Cpu::Op0xA1()
 {
-  AND_A_x(_bc.L);
+  AND_A_x(mBC.L);
 }
 
 void Cpu::Op0xA2()
 {
-  AND_A_x(_de.H);
+  AND_A_x(mDE.H);
 }
 
 void Cpu::Op0xA3()
 {
-  AND_A_x(_de.L);
+  AND_A_x(mDE.L);
 }
 
 void Cpu::Op0xA4()
@@ -2082,27 +2082,27 @@ void Cpu::Op0xA6()
 
 void Cpu::Op0xA7()
 {
-  AND_A_x(_af.H);
+  AND_A_x(mAF.H);
 }
 
 void Cpu::Op0xA8()
 {
-  XOR_A_x(_bc.H);
+  XOR_A_x(mBC.H);
 }
 
 void Cpu::Op0xA9()
 {
-  XOR_A_x(_bc.L);
+  XOR_A_x(mBC.L);
 }
 
 void Cpu::Op0xAA()
 {
-  XOR_A_x(_de.H);
+  XOR_A_x(mDE.H);
 }
 
 void Cpu::Op0xAB()
 {
-  XOR_A_x(_de.L);
+  XOR_A_x(mDE.L);
 }
 
 void Cpu::Op0xAC()
@@ -2122,27 +2122,27 @@ void Cpu::Op0xAE()
 
 void Cpu::Op0xAF()
 {
-  XOR_A_x(_af.H);
+  XOR_A_x(mAF.H);
 }
 
 void Cpu::Op0xB0()
 {
-  OR_A_X(_bc.H);
+  OR_A_X(mBC.H);
 }
 
 void Cpu::Op0xB1()
 {
-  OR_A_X(_bc.L);
+  OR_A_X(mBC.L);
 }
 
 void Cpu::Op0xB2()
 {
-  OR_A_X(_de.H);
+  OR_A_X(mDE.H);
 }
 
 void Cpu::Op0xB3()
 {
-  OR_A_X(_de.L);
+  OR_A_X(mDE.L);
 }
 
 void Cpu::Op0xB4()
@@ -2162,27 +2162,27 @@ void Cpu::Op0xB6()
 
 void Cpu::Op0xB7()
 {
-  OR_A_X(_af.H);
+  OR_A_X(mAF.H);
 }
 
 void Cpu::Op0xB8()
 {
-  CP_A_x(_bc.H);
+  CP_A_x(mBC.H);
 }
 
 void Cpu::Op0xB9()
 {
-  CP_A_x(_bc.L);
+  CP_A_x(mBC.L);
 }
 
 void Cpu::Op0xBA()
 {
-  CP_A_x(_de.H);
+  CP_A_x(mDE.H);
 }
 
 void Cpu::Op0xBB()
 {
-  CP_A_x(_de.L);
+  CP_A_x(mDE.L);
 }
 
 void Cpu::Op0xBC()
@@ -2202,7 +2202,7 @@ void Cpu::Op0xBE()
 
 void Cpu::Op0xBF()
 {
-  CP_A_x(_af.H);
+  CP_A_x(mAF.H);
 }
 
 void Cpu::Op0xC0()
@@ -2212,7 +2212,7 @@ void Cpu::Op0xC0()
 
 void Cpu::Op0xC1()
 {
-  POP_rr(_bc);
+  POP_rr(mBC);
 }
 
 void Cpu::Op0xC2()
@@ -2232,7 +2232,7 @@ void Cpu::Op0xC4()
 
 void Cpu::Op0xC5()
 {
-  PUSH_rr(_bc);
+  PUSH_rr(mBC);
 }
 
 void Cpu::Op0xC6()
@@ -2292,7 +2292,7 @@ void Cpu::Op0xD0()
 
 void Cpu::Op0xD1()
 {
-  POP_rr(_de);
+  POP_rr(mDE);
 }
 
 void Cpu::Op0xD2()
@@ -2312,7 +2312,7 @@ void Cpu::Op0xD4()
 
 void Cpu::Op0xD5()
 {
-  PUSH_rr(_de);
+  PUSH_rr(mDE);
 }
 
 void Cpu::Op0xD6()
@@ -2472,7 +2472,7 @@ void Cpu::Op0xF4()
 
 void Cpu::Op0xF5()
 {
-  PUSH_rr(_af);
+  PUSH_rr(mAF);
 }
 
 void Cpu::Op0xF6()

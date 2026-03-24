@@ -37,7 +37,6 @@ public:
 
 protected:
 
-  int mPeriodCounter{};
   void Trigger();
 
 private:

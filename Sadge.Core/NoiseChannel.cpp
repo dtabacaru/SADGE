@@ -1,9 +1,22 @@
 #include "NoiseChannel.h"
 
+#include "Constants.h"
+
 NoiseChannel::NoiseChannel(uint8_t& dataBus,
                            uint16_t& addrBus) :
   AudioChannel(dataBus, addrBus)
 {
+}
+
+void NoiseChannel::HandleNr43Write()
+{
+  NRX3 = mDataBus;
+
+  double div = GetClockDivider();
+  if (div == 0)
+    div = 0.5;
+
+  mPeriodCounter = div * (1 << GetClockShift()) * 4;
 }
 
 bool NoiseChannel::GetLfsrWidth()
@@ -25,13 +38,7 @@ void NoiseChannel::ApuTick()
 {
   mLfsrTick += 1;
 
-  float div = GetClockDivider();
-  if (div == 0)
-    div = 0.5;
-
-  uint32_t lfsrPeriodCount = static_cast<uint32_t>((1 << 20) / ((1 << 18) / (div * (1 << GetClockShift())))) * 4; // * 4 for T rate
-
-  if (mLfsrTick < lfsrPeriodCount)
+  if (mLfsrTick < mPeriodCounter)
     return;
 
   mLfsrTick = 0;
@@ -80,6 +87,6 @@ void NoiseChannel::Disable()
 void NoiseChannel::Reset()
 {
   AudioChannel::Reset();
-  mLfsrTick = {};
-  mLfsr = {0xFFFF};
+  mLfsrTick = 0;
+  mLfsr = 0xFFFF;
 }

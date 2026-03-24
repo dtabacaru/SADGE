@@ -31,8 +31,10 @@ void Cpu::RunUntil(uint64_t count)
 {
   Init();
 
-  while (mTotalCycles < count)
+  do
+  {
     Main();
+  } while (mTEdgeCount < count);
 }
 
 void Cpu::Run()
@@ -63,6 +65,9 @@ void Cpu::WriteIo()
            mAddressBus <= TimerController::GetAddress(TimerController::Address::END))
   {
     mTimerCtrl.Write();
+
+    if (mAddressBus == TimerController::GetAddress(TimerController::Address::DIV))
+      mAudioCtrl.UpdateClk(mTimerCtrl.GetClk());
   }
   else if (mAddressBus == InterruptController::GetAddress(InterruptController::InterruptAddress::FLAG))
   {
@@ -168,7 +173,6 @@ void Cpu::Write()
   {
     if (mEramEn)
     {
-
       mRamBanks[mRamBank][mAddressBus - 0xA000] = mDataBus;
     }
   }
@@ -342,7 +346,7 @@ void Cpu::Read()
   }
   else if (mAddressBus >= 0x4000) // (4000-7FFF) 16KB ROM bank 01~NN From cartridge, switchable bank via MBC (if any)
   {
-    mDataBus = mRomBanks[m_rom_bank][mAddressBus - 0x4000];
+    mDataBus = mRomBanks[mRomBank][mAddressBus - 0x4000];
   }
   else //if (address > 0x0000) // (0000-3FFF) 16KB ROM bank 00 From cartridge, usually a fixed bank, BOOT_ROM mapped to 00-FF at start
   {
@@ -357,12 +361,12 @@ void Cpu::SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, ui
 
   mPC.HL = pc;
   mSP.HL = sp;
-  _af.H = a;
-  _bc.H = b;
-  _bc.L = c;
-  _de.H = d;
-  _de.L = e;
-  _af.L = f;
+  mAF.H = a;
+  mBC.H = b;
+  mBC.L = c;
+  mDE.H = d;
+  mDE.L = e;
+  mAF.L = f;
   mHL.H = h;
   mHL.L = l;
 }
@@ -375,17 +379,17 @@ bool Cpu::CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, 
     return false;
   else if (sp != mSP.HL)
     return false;
-  else if (a != _af.H)
+  else if (a != mAF.H)
     return false;
-  else if (b != _bc.H)
+  else if (b != mBC.H)
     return false;
-  else if (c != _bc.L)
+  else if (c != mBC.L)
     return false;
-  else if (d != _de.H)
+  else if (d != mDE.H)
     return false;
-  else if (e != _de.L)
+  else if (e != mDE.L)
     return false;
-  else if (f != _af.L)
+  else if (f != mAF.L)
     return false;
   else if (h != mHL.H)
     return false;

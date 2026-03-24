@@ -1,4 +1,5 @@
 #include "Cpu.h"
+#include "HighResTimerWrapper.h"
 
 #include "raylib.h"
 
@@ -318,6 +319,8 @@ int main(int num_args, char* args[])
 	}
 
 	std::filesystem::path rom_path;
+
+	HighResTimerWrapper highResTimer;
 
 	try
 	{

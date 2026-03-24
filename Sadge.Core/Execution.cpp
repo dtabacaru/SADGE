@@ -1,29 +1,14 @@
 #include "Cpu.h"
 
-void Cpu::TickComponents()
-{
-  mTotalCycles += 4;
-  mFrameCycles += 4;
-
-  if (mLcdCtrl.DmaRequested())
-  {
-    mAddressBus = mLcdCtrl.GetCurrentDmaAddress();
-    Read();
-    mLcdCtrl.ServiceDma(mDataBus);
-  }
-
-  bool frame_ready = mLcdCtrl.Update();
-  mTimerCtrl.Tick();
-
-  if (frame_ready)
-    WaitFrame();
-}
-
-void Cpu::TickEdge(EdgeType& edge, LevelType& level, uint64_t& count)
+void Cpu::TickEdge(EdgeType& edge, LevelType& level)
 {
   edge = edge == EdgeType::FALLING ? EdgeType::RISING : EdgeType::FALLING;
   level = edge == EdgeType::FALLING ? LevelType::LOW : LevelType::HIGH;
-  count += 1;
+}
+
+void Cpu::TEvent()
+{
+  mTEdgeCount += 1;
 }
 
 void Cpu::FallingTEvent()
@@ -31,24 +16,66 @@ void Cpu::FallingTEvent()
   mTLowCount += 1;
 }
 
+void Cpu::RisingTEvent()
+{
+  mTHighCount += 1;
+
+  mAudioCtrl.Tick();
+}
+
+void Cpu::MEvent()
+{
+  mMEdgeCount += 1;
+
+  mAudioCtrl.TickCh3();
+}
+
 void Cpu::FallingMEvent()
 {
   mMLowCount += 1;
 }
 
-void Cpu::RisingTEvent()
-{
-  mTHighCount += 1;
-
-  mAudioCtrl.Tick(mTimerCtrl.GetClk());
-}
-
 void Cpu::RisingMEvent()
 {
   mMHighCount += 1;
+  mMFrameCycles += 1;
+
+  mTimerCtrl.Tick();
+  mAudioCtrl.UpdateClk(mTimerCtrl.GetClk());
 
   TickExecution();
-  TickComponents();
+  
+  if (mLcdCtrl.DmaRequested())
+  {
+    mAddressBus = mLcdCtrl.GetCurrentDmaAddress();
+    Read();
+    mLcdCtrl.ServiceDma(mDataBus);
+  }
+
+  mAudioCtrl.TickCh1();
+  mAudioCtrl.TickCh2();
+  mAudioCtrl.TickCh4();
+
+  bool frame_ready = mLcdCtrl.Update();
+
+  if (frame_ready)
+    WaitFrame();
+}
+
+void Cpu::Main()
+{
+  TEvent();
+
+  TickEdge(mTEdge, mTLevel);
+  mTEdge == EdgeType::RISING ? RisingTEvent() : FallingTEvent();
+
+  if (mTEdgeCount % M_DIV == 0)
+  {
+    MEvent();
+
+    TickEdge(mMEdge, mMLevel);
+    mMEdge == EdgeType::RISING ? RisingMEvent() : FallingMEvent();
+  }
 }
 
 void Cpu::InterruptCompleteEvent()
@@ -84,41 +111,30 @@ void Cpu::HaltCompleteEvent()
     mExecutionMode = ExecutionMode::INTERRUPT;
 }
 
-void Cpu::Main()
-{
-  TickEdge(mTEdge, mTLevel, mTEdgeCount);
-
-  mTEdge == EdgeType::RISING ? RisingTEvent() : FallingTEvent();
-
-  if (mTEdgeCount % M_DIV == 0)
-  {
-    TickEdge(mMEdge, mMLevel, mMEdgeCount);
-
-    mMEdge == EdgeType::RISING ? RisingMEvent() : FallingMEvent();
-  }
-}
-
 void Cpu::WaitFrame()
 {
-  double frame_expected_time = (mFrameCycles / T_RATE) - mCompensationTime;
-  double wait_time = frame_expected_time - mExeStopwatch.Elapsed();
+  double expectedFrameTime = (mMFrameCycles / M_RATE) - mCompensationTime;
+  double waitTime = expectedFrameTime - mExeStopwatch.Elapsed();
 
-  //std::this_thread::sleep_for(std::chrono::duration<double>(wait_time));
-  while (mExeStopwatch.Elapsed() < frame_expected_time) {}
+  if(waitTime > MIN_SLEEP_TIME)
+    std::this_thread::sleep_for(std::chrono::duration<double>(waitTime - MIN_SLEEP_TIME));
+
+  // Busy wait loop the last MIN_SLEEP_TIME seconds
+  while (mExeStopwatch.Elapsed() < expectedFrameTime) {}
 
   mFrameTime = mExeStopwatch.Elapsed();
-  mLcdCtrl.UpdateFrameTime(mFrameTime);
+  mExeStopwatch.Restart();
 
-  mCompensationTime = mFrameTime - frame_expected_time;
-
-  if (wait_time < -DRAG_WINDOW_DETECT_TIME)
+  if (waitTime < -DRAG_WINDOW_DETECT_TIME)
   {
     mCompensationTime = 0;
     mAudioCtrl.ClearSamples();
   }
 
-  mExeStopwatch.Restart();
-  mFrameCycles = 0;
+  mCompensationTime = mFrameTime - expectedFrameTime;
+  mLcdCtrl.UpdateFrameTime(mFrameTime);
+  
+  mMFrameCycles = 0;
 }
 
 void Cpu::ReadNextUint8()

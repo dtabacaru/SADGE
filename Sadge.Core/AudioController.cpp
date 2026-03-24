@@ -2,6 +2,9 @@
 
 #include "Utils.h"
 
+//#include <fstream>
+//std::ofstream pcm_out("apu_out.pcm", std::ios_base::binary);
+
 AudioController::AudioController(uint8_t& dataBus,
                                  uint16_t& addrBus) :
   mDataBus(dataBus),
@@ -176,21 +179,21 @@ void AudioController::Write()
       mCh4.HandleNRX2Write();
       break;
     case AudioController::Address::NR43:
-      mCh4.NRX3 = mDataBus;
+      mCh4.HandleNr43Write();
       break;
     case AudioController::Address::NR44:
       mCh4.HandleNRX4Write();
       break;
     case AudioController::Address::NR50:
-      mNR50 = mDataBus;
+      HandleNr50Write();
       break;
     case AudioController::Address::NR51:
-      mNR51 = mDataBus;
+      HandleNr51Write();
       break;
   }
 }
 
-void AudioController::Tick(uint16_t clk)
+void AudioController::UpdateClk(uint16_t clk)
 {
   if (mClk != clk)
   {
@@ -199,11 +202,12 @@ void AudioController::Tick(uint16_t clk)
 
     mClk = clk;
   }
+}
 
+void AudioController::Tick()
+{
   if (mEnabled)
   {
-    ApuTick();
-
     Sample sample = Mixer();
     mSampleBuf.push_back(sample);
 
@@ -225,46 +229,103 @@ void AudioController::DivTick()
   mCh4.DivTick();
 }
 
-void AudioController::ApuTick()
+void AudioController::TickCh1()
 {
-  mCh1.ApuTick();
-  mCh2.ApuTick();
-  mCh3.ApuTick();
-  mCh4.ApuTick();
+  if (mEnabled)
+    mCh1.ApuTick();
+}
+
+void AudioController::TickCh2()
+{
+  if (mEnabled)
+    mCh2.ApuTick();
+}
+void AudioController::TickCh3()
+{
+  if (mEnabled)
+    mCh3.ApuTick();
+}
+void AudioController::TickCh4()
+{
+  if (mEnabled)
+    mCh4.ApuTick();
+}
+
+bool AudioController::DacsEnabled() const
+{
+  return mCh1.DacEnabled() ||
+    mCh2.DacEnabled() ||
+    mCh3.DacEnabled() ||
+    mCh4.DacEnabled();
+}
+
+void AudioController::HighPass(Sample& sample)
+{
+  Sample out;
+  if (DacsEnabled())
+  {
+    out.left  = sample.left - mLCap;
+    out.right = sample.right - mRCap;
+
+    mLCap = sample.left - out.left * CAP_CHARGE_CONSTANT;
+    mRCap = sample.right - out.right * CAP_CHARGE_CONSTANT;
+  }
+  sample = out;
+}
+
+void AudioController::HandleNr51Write()
+{
+  mNR51 = mDataBus;
+
+  mCh1L = (mNR51 & GetNr51BitMask(Nr51BitMask::CH1_L));
+  mCh2L = (mNR51 & GetNr51BitMask(Nr51BitMask::CH2_L));
+  mCh3L = (mNR51 & GetNr51BitMask(Nr51BitMask::CH3_L));
+  mCh4L = (mNR51 & GetNr51BitMask(Nr51BitMask::CH4_L));
+  mCh1R = (mNR51 & GetNr51BitMask(Nr51BitMask::CH1_R));
+  mCh2R = (mNR51 & GetNr51BitMask(Nr51BitMask::CH2_R));
+  mCh3R = (mNR51 & GetNr51BitMask(Nr51BitMask::CH3_R));
+  mCh4R = (mNR51 & GetNr51BitMask(Nr51BitMask::CH4_R));
+}
+
+void AudioController::HandleNr50Write()
+{
+  constexpr auto L_VOL_START_BIT = 4;
+  constexpr auto R_VOL_START_BIT = 0;
+
+  constexpr double VOL_DIV = 8.0;
+
+  mNR50 = mDataBus;
+
+  uint8_t leftVol  = ((mNR50 & GetNr50BitMask(Nr50BitMask::L_VOL)) >> L_VOL_START_BIT) & VOL_MASK;
+  uint8_t rightVol = ((mNR50 & GetNr50BitMask(Nr50BitMask::R_VOL)) >> R_VOL_START_BIT) & VOL_MASK;
+
+  mLeftVolScale  = (leftVol + 1) / VOL_DIV;
+  mRightVolScale = (rightVol + 1) / VOL_DIV;
 }
 
 Sample AudioController::Mixer()
 {
-  constexpr static auto L_VOL_START_BIT = 4;
-  constexpr static auto R_VOL_START_BIT = 0;
-
-  constexpr static double VOL_DIV = 8.0;
+  constexpr double CHAN_AVG_SCALE = 1.0 / NUM_CHANNELS;
+  constexpr double INV_SCALE = -1.0;
 
   Sample out;
 
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH1_L)) out.left += mCh1.ChOut();
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH2_L)) out.left += mCh2.ChOut();
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH3_L)) out.left += mCh3.ChOut();
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH4_L)) out.left += mCh4.ChOut();
+  if (mCh1L) out.left  += mCh1.ChOut();
+  if (mCh2L) out.left  += mCh2.ChOut();
+  if (mCh3L) out.left  += mCh3.ChOut();
+  if (mCh4L) out.left  += mCh4.ChOut();
+  if (mCh1R) out.right += mCh1.ChOut();
+  if (mCh2R) out.right += mCh2.ChOut();
+  if (mCh3R) out.right += mCh3.ChOut();
+  if (mCh4R) out.right += mCh4.ChOut();
 
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH1_R)) out.right += mCh1.ChOut();
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH2_R)) out.right += mCh2.ChOut();
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH3_R)) out.right += mCh3.ChOut();
-  if (mNR51 & GetNr51BitMask(Nr51BitMask::CH4_R)) out.right += mCh4.ChOut();
-
-  uint8_t leftVol  = ((mNR50 & GetNr50BitMask(Nr50BitMask::L_VOL)) >> L_VOL_START_BIT) & VOL_MASK;
-  uint8_t rightVol = ((mNR50 & GetNr50BitMask(Nr50BitMask::R_VOL)) >> R_VOL_START_BIT) & VOL_MASK;
-  double leftVolScale  = (leftVol + 1) / VOL_DIV;
-  double rightVolScale = (rightVol + 1) / VOL_DIV;
-
-  double chanAvgScale = 1.0 / NUM_CHANNELS;
-  double invScale = -1.0;
-
-  double leftScale  = leftVolScale * chanAvgScale * invScale;
-  double rightScale = rightVolScale * chanAvgScale * invScale;
+  double leftScale  = mLeftVolScale * CHAN_AVG_SCALE * INV_SCALE;
+  double rightScale = mRightVolScale * CHAN_AVG_SCALE * INV_SCALE;
 
   out.left  *= leftScale;
   out.right *= rightScale;
+
+  HighPass(out);
 
   return out;
 }
@@ -308,6 +369,8 @@ void AudioController::SubSample()
     sampleIdxF += sampleIdxStep;
     sampleIdx = static_cast<int>(round(sampleIdxF));
   }
+
+  //pcm_out.write(reinterpret_cast<char*>(mSubsampleBuf.data()), mSubsampleBuf.size() * sizeof(short));
 
   if (mCallback)
     mCallback(mSubsampleBuf);

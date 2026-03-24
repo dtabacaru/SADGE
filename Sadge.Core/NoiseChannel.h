@@ -9,6 +9,8 @@ public:
   NoiseChannel(uint8_t& dataBus,
                uint16_t& addrBus);
 
+  void HandleNr43Write();
+
   void Trigger();
 
   void Reset();
@@ -38,6 +40,6 @@ private:
 
   void UpdateChOut();
 
-  uint32_t mLfsrTick{};
+  int mLfsrTick{};
   uint16_t mLfsr{0xFFFF};
 };

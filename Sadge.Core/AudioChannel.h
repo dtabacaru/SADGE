@@ -8,6 +8,7 @@ public:
   AudioChannel(uint8_t& dataBus,
                uint16_t& addrBus);
 
+  virtual bool DacEnabled() const;
   bool Enabled() const;
   double ChOut() const;
 
@@ -23,6 +24,7 @@ public:
   uint8_t NRX4{};
 
 protected:
+  constexpr static auto MAX_PERIOD_COUNT = 2048;
   constexpr static auto MAX_LENGTH_COUNT = 2;
   constexpr static auto MAX_ENV_COUNT = 8;
 
@@ -61,13 +63,11 @@ protected:
   }
 
   virtual int MaxLengthTick() const;
-  virtual int MaxPeriodCount() const;
   virtual uint8_t GetInitLengthTimer();
   virtual uint8_t GetVolume();
   uint16_t GetPeriodCounter();
-  virtual bool DacEnabled() const;
 
-  double Dac(uint8_t level, double dcOffset);
+  double Dac(uint8_t level, double dcOffset = 0);
 
   virtual void Trigger();
 
@@ -87,6 +87,7 @@ protected:
   int      mVolSweepPaceTick{};
   int      mLengthTimerTick{};
   int      mSoundLengthTick{};
+  int      mPeriodCounter{};
   
   uint8_t  mVolume{};
   double   mChOut{};

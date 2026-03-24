@@ -46,21 +46,16 @@ void WaveChannel::ApuTick()
 {
   mPeriodCounter += 1;
 
-  if (mPeriodCounter != MaxPeriodCount())
+  if (mPeriodCounter != MAX_PERIOD_COUNT)
     return;
 
-  mPeriodCounter = GetPeriodCounter() * 2; // * 2 for T rate
+  mPeriodCounter = GetPeriodCounter();
   UpdateChOut();
 }
 
 int WaveChannel::MaxLengthTick() const 
 { 
   return 256; 
-}
-
-int WaveChannel::MaxPeriodCount() const
-{
-  return 2048 * 2; // * 2 for T rate
 }
 
 void WaveChannel::HandleNR30Write()

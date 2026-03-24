@@ -135,6 +135,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="HighResTimerWrapper.cpp" />
     <ClCompile Include="Sadge.Driver.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +145,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Sadge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HighResTimerWrapper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

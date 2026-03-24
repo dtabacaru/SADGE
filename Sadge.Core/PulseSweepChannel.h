@@ -29,7 +29,6 @@ public:
   
 private:
 
-  constexpr static auto MAX_PERIOD_COUNT = 0x7FF;
   constexpr static auto MAX_FREQ_COUNT = 4;
 
   void Trigger();

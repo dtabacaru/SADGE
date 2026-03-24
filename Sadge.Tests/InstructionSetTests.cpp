@@ -92,8 +92,8 @@ static void TestOpcode(uint8_t opcode)
       if (test_cycle[2].asString() == "---")
         continue;
 
-      bool address_matched = test_cycle[0].asUInt() == cpu_.GetTestCycles()[cycle_num].addr_bus;
-      bool data_matched = test_cycle[1].asUInt() == cpu_.GetTestCycles()[cycle_num].data_bus;
+      bool address_matched = test_cycle[0].asUInt() == cpu_.GetTestCycles()[cycle_num].addrBus;
+      bool data_matched = test_cycle[1].asUInt() == cpu_.GetTestCycles()[cycle_num].dataBus;
 
       EXPECT_TRUE(address_matched) << test["name"].asString();
       EXPECT_TRUE(data_matched) << test["name"].asString();

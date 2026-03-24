@@ -71,9 +71,9 @@ void AudioChannel::HandleNRX2Write()
     Disable();
 }
 
-double AudioChannel::Dac(uint8_t level, double dc_offset)
+double AudioChannel::Dac(uint8_t level, double dcOffset)
 {
-  return ((level - dc_offset) / 7.5);
+  return ((level - dcOffset) / 7.5);
 }
 
 void AudioChannel::HandleNRX4Write()
@@ -107,7 +107,7 @@ void AudioChannel::Trigger()
   mVolSweepPaceTick = 0;
   mVolume = GetVolume();
   double dc_offset = mVolume / 2;
-  mChOut = Dac(0, dc_offset);
+  mChOut = Dac(0);
 }
 
 void AudioChannel::TickVolSweep()
@@ -189,7 +189,3 @@ int AudioChannel::MaxLengthTick() const
   return 64;
 }
 
-int AudioChannel::MaxPeriodCount() const
-{
-  return 2048 * 4;
-}

@@ -10,9 +10,9 @@
 
 constexpr static uint32_t AUDIO_BITS = 16;
 constexpr static uint32_t AUDIO_FREQUENCY = 48000;
-constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536 * 3; // TODO: Non-integer cycles
+constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536*3; // TODO: Non-integer cycles
 constexpr static uint8_t  AUDIO_CHANNELS = 2;
-constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 4) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
+constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 8) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
 
 struct Sample
 {
@@ -143,20 +143,35 @@ public:
   void Read() const;
   void Write();
 
-  void Tick(uint16_t clk);
-  void ApuTick();
+  void UpdateClk(uint16_t clk);
+
+  void Tick();
   void DivTick();
+
+  void TickCh1();
+  void TickCh2();
+  void TickCh3();
+  void TickCh4();
   
 private:
+  constexpr static double CAP_CHARGE_CONSTANT = 0.999958; // for (1 << 22) Hz
+
+  bool DacsEnabled() const;
   uint8_t GetChOnBits() const;
 
   void HandleNr52Write();
+  void HandleNr51Write();
+  void HandleNr50Write();
 
+  void HighPass(Sample& sample);
   Sample Mixer();
   void SubSample();
 
   void Reset();
   
+  double mLCap{};
+  double mRCap{};
+
   std::vector<Sample> mSampleBuf;
   std::vector<short>  mSubsampleBuf;
 
@@ -176,6 +191,18 @@ private:
   uint16_t mClk{};
 
   bool mEnabled{};
+
+  bool mCh1L{};
+  bool mCh2L{};
+  bool mCh3L{};
+  bool mCh4L{};
+  bool mCh1R{};
+  bool mCh2R{};
+  bool mCh3R{};
+  bool mCh4R{};
+
+  double mLeftVolScale{};
+  double mRightVolScale{};
 
   uint8_t&  mDataBus;
   uint16_t& mAddressBus;
