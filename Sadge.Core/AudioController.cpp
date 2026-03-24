@@ -270,6 +270,11 @@ void AudioController::HighPass(Sample& sample)
     mLCap = sample.left - out.left * CAP_CHARGE_CONSTANT;
     mRCap = sample.right - out.right * CAP_CHARGE_CONSTANT;
   }
+  else
+  {
+    mLCap = 0;
+    mRCap = 0;
+  }
   sample = out;
 }
 

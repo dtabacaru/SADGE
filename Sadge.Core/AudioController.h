@@ -8,6 +8,8 @@
 
 #include <vector>
 
+constexpr static auto W_RATE = T_RATE / 2;
+
 constexpr static uint32_t AUDIO_BITS = 16;
 constexpr static uint32_t AUDIO_FREQUENCY = 48000;
 constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536*3; // TODO: Non-integer cycles
@@ -154,7 +156,7 @@ public:
   void TickCh4();
   
 private:
-  constexpr static double CAP_CHARGE_CONSTANT = 0.999958; // for (1 << 22) Hz
+  constexpr static double CAP_CHARGE_CONSTANT = 0.999958; // for T rate
 
   bool DacsEnabled() const;
   uint8_t GetChOnBits() const;

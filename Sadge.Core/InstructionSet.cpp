@@ -296,8 +296,8 @@ void Cpu::LD_HL_SP_e()
       result = mSP.HL + val;
       ResetFlag(FlagBitMask::Zero);
       ResetFlag(FlagBitMask::Subtract);
-      SetHalfCarryFlag(static_cast<uint8_t>(mSP.HL), static_cast<uint8_t>(val));
-      SetCarry8Bit(static_cast<uint8_t>(mSP.HL) + static_cast<uint8_t>(val));
+      SetHalfCarryFlag(mSP.L, static_cast<uint8_t>(val));
+      SetCarry8Bit(mSP.L + static_cast<uint8_t>(val));
       mHL.HL = static_cast<uint16_t>(result);
       mExeCycle += 1;
       break;
@@ -326,8 +326,8 @@ void Cpu::ADD_SP_e()
       result = mSP.HL + val;
       ResetFlag(FlagBitMask::Zero);
       ResetFlag(FlagBitMask::Subtract);
-      SetHalfCarryFlag(static_cast<uint8_t>(mSP.HL), static_cast<uint8_t>(val));
-      SetCarry8Bit(static_cast<uint8_t>(mSP.HL) + static_cast<uint8_t>(val));
+      SetHalfCarryFlag(mSP.L, static_cast<uint8_t>(val));
+      SetCarry8Bit(mSP.L + static_cast<uint8_t>(val));
       mWZ.HL = static_cast<uint16_t>(result);
       mExeCycle += 1;
       break;
