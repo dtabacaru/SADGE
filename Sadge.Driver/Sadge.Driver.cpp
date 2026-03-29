@@ -216,35 +216,37 @@ void CheckButtons()
 #pragma endregion
 
 #pragma region AUDIO
-std::vector<short> audio_buffer;
-std::mutex audio_buffer_lock;
-std::atomic<bool> stream_playing = false;
-AudioStream audio_stream;
+constexpr static uint32_t AUDIO_STREAM_BUF_SIZE = NUM_SUB_SAMPLE / 6;
+
+std::vector<short> audioBuf;
+std::mutex audioBufLock;
+std::atomic<bool> streamPlaying = false;
+AudioStream stream;
 
 void AudioInputCallback(void* buffer, unsigned int frames)
 {
-	std::lock_guard<std::mutex> lock(audio_buffer_lock);
+	std::lock_guard<std::mutex> lock(audioBufLock);
 
 	short* short_buffer = reinterpret_cast<short*>(buffer);
 
-	auto num_frames = (audio_buffer.size() / 2) > frames ? frames : (audio_buffer.size() / 2);
+	auto num_frames = (audioBuf.size() / 2) > frames ? frames : (audioBuf.size() / 2);
 	for (uint64_t frame_num = 0; frame_num < num_frames * 2; frame_num++)
-		short_buffer[frame_num] = audio_buffer[frame_num];
+		short_buffer[frame_num] = audioBuf[frame_num];
 
 	if (num_frames > 0)
-		audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + num_frames * 2);
+		audioBuf.erase(audioBuf.begin(), audioBuf.begin() + num_frames * 2);
 }
 
 void PlayAudio(std::vector<short>& subsample_buffer)
 {
-	std::lock_guard<std::mutex> lock(audio_buffer_lock);
+	std::lock_guard<std::mutex> lock(audioBufLock);
 
-	audio_buffer.insert(audio_buffer.end(), subsample_buffer.begin(), subsample_buffer.end());
+	audioBuf.insert(audioBuf.end(), subsample_buffer.begin(), subsample_buffer.end());
 
-	if (!stream_playing)
+	if (!streamPlaying)
 	{
-		PlayAudioStream(audio_stream);
-		stream_playing = true;
+		PlayAudioStream(stream);
+		streamPlaying = true;
 	}
 }
 #pragma endregion
@@ -262,28 +264,22 @@ constexpr auto FPS_WINDOW_OFFSET = 10;
 constexpr auto FPS_F = "%.4f FPS";
 
 Texture2D          texture_buffer;
-std::vector<Color> frame_buffer = std::vector<Color>(SCREEN_WIDTH * SCREEN_HEIGHT, Color{232, 252, 204, 255});
 Vector2            window_pos{0.0, 0.0};
 
-std::deque<double> fps_buffer;
-
-void ToColorFrame(const std::array<Pixel, 160 * 144>& frame)
-{
-	std::memcpy(frame_buffer.data(), frame.data(), sizeof(Color) * frame_buffer.size());
-}
+std::deque<double> fpsBuff;
 
 void DrawDoubleFPS(double frame_time, int pos_x, int pos_y)
 {
-	if (fps_buffer.size() < FPS_BUFFER_SIZE)
+	if (fpsBuff.size() < FPS_BUFFER_SIZE)
 	{
-		fps_buffer.push_back(1 / frame_time);
+		fpsBuff.push_back(1 / frame_time);
 		return;
 	}
 
-	fps_buffer.pop_front();
-	fps_buffer.push_back(1 / frame_time);
+	fpsBuff.pop_front();
+	fpsBuff.push_back(1 / frame_time);
 
-	double fps = std::accumulate(fps_buffer.begin(), fps_buffer.end(), 0.0) / FPS_BUFFER_SIZE;
+	double fps = std::accumulate(fpsBuff.begin(), fpsBuff.end(), 0.0) / FPS_BUFFER_SIZE;
 
 	DrawText(TextFormat(FPS_F, fps), pos_x, pos_y, FPS_FONT_SIZE, FPS_FONT_COLOR);
 }
@@ -299,9 +295,8 @@ void DrawFrame(const std::array<Pixel, 160*144>& frame, double frame_time)
 	}
 
 	CheckButtons();
-	ToColorFrame(frame);
 
-	UpdateTexture(texture_buffer, frame_buffer.data());
+	UpdateTexture(texture_buffer, frame.data());
 	BeginDrawing();
 	ClearBackground(BLACK);
 	DrawTextureEx(texture_buffer, window_pos, 0.0f, static_cast<float>(RENDER_SCALE), WHITE);
@@ -354,30 +349,22 @@ int main(int num_args, char* args[])
 		SetWindowIcon(icon);
 		UnloadImage(icon);
 
-		Image image_buffer;
-
-		image_buffer = {
-			.data = frame_buffer.data(),
-			.width = SCREEN_WIDTH,
-			.height = SCREEN_HEIGHT,
-			.mipmaps = 1,
-			.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
-		};
-
-		texture_buffer = LoadTextureFromImage(image_buffer);
+		Image texInit = GenImageColor(SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
+		texture_buffer = LoadTextureFromImage(texInit);
+		UnloadImage(texInit);
 
 		InitAudioDevice();
 
-		SetAudioStreamBufferSizeDefault(AUDIO_STREAM_BUFFER_SIZE);
-		audio_stream = LoadAudioStream(AUDIO_FREQUENCY, AUDIO_BITS, AUDIO_CHANNELS);
-		SetAudioStreamCallback(audio_stream, AudioInputCallback);
+		SetAudioStreamBufferSizeDefault(AUDIO_STREAM_BUF_SIZE);
+		stream = LoadAudioStream(A_RATE, AUDIO_BITS, AUDIO_CHANNELS);
+		SetAudioStreamCallback(stream, AudioInputCallback);
 
 		gameboyCpu.GetLcdController().SetFrameCallback(DrawFrame);
 		gameboyCpu.GetAudioController().SetAudioCallback(PlayAudio);
 
 		gameboyCpu.Run();
 
-		StopAudioStream(audio_stream);
+		StopAudioStream(stream);
 		CloseAudioDevice();
 	}
 	catch (std::exception e)

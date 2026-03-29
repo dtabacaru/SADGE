@@ -12,11 +12,10 @@
 constexpr static auto W_RATE = T_RATE / 2;
 
 constexpr static uint32_t AUDIO_BITS = 16;
-constexpr static uint32_t AUDIO_FREQUENCY = 48000;
-constexpr static uint32_t NUM_W_CYCLES_TO_BUFFER = 65536; // TODO: Non-integer cycles
+constexpr static uint32_t A_RATE = 48000; // Hz
+constexpr static uint32_t NUM_SAMPLE = 98304; // @ W Rate = 196608 T cycles = 2.8 frames
 constexpr static uint8_t  AUDIO_CHANNELS = 2;
-constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_W_CYCLES_TO_BUFFER / 4) * (AUDIO_FREQUENCY / W_RATE)) * AUDIO_CHANNELS;
-constexpr static uint64_t NUM_SUB_SAMPLE  = static_cast<uint64_t>(NUM_W_CYCLES_TO_BUFFER * AUDIO_FREQUENCY / W_RATE) * 2; // * 2 for stereo
+constexpr static uint64_t NUM_SUB_SAMPLE = static_cast<uint64_t>(NUM_SAMPLE * (A_RATE / W_RATE)) * 2; // * 2 for stereo
 
 struct Sample
 {

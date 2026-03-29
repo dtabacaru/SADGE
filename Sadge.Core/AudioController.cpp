@@ -15,7 +15,7 @@ AudioController::AudioController(uint8_t& dataBus,
   mCh4(dataBus, addrBus)
 {
   mSubsampleBuf.resize(NUM_SUB_SAMPLE);
-  mSampleBuf.resize(NUM_W_CYCLES_TO_BUFFER);
+  mSampleBuf.resize(NUM_SAMPLE);
 }
 
 void AudioController::SetAudioCallback(AudioCallback callback)
@@ -213,7 +213,7 @@ void AudioController::Tick()
 
     mCycleCount += 1;
 
-    if (mCycleCount == NUM_W_CYCLES_TO_BUFFER)
+    if (mCycleCount == NUM_SAMPLE)
     {
       SubSample();
       mCycleCount = 0;
@@ -360,7 +360,7 @@ void AudioController::HandleNr52Write()
 
 void AudioController::SubSample()
 {
-  double sampleIdxStep = W_RATE / AUDIO_FREQUENCY;
+  double sampleIdxStep = W_RATE / A_RATE;
 
   double sampleIdxF = 0;
   int    sampleIdx = 0;
