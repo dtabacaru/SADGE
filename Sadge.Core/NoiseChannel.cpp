@@ -12,26 +12,13 @@ void NoiseChannel::HandleNr43Write()
 {
   NRX3 = mDataBus;
 
-  double div = GetClockDivider();
+  double div = NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_DIV);
   if (div == 0)
     div = 0.5;
 
-  mPeriodCounter = div * (1 << GetClockShift()) * 4;
-}
-
-bool NoiseChannel::GetLfsrWidth()
-{
-  return NRX3 & GetNr43BitMask(Nr43BitMask::LFSR_WIDTH);
-}
-
-uint8_t NoiseChannel::GetClockDivider()
-{
-  return NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_DIV);
-}
-
-uint8_t NoiseChannel::GetClockShift()
-{
-  return (NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_SHIFT)) >> 4;
+  uint16_t clkShift = 1 << ((NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_SHIFT)) >> 4);
+  mPeriodCounter = static_cast<int>(div * clkShift * 4);
+  mLfsrWidth = NRX3 & GetNr43BitMask(Nr43BitMask::LFSR_WIDTH);
 }
 
 void NoiseChannel::ApuTick()
@@ -48,20 +35,20 @@ void NoiseChannel::ApuTick()
 
 void NoiseChannel::UpdateChOut()
 {
-  uint16_t result = ((mLfsr-1) >> 1) & 0x1;
+  uint16_t xnorResult = ((mLfsr - 1) >> 1) & 0x1;
 
   mLfsr &= ~0x8000;
-  mLfsr |= result << 15;
-  if (GetLfsrWidth())
+  mLfsr |= xnorResult << 15;
+  if (mLfsrWidth)
   {
     mLfsr &= ~0x80;
-    mLfsr |= result << 7;
+    mLfsr |= xnorResult << 7;
   }
   mLfsr >>= 1;
 
-  uint8_t level = (mLfsr & 0x1) ? mVolume : 0;
-  double dcOffset = mVolume / 2;
-  mChOut = Dac(level, dcOffset);
+  mLevel = (mLfsr & 0x1) ? mVolume : 0;
+  mDcOffset = mVolume / 2;
+  mChOut = Dac(mLevel, mDcOffset);
 }
 
 void NoiseChannel::DivTick()

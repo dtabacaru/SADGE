@@ -32,8 +32,6 @@ private:
     return static_cast<uint8_t>(mask);
   }
 
-  bool GetLfsrWidth();
-  uint8_t GetClockDivider();
   uint8_t GetClockShift();
 
   void Disable();
@@ -41,5 +39,6 @@ private:
   void UpdateChOut();
 
   int mLfsrTick{};
-  uint16_t mLfsr{0};
+  bool mLfsrWidth{};
+  uint16_t mLfsr{};
 };

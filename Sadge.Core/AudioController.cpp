@@ -332,7 +332,7 @@ Sample AudioController::Mixer()
   out.left  *= leftScale;
   out.right *= rightScale;
 
-  //BandPass(out);
+  BandPass(out);
 
   return out;
 }

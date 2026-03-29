@@ -89,8 +89,10 @@ protected:
   int      mSoundLengthTick{};
   int      mPeriodCounter{};
   
-  uint8_t  mVolume{};
-  double   mChOut{};
+  uint8_t mVolume{};
+  uint8_t mLevel{};
+  double  mChOut{};
+  double  mDcOffset{};
 
   uint8_t& mDataBus;
   uint16_t& mAddressBus;
