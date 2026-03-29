@@ -7,7 +7,6 @@
 #include "Constants.h"
 
 #include <array>
-#include <vector>
 
 constexpr static auto W_RATE = T_RATE / 2;
 
@@ -26,7 +25,7 @@ struct Sample
 class AudioController
 {
 public:
-  typedef void (*AudioCallback)(std::vector<short>& buf);
+  typedef void (*AudioCallback)(std::array<short, NUM_SUB_SAMPLE>& buf);
 
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;
   constexpr static uint8_t  NUM_CHANNELS = 4;
@@ -178,8 +177,8 @@ private:
   double mLLPCap{};
   double mRLPCap{};
 
-  std::vector<Sample> mSampleBuf{};
-  std::vector<short> mSubsampleBuf{};
+  std::array<Sample, NUM_SAMPLE> mSampleBuf{};
+  std::array<short, NUM_SUB_SAMPLE> mSubsampleBuf{};
 
   uint64_t mCycleCount{};
 

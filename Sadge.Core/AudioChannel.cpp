@@ -107,8 +107,7 @@ void AudioChannel::Trigger()
   mVolSweepPaceTick = 0;
   mVolume = GetVolume();
   double dc_offset = mVolume / 2;
-  //mChOut = Dac(0, dc_offset);
-  mChOut = Dac(0);
+  mChOut = Dac(0, dc_offset);
 }
 
 void AudioChannel::TickVolSweep()

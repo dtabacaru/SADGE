@@ -14,8 +14,7 @@ AudioController::AudioController(uint8_t& dataBus,
   mCh3(dataBus, addrBus),
   mCh4(dataBus, addrBus)
 {
-  mSubsampleBuf.resize(NUM_SUB_SAMPLE);
-  mSampleBuf.resize(NUM_SAMPLE);
+
 }
 
 void AudioController::SetAudioCallback(AudioCallback callback)

@@ -237,7 +237,7 @@ void AudioInputCallback(void* buffer, unsigned int frames)
 		audioBuf.erase(audioBuf.begin(), audioBuf.begin() + num_frames * 2);
 }
 
-void PlayAudio(std::vector<short>& subsample_buffer)
+void PlayAudio(std::array<short, NUM_SUB_SAMPLE>& subsample_buffer)
 {
 	std::lock_guard<std::mutex> lock(audioBufLock);
 

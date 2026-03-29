@@ -41,5 +41,5 @@ private:
   void UpdateChOut();
 
   int mLfsrTick{};
-  uint16_t mLfsr{0xFFFF};
+  uint16_t mLfsr{0};
 };

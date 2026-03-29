@@ -48,7 +48,7 @@ void NoiseChannel::ApuTick()
 
 void NoiseChannel::UpdateChOut()
 {
-  uint16_t result = ((mLfsr & 0x1) ^ ((mLfsr & 0x2) >> 1)) & 0x1;
+  uint16_t result = ((mLfsr-1) >> 1) & 0x1;
 
   mLfsr &= ~0x8000;
   mLfsr |= result << 15;
@@ -59,10 +59,9 @@ void NoiseChannel::UpdateChOut()
   }
   mLfsr >>= 1;
 
-  uint16_t bit0 = mLfsr & 0x1;
-  uint8_t level = bit0 ? mVolume : 0;
+  uint8_t level = (mLfsr & 0x1) ? mVolume : 0;
   double dcOffset = mVolume / 2;
-  mChOut = Dac(level);
+  mChOut = Dac(level, dcOffset);
 }
 
 void NoiseChannel::DivTick()
@@ -75,7 +74,7 @@ void NoiseChannel::DivTick()
 void NoiseChannel::Trigger()
 {
   AudioChannel::Trigger();
-  mLfsr = 0xFFFF;
+  mLfsr = 0;
 }
 
 void NoiseChannel::Disable()
@@ -88,5 +87,5 @@ void NoiseChannel::Reset()
 {
   AudioChannel::Reset();
   mLfsrTick = 0;
-  mLfsr = 0xFFFF;
+  mLfsr = 0;
 }
