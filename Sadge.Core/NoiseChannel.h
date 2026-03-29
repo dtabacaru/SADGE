@@ -32,10 +32,6 @@ private:
     return static_cast<uint8_t>(mask);
   }
 
-  uint8_t GetClockShift();
-
-  void Disable();
-
   void UpdateChOut();
 
   int mLfsrTick{};

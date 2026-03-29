@@ -18,7 +18,6 @@ uint8_t PulseSweepChannel::GetFreqStep()
 
 void PulseSweepChannel::TickFreqSweep()
 {
-  mPeriodCounter = GetPeriodCounter();
   bool direction = NR10 & GetNRX0BitMask(Nr10BitMask::DIRECTION);
   uint8_t step = GetFreqStep();
 
@@ -28,13 +27,14 @@ void PulseSweepChannel::TickFreqSweep()
   mPeriodCounter = direction ? mPeriodCounter - (mPeriodCounter >> step)
                              : mPeriodCounter + (mPeriodCounter >> step);
 
-
   if (mPeriodCounter >= MAX_PERIOD_COUNT)
     Disable();
 
   NRX3 = mPeriodCounter & 0xFF;
   NRX4 &= ~GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
   NRX4 |= (mPeriodCounter >> 8) & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER);
+
+  mPeriodCounterTick = mPeriodCounter;
 }
 
 void PulseSweepChannel::Trigger()

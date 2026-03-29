@@ -7,7 +7,6 @@
 class WaveChannel : public AudioChannel
 {
 public:
-
   constexpr static uint16_t WAVE_RAM_SIZE = 16; // bytes
 
   WaveChannel(uint8_t& dataBus, uint16_t& addressBus);
@@ -15,6 +14,8 @@ public:
   bool DacEnabled() const;
 
   void HandleNR30Write();
+  void HandleNRX1Write();
+  void HandleNRX2Write();
 
   void Reset();
 
@@ -46,15 +47,14 @@ private:
   };
 
   int MaxLengthTick() const;
-  uint8_t GetInitLengthTimer();
-  uint8_t GetVolume();
 
   void Trigger();
 
-  void OutputCurrentSample();
   void UpdateChOut();
 
-  uint8_t  mCurrentSample{};
-  int      mIdx{};
-  double   mDcOffset{};
+  uint8_t mCurrentSample{};
+  uint8_t mShift{4};
+  int     mDcScale{1};
+  int     mIdx{};
+  double  mDcOffset{};
 };

@@ -12,7 +12,8 @@ public:
   bool Enabled() const;
   double ChOut() const;
 
-  void HandleNRX2Write();
+  virtual void HandleNRX1Write();
+  virtual void HandleNRX2Write();
   virtual void HandleNRX4Write();
 
   virtual void DivTick();
@@ -63,9 +64,7 @@ protected:
   }
 
   virtual int MaxLengthTick() const;
-  virtual uint8_t GetInitLengthTimer();
   virtual uint8_t GetVolume();
-  uint16_t GetPeriodCounter();
 
   double Dac(uint8_t level, double dcOffset = 0);
 
@@ -87,10 +86,15 @@ protected:
   int      mVolSweepPaceTick{};
   int      mLengthTimerTick{};
   int      mSoundLengthTick{};
-  int      mPeriodCounter{};
+  int      mPeriodCounterTick{};
   
+  uint16_t mPeriodCounter{};
+
+  uint8_t mInitLenTimer{};
   uint8_t mVolume{};
+  uint8_t mSetVol{};
   uint8_t mLevel{};
+  bool    mDacEnabled{};
   double  mChOut{};
   double  mDcOffset{};
 
@@ -102,6 +106,5 @@ private:
   bool GetLengthEnable();
   void ZombieMode(uint8_t val);
 
-  void ResetLengthTimer();
   void TickSoundLength();
 };

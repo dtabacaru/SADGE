@@ -17,7 +17,7 @@ void NoiseChannel::HandleNr43Write()
     div = 0.5;
 
   uint16_t clkShift = 1 << ((NRX3 & GetNr43BitMask(Nr43BitMask::CLOCK_SHIFT)) >> 4);
-  mPeriodCounter = static_cast<int>(div * clkShift * 4);
+  mPeriodCounterTick = static_cast<int>(div * clkShift * 4);
   mLfsrWidth = NRX3 & GetNr43BitMask(Nr43BitMask::LFSR_WIDTH);
 }
 
@@ -25,7 +25,7 @@ void NoiseChannel::ApuTick()
 {
   mLfsrTick += 1;
 
-  if (mLfsrTick < mPeriodCounter)
+  if (mLfsrTick < mPeriodCounterTick)
     return;
 
   mLfsrTick = 0;
@@ -64,15 +64,10 @@ void NoiseChannel::Trigger()
   mLfsr = 0;
 }
 
-void NoiseChannel::Disable()
-{
-  AudioChannel::Disable();
-  mLfsrTick = 0;
-}
-
 void NoiseChannel::Reset()
 {
   AudioChannel::Reset();
   mLfsrTick = 0;
+  mLfsrWidth = false;
   mLfsr = 0;
 }

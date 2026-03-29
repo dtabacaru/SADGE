@@ -8,25 +8,32 @@ WaveChannel::WaveChannel(uint8_t& dataBus, uint16_t& addressBus) :
 
 bool WaveChannel::DacEnabled() const
 {
-  return NR30 & static_cast<uint8_t>(Nr30BitMask::DAC_ENABLE);
+  return mDacEnabled;
 }
 
-uint8_t WaveChannel::GetInitLengthTimer()
+void WaveChannel::HandleNR30Write()
 {
-  return NRX1;
+  NR30 = mDataBus;
+
+  mDacEnabled = NR30 & static_cast<uint8_t>(Nr30BitMask::DAC_ENABLE);
+
+  if (!DacEnabled())
+    Disable();
 }
 
-uint8_t WaveChannel::GetVolume()
+void WaveChannel::HandleNRX1Write()
 {
-  return (NRX2 & static_cast<uint8_t>(Nr32BitMask::INIT_VOL)) >> 5;
+  NRX1 = mDataBus;
+
+  mInitLenTimer = NRX1;
 }
 
-void WaveChannel::OutputCurrentSample()
+void WaveChannel::HandleNRX2Write()
 {
-  uint8_t shift = GetVolume() == 0 ? 4 : GetVolume() - 1;
-  uint8_t level = mCurrentSample >> shift;
-  int scale = shift == 4 ? 1 : 1 << shift;
-  mChOut = Dac(level, mDcOffset / scale);
+  NRX2 = mDataBus;
+  mSetVol = (NRX2 & static_cast<uint8_t>(Nr32BitMask::INIT_VOL)) >> 5;
+  mShift = mSetVol == 0 ? 4 : mSetVol - 1;
+  mDcScale = mShift == 4 ? 1 : 1 << mShift;
 }
 
 void WaveChannel::UpdateChOut()
@@ -39,17 +46,18 @@ void WaveChannel::UpdateChOut()
   mCurrentSample = mIdx % 2 == 0 ? WaveRam[addr] >> 4
                                  : WaveRam[addr] & 0xF;
 
-  OutputCurrentSample();
+  mLevel = mCurrentSample >> mShift;
+  mChOut = Dac(mLevel, mDcOffset / mDcScale);
 }
 
 void WaveChannel::ApuTick()
 {
-  mPeriodCounter += 1;
+  mPeriodCounterTick += 1;
 
-  if (mPeriodCounter != MAX_PERIOD_COUNT)
+  if (mPeriodCounterTick != MAX_PERIOD_COUNT)
     return;
 
-  mPeriodCounter = GetPeriodCounter();
+  mPeriodCounterTick = mPeriodCounter;
   UpdateChOut();
 }
 
@@ -58,22 +66,13 @@ int WaveChannel::MaxLengthTick() const
   return 256; 
 }
 
-void WaveChannel::HandleNR30Write()
-{
-  NR30 = mDataBus;
-
-  if (!DacEnabled())
-    Disable();
-}
-
 void WaveChannel::Trigger()
 {
   if (!DacEnabled())
     return;
 
   mEnabled = true;
-  mPeriodCounter = GetPeriodCounter();
-  OutputCurrentSample();
+  mPeriodCounterTick = mPeriodCounter;
 
   double sum = 0;
   for (int i = 0; i < WAVE_RAM_SIZE; i += 1)
@@ -92,7 +91,7 @@ void WaveChannel::Reset()
 
   NR30 = {};
   mCurrentSample = {};
-  mPeriodCounter = {};
+  mPeriodCounterTick = {};
   mIdx = {};
   mDcOffset = {};
 }

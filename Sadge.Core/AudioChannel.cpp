@@ -17,11 +17,6 @@ double AudioChannel::ChOut() const
   return mChOut;
 }
 
-uint8_t AudioChannel::GetInitLengthTimer()
-{
-  return NRX1 & GetNRX1BitMask(NRX1BitMask::INIT_LEN_TIM);
-}
-
 uint8_t AudioChannel::GetVolume()
 {
   return (NRX2 & GetNRX2BitMask(NRX2BitMask::INIT_VOL)) >> 4;
@@ -32,14 +27,16 @@ bool AudioChannel::GetLengthEnable()
   return NRX4 & GetNRX4BitMask(NRX4BitMask::LENGTH_ENABLE);
 }
 
-uint16_t AudioChannel::GetPeriodCounter()
-{
-  return ((NRX4 & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER)) << 8) | NRX3;
-}
-
 bool AudioChannel::DacEnabled() const
 {
-  return NRX2 & (GetNRX2BitMask(NRX2BitMask::INIT_VOL) | GetNRX2BitMask(NRX2BitMask::ENV_DIR));
+  return mDacEnabled;
+}
+
+void AudioChannel::HandleNRX1Write()
+{
+  NRX1 = mDataBus;
+
+  mInitLenTimer = NRX1 & GetNRX1BitMask(NRX1BitMask::INIT_LEN_TIM);
 }
 
 void AudioChannel::ZombieMode(uint8_t val)
@@ -67,8 +64,20 @@ void AudioChannel::HandleNRX2Write()
 
   NRX2 = mDataBus;
 
+  mDacEnabled = NRX2 & (GetNRX2BitMask(NRX2BitMask::INIT_VOL) | GetNRX2BitMask(NRX2BitMask::ENV_DIR));
+
   if (!DacEnabled())
     Disable();
+}
+
+void AudioChannel::HandleNRX4Write()
+{
+  NRX4 = mDataBus;
+
+  mPeriodCounter = ((NRX4 & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER)) << 8) | NRX3;
+
+  if (NRX4 & GetNRX4BitMask(NRX4BitMask::TRIGGER))
+    Trigger();
 }
 
 double AudioChannel::Dac(uint8_t level, double dcOffset)
@@ -76,25 +85,9 @@ double AudioChannel::Dac(uint8_t level, double dcOffset)
   return ((level - dcOffset) / 7.5);
 }
 
-void AudioChannel::HandleNRX4Write()
-{
-  NRX4 = mDataBus;
-
-  if (NRX4 & GetNRX4BitMask(NRX4BitMask::TRIGGER))
-    Trigger();
-}
-
-void AudioChannel::ResetLengthTimer()
-{
-  mSoundLengthTick = GetInitLengthTimer();
-}
-
 void AudioChannel::Disable()
 {
-  mEnabled = {};
-  mVolume = {};
-  mChOut = {};
-  mLengthTimerTick = {};
+  mEnabled = false;
 }
 
 void AudioChannel::Trigger()
@@ -105,6 +98,7 @@ void AudioChannel::Trigger()
   mEnvelopeSaturated = false;
   mEnabled = true;
   mVolSweepPaceTick = 0;
+  mSoundLengthTick = mInitLenTimer;
   mVolume = GetVolume();
   double dc_offset = mVolume / 2;
   mChOut = Dac(0, dc_offset);

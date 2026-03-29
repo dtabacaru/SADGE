@@ -16,12 +16,12 @@ void PulseChannel::ApuTick()
   if (!mEnabled)
     return;
 
-  mPeriodCounter += 1;
+  mPeriodCounterTick += 1;
 
-  if (mPeriodCounter != MAX_PERIOD_COUNT)
+  if (mPeriodCounterTick != MAX_PERIOD_COUNT)
     return;
 
-  mPeriodCounter = GetPeriodCounter();
+  mPeriodCounterTick = mPeriodCounter;
   UpdateChOut();
 }
 
@@ -46,12 +46,12 @@ void PulseChannel::DivTick()
 void PulseChannel::Trigger()
 {
   AudioChannel::Trigger();
-  mPeriodCounter = GetPeriodCounter();
+  mPeriodCounterTick = mPeriodCounter;
 }
 
 void PulseChannel::Reset()
 {
   AudioChannel::Reset();
-  mPeriodCounter = {};
+  mPeriodCounterTick = {};
   mIdx = {};
 }

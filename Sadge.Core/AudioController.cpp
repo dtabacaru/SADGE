@@ -160,10 +160,10 @@ void AudioController::Write()
       mCh3.HandleNR30Write();
       break;
     case AudioController::Address::NR31:
-      mCh3.NRX1 = mDataBus;
+      mCh3.HandleNRX1Write();
       break;
     case AudioController::Address::NR32:
-      mCh3.NRX2 = mDataBus;
+      mCh3.HandleNRX2Write();
       break;
     case AudioController::Address::NR33:
       mCh3.NRX3 = mDataBus;
