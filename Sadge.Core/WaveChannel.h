@@ -56,5 +56,4 @@ private:
   uint8_t mShift{4};
   int     mDcScale{1};
   int     mIdx{};
-  double  mDcOffset{};
 };

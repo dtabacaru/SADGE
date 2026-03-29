@@ -91,7 +91,7 @@ void WaveChannel::Reset()
 
   NR30 = {};
   mCurrentSample = {};
-  mPeriodCounterTick = {};
+  mShift = {4};
+  mDcScale = {1};
   mIdx = {};
-  mDcOffset = {};
 }

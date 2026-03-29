@@ -167,6 +167,7 @@ void AudioChannel::Reset()
   mVolume={};
   mVolSweepPaceTick={};
   mChOut = {};
+  mDcOffset = {};
   mLengthTimerTick = {};
   mSoundLengthTick = {};
 

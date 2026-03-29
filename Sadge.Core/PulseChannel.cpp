@@ -6,9 +6,10 @@ PulseChannel::PulseChannel(uint8_t& dataBus,
 {
 }
 
-uint8_t PulseChannel::GetWaveDuty()
+void PulseChannel::HandleNRX1Write()
 {
-  return (NRX1 & GetNRX1BitMask(NRX1BitMask::WAVE_DUTY)) >> 6;
+  AudioChannel::HandleNRX1Write();
+  mWaveDuty = (NRX1 & GetNRX1BitMask(NRX1BitMask::WAVE_DUTY)) >> 6;
 }
 
 void PulseChannel::ApuTick()
@@ -30,10 +31,9 @@ void PulseChannel::UpdateChOut()
   mIdx += 1;
   mIdx %= 8;
 
-  uint8_t level = DUTY[GetWaveDuty()][mIdx] ? mVolume : 0;
-
-  double dcOffset = mVolume / 2;
-  mChOut = Dac(level, dcOffset);
+  mLevel = DUTY[mWaveDuty][mIdx] ? mVolume : 0;
+  mDcOffset = mVolume / 2;
+  mChOut = Dac(mLevel, mDcOffset);
 }
 
 void PulseChannel::DivTick()

@@ -8,6 +8,22 @@ class PulseChannel : public AudioChannel
 {
 public:
 
+  PulseChannel(uint8_t& dataBus,
+               uint16_t& addrBus);
+  
+  void HandleNRX1Write();
+
+  void DivTick();
+  void ApuTick();
+
+  void Reset();
+
+protected:
+
+  void Trigger();
+
+private:
+
   constexpr static std::array<std::array<uint8_t, 8>, 4> DUTY
   {{
     {{0, 0, 0, 0, 0, 0, 0, 1}},
@@ -27,22 +43,8 @@ public:
     return static_cast<uint8_t>(mask);
   }
 
-  PulseChannel(uint8_t& dataBus,
-               uint16_t& addrBus);
-  
-  void Reset();
-
-  void DivTick();
-  void ApuTick();
-
-protected:
-
-  void Trigger();
-
-private:
-
-  uint8_t GetWaveDuty();
   void UpdateChOut();
   
-  int mIdx{};
+  uint8_t mWaveDuty{};
+  int     mIdx{};
 };

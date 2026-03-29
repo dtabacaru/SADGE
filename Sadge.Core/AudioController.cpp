@@ -133,7 +133,7 @@ void AudioController::Write()
       mCh1.NR10 = mDataBus;
       break;
     case AudioController::Address::NR11:
-      mCh1.NRX1 = mDataBus;
+      mCh1.HandleNRX1Write();
       break;
     case AudioController::Address::NR12:
       mCh1.HandleNRX2Write();
@@ -145,7 +145,7 @@ void AudioController::Write()
       mCh1.HandleNRX4Write();
       break;
     case AudioController::Address::NR21:
-      mCh2.NRX1 = mDataBus;
+      mCh2.HandleNRX1Write();
       break;
     case AudioController::Address::NR22:
       mCh2.HandleNRX2Write();
