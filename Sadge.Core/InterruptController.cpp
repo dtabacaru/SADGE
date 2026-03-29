@@ -48,9 +48,9 @@ void InterruptController::DisableInterrupts()
   mIME = false;
 }
 
-void InterruptController::Update(bool interrupt_enable_request)
+void InterruptController::Update(bool ieReq)
 {
-  if (interrupt_enable_request)
+  if (ieReq)
   {
     mEnableNext = true;
   }
@@ -96,7 +96,7 @@ void InterruptController::Write()
 
 uint16_t InterruptController::HandleInterrupt()
 {
-  mIME = false;
+  DisableInterrupts();
 
   if (InterruptExists(InterruptBitMask::VBLANK))
   {

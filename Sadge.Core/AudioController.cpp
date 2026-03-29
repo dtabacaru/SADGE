@@ -14,7 +14,8 @@ AudioController::AudioController(uint8_t& dataBus,
   mCh3(dataBus, addrBus),
   mCh4(dataBus, addrBus)
 {
-  mSampleBuf.reserve(NUM_CYCLES_TO_BUFFER);
+  mSubsampleBuf.resize(NUM_SUB_SAMPLE);
+  mSampleBuf.resize(NUM_W_CYCLES_TO_BUFFER);
 }
 
 void AudioController::SetAudioCallback(AudioCallback callback)
@@ -24,7 +25,6 @@ void AudioController::SetAudioCallback(AudioCallback callback)
 
 void AudioController::ClearSamples()
 {
-  mSampleBuf.clear();
   mCycleCount = 0;
 }
 
@@ -209,11 +209,11 @@ void AudioController::Tick()
   if (mEnabled)
   {
     Sample sample = Mixer();
-    mSampleBuf.push_back(sample);
+    mSampleBuf[mCycleCount] = sample;
 
     mCycleCount += 1;
 
-    if (mCycleCount == NUM_CYCLES_TO_BUFFER)
+    if (mCycleCount == NUM_W_CYCLES_TO_BUFFER)
     {
       SubSample();
       mCycleCount = 0;
@@ -259,23 +259,23 @@ bool AudioController::DacsEnabled() const
     mCh4.DacEnabled();
 }
 
-void AudioController::HighPass(Sample& sample)
+void AudioController::HighPass(Sample& in)
 {
   Sample out;
   if (DacsEnabled())
   {
-    out.left  = sample.left - mLCap;
-    out.right = sample.right - mRCap;
+    out.left  = in.left - mLCap;
+    out.right = in.right - mRCap;
 
-    mLCap = sample.left - out.left * CAP_CHARGE_CONSTANT;
-    mRCap = sample.right - out.right * CAP_CHARGE_CONSTANT;
+    mLCap = in.left - out.left * CAP_CHARGE_CONSTANT;
+    mRCap = in.right - out.right * CAP_CHARGE_CONSTANT;
   }
   else
   {
     mLCap = 0;
     mRCap = 0;
   }
-  sample = out;
+  in = out;
 }
 
 void AudioController::HandleNr51Write()
@@ -330,7 +330,7 @@ Sample AudioController::Mixer()
   out.left  *= leftScale;
   out.right *= rightScale;
 
-  HighPass(out);
+  //HighPass(out);
 
   return out;
 }
@@ -360,13 +360,11 @@ void AudioController::HandleNr52Write()
 
 void AudioController::SubSample()
 {
-  uint64_t numSubSample  = static_cast<uint64_t>(mSampleBuf.size() * AUDIO_FREQUENCY / T_RATE) * 2; // * 2 for stereo
-  double sampleIdxStep = T_RATE / AUDIO_FREQUENCY;
-  mSubsampleBuf.resize(numSubSample);
+  double sampleIdxStep = W_RATE / AUDIO_FREQUENCY;
 
   double sampleIdxF = 0;
   int    sampleIdx = 0;
-  for (int subsampleIdx = 0; subsampleIdx < numSubSample; subsampleIdx += 2)
+  for (int subsampleIdx = 0; subsampleIdx < NUM_SUB_SAMPLE; subsampleIdx += 2)
   {
     mSubsampleBuf[subsampleIdx + 0] = static_cast<short>(mSampleBuf[sampleIdx].left * SHRT_MAX);
     mSubsampleBuf[subsampleIdx + 1] = static_cast<short>(mSampleBuf[sampleIdx].right * SHRT_MAX);
@@ -379,9 +377,6 @@ void AudioController::SubSample()
 
   if (mCallback)
     mCallback(mSubsampleBuf);
-
-  mSampleBuf.clear();
-  mSubsampleBuf.clear();
 }
 
 uint8_t AudioController::GetChOnBits() const

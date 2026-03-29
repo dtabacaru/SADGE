@@ -19,8 +19,6 @@ void Cpu::FallingTEvent()
 void Cpu::RisingTEvent()
 {
   mTHighCount += 1;
-
-  mAudioCtrl.Tick();
 }
 
 void Cpu::MEvent()
@@ -28,6 +26,7 @@ void Cpu::MEvent()
   mMEdgeCount += 1;
 
   mAudioCtrl.TickCh3();
+  mAudioCtrl.Tick();
 }
 
 void Cpu::FallingMEvent()

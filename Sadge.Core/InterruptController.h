@@ -30,7 +30,7 @@ public:
   void EnableInterrupts();
   void DisableInterrupts();
 
-  void Update(bool interrupt_enable_request);
+  void Update(bool ieReq);
 
   void Read() const;
   void Write();

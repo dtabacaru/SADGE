@@ -6,15 +6,17 @@
 
 #include "Constants.h"
 
+#include <array>
 #include <vector>
 
 constexpr static auto W_RATE = T_RATE / 2;
 
 constexpr static uint32_t AUDIO_BITS = 16;
 constexpr static uint32_t AUDIO_FREQUENCY = 48000;
-constexpr static uint32_t NUM_CYCLES_TO_BUFFER = 65536*3; // TODO: Non-integer cycles
+constexpr static uint32_t NUM_W_CYCLES_TO_BUFFER = 65536; // TODO: Non-integer cycles
 constexpr static uint8_t  AUDIO_CHANNELS = 2;
-constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_CYCLES_TO_BUFFER / 8) * (AUDIO_FREQUENCY / T_RATE)) * AUDIO_CHANNELS;
+constexpr static uint32_t AUDIO_STREAM_BUFFER_SIZE = static_cast<uint32_t>((NUM_W_CYCLES_TO_BUFFER / 4) * (AUDIO_FREQUENCY / W_RATE)) * AUDIO_CHANNELS;
+constexpr static uint64_t NUM_SUB_SAMPLE  = static_cast<uint64_t>(NUM_W_CYCLES_TO_BUFFER * AUDIO_FREQUENCY / W_RATE) * 2; // * 2 for stereo
 
 struct Sample
 {
@@ -174,8 +176,8 @@ private:
   double mLCap{};
   double mRCap{};
 
-  std::vector<Sample> mSampleBuf;
-  std::vector<short>  mSubsampleBuf;
+  std::vector<Sample> mSampleBuf{};
+  std::vector<short> mSubsampleBuf{};
 
   uint64_t mCycleCount{};
 
