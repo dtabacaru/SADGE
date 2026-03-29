@@ -62,7 +62,7 @@ void NoiseChannel::UpdateChOut()
   uint16_t bit0 = mLfsr & 0x1;
   uint8_t level = bit0 ? mVolume : 0;
   double dcOffset = mVolume / 2;
-  mChOut = Dac(level, dcOffset);
+  mChOut = Dac(level);
 }
 
 void NoiseChannel::DivTick()

@@ -157,23 +157,26 @@ public:
   void TickCh4();
   
 private:
-  constexpr static double CAP_CHARGE_CONSTANT = 0.999958; // for T rate
+  constexpr static double HP_CAP_CHARGE_CONSTANT = 0.999916001764; // for W rate
+  constexpr static double LP_CAP_CHARGE_CONSTANT = 0.033;
 
   bool DacsEnabled() const;
+  void BandPass(Sample& in);
   uint8_t GetChOnBits() const;
 
   void HandleNr52Write();
   void HandleNr51Write();
   void HandleNr50Write();
 
-  void HighPass(Sample& sample);
   Sample Mixer();
   void SubSample();
 
   void Reset();
   
-  double mLCap{};
-  double mRCap{};
+  double mLHPCap{};
+  double mRHPCap{};
+  double mLLPCap{};
+  double mRLPCap{};
 
   std::vector<Sample> mSampleBuf{};
   std::vector<short> mSubsampleBuf{};

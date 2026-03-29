@@ -33,7 +33,7 @@ void PulseChannel::UpdateChOut()
   uint8_t level = DUTY[GetWaveDuty()][mIdx] ? mVolume : 0;
 
   double dcOffset = mVolume / 2;
-  mChOut = Dac(level, dcOffset);
+  mChOut = Dac(level);
 }
 
 void PulseChannel::DivTick()

@@ -2,8 +2,8 @@
 
 #include "Utils.h"
 
-//#include <fstream>
-//std::ofstream pcm_out("apu_out.pcm", std::ios_base::binary);
+#include <fstream>
+std::ofstream pcmOut("apu_out.pcm", std::ios_base::binary);
 
 AudioController::AudioController(uint8_t& dataBus,
                                  uint16_t& addrBus) :
@@ -259,23 +259,26 @@ bool AudioController::DacsEnabled() const
     mCh4.DacEnabled();
 }
 
-void AudioController::HighPass(Sample& in)
+void AudioController::BandPass(Sample& in)
 {
-  Sample out;
   if (DacsEnabled())
   {
-    out.left  = in.left - mLCap;
-    out.right = in.right - mRCap;
+    mLHPCap = in.left - (in.left - mLHPCap)    * HP_CAP_CHARGE_CONSTANT;
+    in.left = mLLPCap + LP_CAP_CHARGE_CONSTANT * ((in.left - mLHPCap) - mLLPCap);
+    mLLPCap = in.left;
 
-    mLCap = in.left - out.left * CAP_CHARGE_CONSTANT;
-    mRCap = in.right - out.right * CAP_CHARGE_CONSTANT;
+    mRHPCap = in.right - (in.right - mRHPCap)   * HP_CAP_CHARGE_CONSTANT;
+    in.right = mRLPCap + LP_CAP_CHARGE_CONSTANT * ((in.right - mRHPCap) - mRLPCap);
+    mRLPCap = in.right;
   }
   else
   {
-    mLCap = 0;
-    mRCap = 0;
+    mLHPCap = 0;
+    mRHPCap = 0;
+    mLLPCap = 0;
+    mRLPCap = 0;
+    in.left = in.right = 0;
   }
-  in = out;
 }
 
 void AudioController::HandleNr51Write()
@@ -330,7 +333,7 @@ Sample AudioController::Mixer()
   out.left  *= leftScale;
   out.right *= rightScale;
 
-  //HighPass(out);
+  //BandPass(out);
 
   return out;
 }
@@ -373,7 +376,7 @@ void AudioController::SubSample()
     sampleIdx = static_cast<int>(round(sampleIdxF));
   }
 
-  //pcm_out.write(reinterpret_cast<char*>(mSubsampleBuf.data()), mSubsampleBuf.size() * sizeof(short));
+  pcmOut.write(reinterpret_cast<char*>(mSubsampleBuf.data()), mSubsampleBuf.size() * sizeof(short));
 
   if (mCallback)
     mCallback(mSubsampleBuf);

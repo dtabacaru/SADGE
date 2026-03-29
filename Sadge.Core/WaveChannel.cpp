@@ -26,7 +26,8 @@ void WaveChannel::OutputCurrentSample()
   uint8_t shift = GetVolume() == 0 ? 4 : GetVolume() - 1;
   uint8_t level = mCurrentSample >> shift;
   int scale = shift == 4 ? 1 : 1 << shift;
-  mChOut = Dac(level, mDcOffset / scale);
+  //mChOut = Dac(level, mDcOffset / scale);
+  mChOut = Dac(level);
 }
 
 void WaveChannel::UpdateChOut()
