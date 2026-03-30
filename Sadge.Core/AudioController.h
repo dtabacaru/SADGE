@@ -182,7 +182,7 @@ private:
 
   uint64_t mWCycleCount{};
 
-  AudioCallback mCallback = NULL;
+  AudioCallback mCb = NULL;
 
   PulseSweepChannel mCh1;
   PulseChannel      mCh2;

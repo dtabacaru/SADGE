@@ -35,7 +35,7 @@ void NoiseChannel::ApuTick()
 
 void NoiseChannel::UpdateChOut()
 {
-  uint16_t xnorResult = ((mLfsr - 1) >> 1) & 0x1;
+  uint16_t xnorResult = ~((mLfsr & 0x1) ^ ((mLfsr & 0x2) >> 1)) & 0x1;
 
   mLfsr &= ~0x8000;
   mLfsr |= xnorResult << 15;

@@ -11,10 +11,16 @@ public:
 
   void HandleNr43Write();
 
+  bool GetLfsrWidth();
+
+  uint8_t GetClockDivider();
+
+  uint8_t GetClockShift();
+
   void Trigger();
 
   void Reset();
-
+  void Disable();
   void DivTick();
   void ApuTick();
 

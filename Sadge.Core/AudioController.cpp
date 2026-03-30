@@ -19,7 +19,7 @@ AudioController::AudioController(uint8_t& dataBus,
 
 void AudioController::SetAudioCallback(AudioCallback callback)
 {
-  mCallback = callback;
+  mCb = callback;
 }
 
 bool AudioController::DacsEnabled() const
@@ -388,6 +388,6 @@ void AudioController::SubSample()
 
   //pcmOut.write(reinterpret_cast<char*>(mSubsampleBuf.data()), mSubsampleBuf.size() * sizeof(short));
 
-  if (mCallback)
-    mCallback(mSubsampleBuf);
+  if (mCb)
+    mCb(mSubsampleBuf);
 }
