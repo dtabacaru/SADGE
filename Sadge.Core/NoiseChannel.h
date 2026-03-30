@@ -34,7 +34,7 @@ private:
 
   void UpdateChOut();
 
-  int mLfsrTick{};
-  bool mLfsrWidth{};
-  uint16_t mLfsr{};
+  int mLfsrTick{0};
+  bool mLfsrWidth{false};
+  uint16_t mLfsr{0};
 };

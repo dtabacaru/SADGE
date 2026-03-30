@@ -45,6 +45,6 @@ private:
 
   void UpdateChOut();
   
-  uint8_t mWaveDuty{};
-  int     mIdx{};
+  uint8_t mWaveDuty{0};
+  int     mIdx{0};
 };

@@ -6,26 +6,22 @@ PulseSweepChannel::PulseSweepChannel(uint8_t& dataBus,
 {
 }
 
-uint8_t PulseSweepChannel::GetFreqSweepPace()
+void PulseSweepChannel::HandleNR10Write()
 {
-  return (NR10 & GetNRX0BitMask(Nr10BitMask::PACE)) >> 4;
-}
+  NR10 = mDataBus;
 
-uint8_t PulseSweepChannel::GetFreqStep()
-{
-  return NR10 & GetNRX0BitMask(Nr10BitMask::STEP);
+  mDir = NR10 & GetNRX0BitMask(Nr10BitMask::DIRECTION);
+  mFreqPace = (NR10 & GetNRX0BitMask(Nr10BitMask::PACE)) >> 4;
+  mFreqStep = NR10 & GetNRX0BitMask(Nr10BitMask::STEP);
 }
 
 void PulseSweepChannel::TickFreqSweep()
 {
-  bool direction = NR10 & GetNRX0BitMask(Nr10BitMask::DIRECTION);
-  uint8_t step = GetFreqStep();
-
-  if (step == 0)
+  if (mFreqStep == 0)
     return;
 
-  mPeriodCounter = direction ? mPeriodCounter - (mPeriodCounter >> step)
-                             : mPeriodCounter + (mPeriodCounter >> step);
+  mPeriodCounter = mDir ? mPeriodCounter - (mPeriodCounter >> mFreqStep)
+                        : mPeriodCounter + (mPeriodCounter >> mFreqStep);
 
   if (mPeriodCounter >= MAX_PERIOD_COUNT)
     Disable();
@@ -49,7 +45,7 @@ void PulseSweepChannel::DivTick()
 {
   PulseChannel::DivTick();
 
-  if (GetFreqSweepPace() == 0 || GetFreqStep() == 0)
+  if (mFreqPace == 0 || mFreqStep == 0)
     return;
 
   mFreqTick += 1;
@@ -60,7 +56,7 @@ void PulseSweepChannel::DivTick()
   mFreqTick = 0;
   mFreqSweepPaceTick += 1;
 
-  if (mFreqSweepPaceTick != GetFreqSweepPace())
+  if (mFreqSweepPaceTick != mFreqPace)
     return;
 
   mFreqSweepPaceTick = 0;
@@ -69,8 +65,11 @@ void PulseSweepChannel::DivTick()
 
 void PulseSweepChannel::Reset()
 {
-  AudioChannel::Reset();
-  NR10 = {};
-  mFreqTick = {};
-  mFreqSweepPaceTick = {};
+  PulseChannel::Reset();
+  NR10 = {0};
+  mFreqTick = {0};
+  mFreqSweepPaceTick = {0};
+  mDir = {false};
+  mFreqPace = {0};
+  mFreqStep = {0};
 }

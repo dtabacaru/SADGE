@@ -52,6 +52,6 @@ void PulseChannel::Trigger()
 void PulseChannel::Reset()
 {
   AudioChannel::Reset();
-  mPeriodCounterTick = {};
-  mIdx = {};
+  mWaveDuty = {0};
+  mIdx = {0};
 }

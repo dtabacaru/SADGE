@@ -17,16 +17,6 @@ double AudioChannel::ChOut() const
   return mChOut;
 }
 
-uint8_t AudioChannel::GetVolume()
-{
-  return (NRX2 & GetNRX2BitMask(NRX2BitMask::INIT_VOL)) >> 4;
-}
-
-bool AudioChannel::GetLengthEnable()
-{
-  return NRX4 & GetNRX4BitMask(NRX4BitMask::LENGTH_ENABLE);
-}
-
 bool AudioChannel::DacEnabled() const
 {
   return mDacEnabled;
@@ -65,6 +55,7 @@ void AudioChannel::HandleNRX2Write()
   NRX2 = mDataBus;
 
   mDacEnabled = NRX2 & (GetNRX2BitMask(NRX2BitMask::INIT_VOL) | GetNRX2BitMask(NRX2BitMask::ENV_DIR));
+  mSetVol = (NRX2 & GetNRX2BitMask(NRX2BitMask::INIT_VOL)) >> 4;
 
   if (!DacEnabled())
     Disable();
@@ -75,6 +66,7 @@ void AudioChannel::HandleNRX4Write()
   NRX4 = mDataBus;
 
   mPeriodCounter = ((NRX4 & GetNRX4BitMask(NRX4BitMask::PERIOD_UPPER)) << 8) | NRX3;
+  mLengthEnable = NRX4 & GetNRX4BitMask(NRX4BitMask::LENGTH_ENABLE);
 
   if (NRX4 & GetNRX4BitMask(NRX4BitMask::TRIGGER))
     Trigger();
@@ -95,13 +87,16 @@ void AudioChannel::Trigger()
   if (!DacEnabled())
     return;
 
-  mEnvelopeSaturated = false;
   mEnabled = true;
+
+  mEnvelopeSaturated = false;
   mVolSweepPaceTick = 0;
   mSoundLengthTick = mInitLenTimer;
-  mVolume = GetVolume();
-  double dc_offset = mVolume / 2;
-  mChOut = Dac(0, dc_offset);
+  mVolume = mSetVol;
+
+  mLevel = 0;
+  mDcOffset = mVolume / 2;
+  mChOut = Dac(mLevel, mDcOffset);
 }
 
 void AudioChannel::TickVolSweep()
@@ -135,7 +130,7 @@ void AudioChannel::TickVolSweepPace()
 
 void AudioChannel::TickSoundLength()
 {
-  if (!GetLengthEnable())
+  if (!mLengthEnable)
     return;
 
   mLengthTimerTick += 1;
@@ -163,20 +158,31 @@ void AudioChannel::DivTick()
 
 void AudioChannel::Reset()
 {
-  mEnabled={};
-  mVolume={};
-  mVolSweepPaceTick={};
+  NRX1={0};
+  NRX2={0};
+  NRX3={0};
+  NRX4={0};
+
+  mEnabled = {false};
+
+  mEnvelopeTick = {0};
+  mEnvelopeSaturated = {false};
+
+  mVolSweepPaceTick = {0};
+  mLengthTimerTick = {0};
+  mSoundLengthTick = {0};
+  mPeriodCounterTick = {0};
+
+  mPeriodCounter = {0};
+  mLengthEnable = {false};
+
+  mInitLenTimer = {0};
+  mVolume = {0};
+  mSetVol = {0};
+  mLevel = {0};
+
   mChOut = {};
   mDcOffset = {};
-  mLengthTimerTick = {};
-  mSoundLengthTick = {};
-
-  NRX1={};
-  NRX2={};
-  NRX3={};
-  NRX4={};
-  mEnvelopeTick={};
-  mEnvelopeSaturated={};
 }
 
 int AudioChannel::MaxLengthTick() const

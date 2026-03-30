@@ -11,8 +11,6 @@ public:
 
   WaveChannel(uint8_t& dataBus, uint16_t& addressBus);
 
-  bool DacEnabled() const;
-
   void HandleNR30Write();
   void HandleNRX1Write();
   void HandleNRX2Write();
@@ -21,7 +19,7 @@ public:
 
   void ApuTick();
 
-  uint8_t  NR30{};
+  uint8_t  NR30{0};
   std::array<uint8_t, WAVE_RAM_SIZE> WaveRam{};
 
 private:
@@ -52,8 +50,8 @@ private:
 
   void UpdateChOut();
 
-  uint8_t mCurrentSample{};
+  uint8_t mCurrentSample{0};
   uint8_t mShift{4};
   int     mDcScale{1};
-  int     mIdx{};
+  int     mIdx{0};
 };

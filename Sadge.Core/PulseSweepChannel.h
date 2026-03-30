@@ -6,6 +6,20 @@ class PulseSweepChannel : public PulseChannel
 {
 public:
 
+  PulseSweepChannel(uint8_t& dataBus,
+                    uint16_t& addrBus);
+
+  void HandleNR10Write();
+
+  virtual void Reset();
+
+  void DivTick();
+  
+  uint8_t NR10{0};
+  
+private:
+  constexpr static auto MAX_FREQ_COUNT = 4;
+
   enum class Nr10BitMask : uint8_t
   {
     PACE = 0b01110000,
@@ -18,26 +32,13 @@ public:
     return static_cast<uint8_t>(mask);
   }
 
-  PulseSweepChannel(uint8_t& dataBus,
-                    uint16_t& addrBus);
-
-  virtual void Reset();
-
-  void DivTick();
-  
-  uint8_t NR10{};
-  
-private:
-
-  constexpr static auto MAX_FREQ_COUNT = 4;
-
   void Trigger();
-
-  uint8_t GetFreqSweepPace();
-  uint8_t GetFreqStep();
 
   void TickFreqSweep();
 
-  int mFreqTick{};
-  int mFreqSweepPaceTick{};
+  int     mFreqTick{0};
+  int     mFreqSweepPaceTick{0};
+  bool    mDir{false};
+  uint8_t mFreqPace{0};
+  uint8_t mFreqStep{0};
 };

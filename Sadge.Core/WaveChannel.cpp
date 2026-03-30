@@ -6,11 +6,6 @@ WaveChannel::WaveChannel(uint8_t& dataBus, uint16_t& addressBus) :
 {
 }
 
-bool WaveChannel::DacEnabled() const
-{
-  return mDacEnabled;
-}
-
 void WaveChannel::HandleNR30Write()
 {
   NR30 = mDataBus;
@@ -89,9 +84,9 @@ void WaveChannel::Reset()
 {
   AudioChannel::Reset();
 
-  NR30 = {};
-  mCurrentSample = {};
+  NR30 = {0};
+  mCurrentSample = {0};
   mShift = {4};
   mDcScale = {1};
-  mIdx = {};
+  mIdx = {0};
 }

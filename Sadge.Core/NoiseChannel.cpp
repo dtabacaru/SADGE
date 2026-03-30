@@ -46,7 +46,8 @@ void NoiseChannel::UpdateChOut()
   }
   mLfsr >>= 1;
 
-  mLevel = (mLfsr & 0x1) ? mVolume : 0;
+  bool bit0Set = (mLfsr & 0x1);
+  mLevel = bit0Set ? mVolume : 0;
   mDcOffset = mVolume / 2;
   mChOut = Dac(mLevel, mDcOffset);
 }
@@ -67,7 +68,7 @@ void NoiseChannel::Trigger()
 void NoiseChannel::Reset()
 {
   AudioChannel::Reset();
-  mLfsrTick = 0;
-  mLfsrWidth = false;
-  mLfsr = 0;
+  mLfsrTick = {0};
+  mLfsrWidth = {false};
+  mLfsr = {0};
 }

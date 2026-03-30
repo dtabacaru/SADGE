@@ -2,8 +2,8 @@
 
 #include "Utils.h"
 
-#include <fstream>
-std::ofstream pcmOut("apu_out.pcm", std::ios_base::binary);
+//#include <fstream>
+//std::ofstream pcmOut("apu_out.pcm", std::ios_base::binary);
 
 AudioController::AudioController(uint8_t& dataBus,
                                  uint16_t& addrBus) :
@@ -130,7 +130,7 @@ void AudioController::Write()
   switch (addr)
   {
     case AudioController::Address::NR10:
-      mCh1.NR10 = mDataBus;
+      mCh1.HandleNR10Write();
       break;
     case AudioController::Address::NR11:
       mCh1.HandleNRX1Write();
@@ -375,7 +375,7 @@ void AudioController::SubSample()
     sampleIdx = static_cast<int>(round(sampleIdxF));
   }
 
-  pcmOut.write(reinterpret_cast<char*>(mSubsampleBuf.data()), mSubsampleBuf.size() * sizeof(short));
+  //pcmOut.write(reinterpret_cast<char*>(mSubsampleBuf.data()), mSubsampleBuf.size() * sizeof(short));
 
   if (mCallback)
     mCallback(mSubsampleBuf);

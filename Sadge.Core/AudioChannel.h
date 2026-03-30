@@ -14,17 +14,18 @@ public:
 
   virtual void HandleNRX1Write();
   virtual void HandleNRX2Write();
-  virtual void HandleNRX4Write();
+  void HandleNRX4Write();
 
   virtual void DivTick();
   virtual void ApuTick() = 0;
 
-  uint8_t NRX1{};
-  uint8_t NRX2{};
-  uint8_t NRX3{};
-  uint8_t NRX4{};
+  uint8_t NRX1{0};
+  uint8_t NRX2{0};
+  uint8_t NRX3{0};
+  uint8_t NRX4{0};
 
 protected:
+
   constexpr static auto MAX_PERIOD_COUNT = 2048;
   constexpr static auto MAX_LENGTH_COUNT = 2;
   constexpr static auto MAX_ENV_COUNT = 8;
@@ -64,37 +65,37 @@ protected:
   }
 
   virtual int MaxLengthTick() const;
-  virtual uint8_t GetVolume();
-
-  double Dac(uint8_t level, double dcOffset = 0);
 
   virtual void Trigger();
 
   virtual void Reset();
-  virtual void Disable();
+  void Disable();
 
   void TickVolSweep();
   void TickVolSweepPace();
 
+  double Dac(uint8_t level, double dcOffset = 0);
   virtual void UpdateChOut() = 0;
 
-  bool     mEnabled{};
+  bool mEnabled{false};
+  bool mDacEnabled{};
 
-  int      mEnvelopeTick{};
-  bool     mEnvelopeSaturated{};
+  int  mEnvelopeTick{0};
+  bool mEnvelopeSaturated{false};
   
-  int      mVolSweepPaceTick{};
-  int      mLengthTimerTick{};
-  int      mSoundLengthTick{};
-  int      mPeriodCounterTick{};
+  int mVolSweepPaceTick{0};
+  int mLengthTimerTick{0};
+  int mSoundLengthTick{0};
+  int mPeriodCounterTick{0};
   
-  uint16_t mPeriodCounter{};
+  uint16_t mPeriodCounter{0};
+  bool mLengthEnable{false};
 
-  uint8_t mInitLenTimer{};
-  uint8_t mVolume{};
-  uint8_t mSetVol{};
-  uint8_t mLevel{};
-  bool    mDacEnabled{};
+  uint8_t mInitLenTimer{0};
+  uint8_t mVolume{0};
+  uint8_t mSetVol{0};
+  uint8_t mLevel{0};
+  
   double  mChOut{};
   double  mDcOffset{};
 
@@ -103,7 +104,6 @@ protected:
 
 private:
 
-  bool GetLengthEnable();
   void ZombieMode(uint8_t val);
 
   void TickSoundLength();
