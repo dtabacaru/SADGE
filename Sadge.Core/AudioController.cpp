@@ -188,7 +188,7 @@ void AudioController::Write()
       mCh3.HandleNRX4Write();
       break;
     case AudioController::Address::NR41:
-      mCh4.NRX1 = mDataBus;
+      mCh4.HandleNRX1Write();
       break;
     case AudioController::Address::NR42:
       mCh4.HandleNRX2Write();
