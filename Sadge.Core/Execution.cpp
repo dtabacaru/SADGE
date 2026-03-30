@@ -55,7 +55,8 @@ void Cpu::RisingMEvent()
   mAudioCtrl.TickCh2();
   mAudioCtrl.TickCh4();
 
-  bool frame_ready = mLcdCtrl.Update() || mMFrameCycles == DEFAULT_FRAME_M_CYCLES;
+  bool frame_ready = mLcdCtrl.Update() || 
+                     mMFrameCycles == DEFAULT_FRAME_M_CYCLES;
 
   if (frame_ready)
     WaitFrame();

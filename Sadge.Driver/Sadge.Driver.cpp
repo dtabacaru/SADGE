@@ -11,10 +11,10 @@ constexpr auto ERROR = 1;
 #pragma region JOYPAD
 constexpr static float JOYSTICK_THRESH = 0.5f;
 
-bool joystick_down = false;
-bool joystick_up = false;
-bool joystick_left = false;
-bool joystick_right = false;
+bool joyDown = false;
+bool joyUp = false;
+bool joyLeft = false;
+bool joyRight = false;
 
 void CheckButtons()
 {
@@ -94,47 +94,47 @@ void CheckButtons()
 
 #pragma region DIRECTION
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > JOYSTICK_THRESH) && !joystick_down)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > JOYSTICK_THRESH) && !joyDown)
 	{
-		joystick_down = true;
+		joyDown = true;
 		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < JOYSTICK_THRESH) && joystick_down)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < JOYSTICK_THRESH) && joyDown)
 	{
-		joystick_down = false;
+		joyDown = false;
 		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < -JOYSTICK_THRESH) && !joystick_up)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < -JOYSTICK_THRESH) && !joyUp)
 	{
-		joystick_up = true;
+		joyUp = true;
 		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > -JOYSTICK_THRESH) && joystick_up)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > -JOYSTICK_THRESH) && joyUp)
 	{
-		joystick_up = false;
+		joyUp = false;
 		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > JOYSTICK_THRESH) && !joystick_right)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > JOYSTICK_THRESH) && !joyRight)
 	{
-		joystick_right = true;
+		joyRight = true;
 		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < JOYSTICK_THRESH) && joystick_right)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < JOYSTICK_THRESH) && joyRight)
 	{
-		joystick_right = false;
+		joyRight = false;
 		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -JOYSTICK_THRESH) && !joystick_left)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -JOYSTICK_THRESH) && !joyLeft)
 	{
-		joystick_left = true;
+		joyLeft = true;
 		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > -JOYSTICK_THRESH) && joystick_left)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > -JOYSTICK_THRESH) && joyLeft)
 	{
-		joystick_left = false;
+		joyLeft = false;
 		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 
@@ -212,42 +212,35 @@ void CheckButtons()
 
 #pragma endregion
 }
-
 #pragma endregion
 
 #pragma region AUDIO
-constexpr static uint32_t AUDIO_STREAM_BUF_SIZE = NUM_SUB_SAMPLE / 6;
+constexpr static uint32_t AUDIO_STREAM_BUF_SIZE = NUM_SUB_SAMPLE / 8;
 
 std::vector<short> audioBuf;
 std::mutex audioBufLock;
 std::atomic<bool> streamPlaying = false;
 AudioStream stream;
 
-void AudioInputCallback(void* buffer, unsigned int frames)
+void AudioInputCallback(void* buf, unsigned int numFrames)
 {
 	std::lock_guard<std::mutex> lock(audioBufLock);
 
-	short* short_buffer = reinterpret_cast<short*>(buffer);
+	short* shortBuf = reinterpret_cast<short*>(buf);
 
-	auto num_frames = (audioBuf.size() / 2) > frames ? frames : (audioBuf.size() / 2);
-	for (uint64_t frame_num = 0; frame_num < num_frames * 2; frame_num++)
-		short_buffer[frame_num] = audioBuf[frame_num];
+	auto numSamples = audioBuf.size() > numFrames * 2 ? numFrames * 2 : audioBuf.size();
+	for (uint64_t i = 0; i < numSamples; i++)
+		shortBuf[i] = audioBuf[i];
 
-	if (num_frames > 0)
-		audioBuf.erase(audioBuf.begin(), audioBuf.begin() + num_frames * 2);
+	if (numSamples > 0)
+		audioBuf.erase(audioBuf.begin(), audioBuf.begin() + numSamples);
 }
 
-void PlayAudio(std::array<short, NUM_SUB_SAMPLE>& subsample_buffer)
+void PlayAudio(std::array<short, NUM_SUB_SAMPLE>& buf)
 {
 	std::lock_guard<std::mutex> lock(audioBufLock);
 
-	audioBuf.insert(audioBuf.end(), subsample_buffer.begin(), subsample_buffer.end());
-
-	if (!streamPlaying)
-	{
-		PlayAudioStream(stream);
-		streamPlaying = true;
-	}
+	audioBuf.insert(audioBuf.end(), buf.begin(), buf.end());
 }
 #pragma endregion
 
@@ -361,6 +354,8 @@ int main(int num_args, char* args[])
 
 		gameboyCpu.GetLcdController().SetFrameCallback(DrawFrame);
 		gameboyCpu.GetAudioController().SetAudioCallback(PlayAudio);
+
+		PlayAudioStream(stream);
 
 		gameboyCpu.Run();
 

@@ -22,9 +22,25 @@ void AudioController::SetAudioCallback(AudioCallback callback)
   mCallback = callback;
 }
 
+bool AudioController::DacsEnabled() const
+{
+  return mCh1.DacEnabled() ||
+    mCh2.DacEnabled() ||
+    mCh3.DacEnabled() ||
+    mCh4.DacEnabled();
+}
+
+uint8_t AudioController::GetChOnBits() const
+{
+  return (static_cast<int>(mCh4.Enabled()) << 3) |
+    (static_cast<int>(mCh3.Enabled()) << 2) |
+    (static_cast<int>(mCh2.Enabled()) << 1) |
+    (static_cast<int>(mCh1.Enabled()) << 0);
+}
+
 void AudioController::ClearSamples()
 {
-  mCycleCount = 0;
+  mWCycleCount = 0;
 }
 
 void AudioController::Read() const
@@ -192,92 +208,13 @@ void AudioController::Write()
   }
 }
 
-void AudioController::UpdateClk(uint16_t clk)
+void AudioController::HandleNr52Write()
 {
-  if (mClk != clk)
-  {
-    if (Utils::FallingEdgeDetect(mClk, clk, DIV_APU_BIT_MASK))
-      DivTick();
+  mNR52 = mDataBus & NR52_MASK;
+  mEnabled = mNR52 & GetNr52BitMask(Nr52BitMask::AUDIO_ON);
 
-    mClk = clk;
-  }
-}
-
-void AudioController::Tick()
-{
-  if (mEnabled)
-  {
-    Sample sample = Mixer();
-    mSampleBuf[mCycleCount] = sample;
-
-    mCycleCount += 1;
-
-    if (mCycleCount == NUM_SAMPLE)
-    {
-      SubSample();
-      mCycleCount = 0;
-    }
-  }
-}
-
-void AudioController::DivTick()
-{
-  mCh1.DivTick();
-  mCh2.DivTick();
-  mCh3.DivTick();
-  mCh4.DivTick();
-}
-
-void AudioController::TickCh1()
-{
-  if (mEnabled)
-    mCh1.ApuTick();
-}
-
-void AudioController::TickCh2()
-{
-  if (mEnabled)
-    mCh2.ApuTick();
-}
-void AudioController::TickCh3()
-{
-  if (mEnabled)
-    mCh3.ApuTick();
-}
-void AudioController::TickCh4()
-{
-  if (mEnabled)
-    mCh4.ApuTick();
-}
-
-bool AudioController::DacsEnabled() const
-{
-  return mCh1.DacEnabled() ||
-    mCh2.DacEnabled() ||
-    mCh3.DacEnabled() ||
-    mCh4.DacEnabled();
-}
-
-void AudioController::BandPass(Sample& in)
-{
-  if (DacsEnabled())
-  {
-    mLHPCap = in.left - (in.left - mLHPCap)    * HP_CAP_CHARGE_CONSTANT;
-    in.left = mLLPCap + LP_CAP_CHARGE_CONSTANT * ((in.left - mLHPCap) - mLLPCap);
-    mLLPCap = in.left;
-
-    mRHPCap = in.right - (in.right - mRHPCap)   * HP_CAP_CHARGE_CONSTANT;
-    in.right = mRLPCap + LP_CAP_CHARGE_CONSTANT * ((in.right - mRHPCap) - mRLPCap);
-    mRLPCap = in.right;
-  }
-  else
-  {
-    mLHPCap = 0;
-    mRHPCap = 0;
-    mLLPCap = 0;
-    mRLPCap = 0;
-    in.left = in.right = 0;
-  }
+  if (!mEnabled)
+    Reset();
 }
 
 void AudioController::HandleNr51Write()
@@ -308,6 +245,89 @@ void AudioController::HandleNr50Write()
 
   mLeftVolScale  = (leftVol + 1) / VOL_DIV;
   mRightVolScale = (rightVol + 1) / VOL_DIV;
+}
+
+void AudioController::UpdateClk(uint16_t clk)
+{
+  if (mClk != clk)
+  {
+    if (Utils::FallingEdgeDetect(mClk, clk, DIV_APU_BIT_MASK))
+      DivTick();
+
+    mClk = clk;
+  }
+}
+
+void AudioController::Tick()
+{
+  if (!mEnabled)
+    return;
+
+  Sample sample = Mixer();
+  mSampleBuf[mWCycleCount] = sample;
+
+  mWCycleCount += 1;
+
+  if (mWCycleCount != NUM_SAMPLE)
+    return;
+
+  SubSample();
+  mWCycleCount = 0;
+}
+
+void AudioController::TickCh1()
+{
+  if (mEnabled)
+    mCh1.ApuTick();
+}
+
+void AudioController::TickCh2()
+{
+  if (mEnabled)
+    mCh2.ApuTick();
+}
+
+void AudioController::TickCh3()
+{
+  if (mEnabled)
+    mCh3.ApuTick();
+}
+
+void AudioController::TickCh4()
+{
+  if (mEnabled)
+    mCh4.ApuTick();
+}
+
+void AudioController::DivTick()
+{
+  mCh1.DivTick();
+  mCh2.DivTick();
+  mCh3.DivTick();
+  mCh4.DivTick();
+}
+
+void AudioController::BandPass(Sample& in)
+{
+  if (DacsEnabled())
+  {
+    mLHPCap = in.left - (in.left - mLHPCap)    * HP_CAP_CHARGE_CONSTANT;
+    in.left = mLLPCap + LP_CAP_CHARGE_CONSTANT * ((in.left - mLHPCap) - mLLPCap);
+    mLLPCap = in.left;
+
+    mRHPCap = in.right - (in.right - mRHPCap)   * HP_CAP_CHARGE_CONSTANT;
+    in.right = mRLPCap + LP_CAP_CHARGE_CONSTANT * ((in.right - mRHPCap) - mRLPCap);
+    mRLPCap = in.right;
+  }
+  else
+  {
+    mLHPCap = 0;
+    mRHPCap = 0;
+    mLLPCap = 0;
+    mRLPCap = 0;
+    in.left = 0;
+    in.right = 0;
+  }
 }
 
 Sample AudioController::Mixer()
@@ -351,15 +371,6 @@ void AudioController::Reset()
   mCh4.Reset();
 }
 
-void AudioController::HandleNr52Write()
-{
-  mNR52 = mDataBus & NR52_MASK;
-  mEnabled = mNR52 & GetNr52BitMask(Nr52BitMask::AUDIO_ON);
-
-  if (!mEnabled)
-    Reset();
-}
-
 void AudioController::SubSample()
 {
   double sampleIdxStep = W_RATE / A_RATE;
@@ -379,12 +390,4 @@ void AudioController::SubSample()
 
   if (mCallback)
     mCallback(mSubsampleBuf);
-}
-
-uint8_t AudioController::GetChOnBits() const
-{
-  return (static_cast<int>(mCh4.Enabled()) << 3) |
-    (static_cast<int>(mCh3.Enabled()) << 2) |
-    (static_cast<int>(mCh2.Enabled()) << 1) |
-    (static_cast<int>(mCh1.Enabled()) << 0);
 }

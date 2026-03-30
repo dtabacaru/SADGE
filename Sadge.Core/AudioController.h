@@ -65,7 +65,7 @@ public:
 
   enum class Nr52BitMask : uint8_t
   {
-    AUDIO_ON = 0b10000000, 
+    AUDIO_ON = 0b10000000,
     CH4_ON   = 0b00001000,
     CH3_ON   = 0b00000100,
     CH2_ON   = 0b00000010,
@@ -141,7 +141,7 @@ public:
   void SetAudioCallback(AudioCallback callback);
 
   void ClearSamples();
-  
+
   void Read() const;
   void Write();
 
@@ -154,13 +154,12 @@ public:
   void TickCh2();
   void TickCh3();
   void TickCh4();
-  
+
 private:
-  constexpr static double HP_CAP_CHARGE_CONSTANT = 0.999916001764; // for W rate
-  constexpr static double LP_CAP_CHARGE_CONSTANT = 0.033;
+  constexpr static double HP_CAP_CHARGE_CONSTANT = 0.999916001764; // From pan docs, converted for W rate
+  constexpr static double LP_CAP_CHARGE_CONSTANT = 0.033;          // Sounds good
 
   bool DacsEnabled() const;
-  void BandPass(Sample& in);
   uint8_t GetChOnBits() const;
 
   void HandleNr52Write();
@@ -168,19 +167,20 @@ private:
   void HandleNr50Write();
 
   Sample Mixer();
+  void BandPass(Sample& in);
   void SubSample();
 
   void Reset();
-  
+
   double mLHPCap{};
   double mRHPCap{};
   double mLLPCap{};
   double mRLPCap{};
 
-  std::array<Sample, NUM_SAMPLE> mSampleBuf{};
+  std::array<Sample, NUM_SAMPLE>    mSampleBuf{};
   std::array<short, NUM_SUB_SAMPLE> mSubsampleBuf{};
 
-  uint64_t mCycleCount{};
+  uint64_t mWCycleCount{};
 
   AudioCallback mCallback = NULL;
 
@@ -209,6 +209,6 @@ private:
   double mLeftVolScale{};
   double mRightVolScale{};
 
-  uint8_t&  mDataBus;
+  uint8_t& mDataBus;
   uint16_t& mAddressBus;
 };
