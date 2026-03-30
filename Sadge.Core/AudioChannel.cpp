@@ -80,6 +80,9 @@ double AudioChannel::Dac(uint8_t level, double dcOffset)
 void AudioChannel::Disable()
 {
   mEnabled = false;
+  mVolume = {};
+  mChOut = {};
+  mLengthTimerTick = {};
 }
 
 void AudioChannel::Trigger()
