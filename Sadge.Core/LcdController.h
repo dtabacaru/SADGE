@@ -50,11 +50,11 @@ public:
 
   bool DmaRequested() const;
 
-  uint16_t GetCurrentDmaAddress() const;
+  void SetCurrentDmaAddress() const;
 
   std::array<Pixel, SCREEN_SIZE> GetCurrentFrameBuffer();
 
-  void ServiceDma(uint8_t val);
+  void ServiceDma();
 
   void UpdateFrameTime(double frameTime);
 

@@ -54,9 +54,9 @@ void Cpu::RisingMEvent()
   
   if (mLcdCtrl.DmaRequested())
   {
-    mAddressBus = mLcdCtrl.GetCurrentDmaAddress();
+    mLcdCtrl.SetCurrentDmaAddress();
     Read();
-    mLcdCtrl.ServiceDma(mDataBus);
+    mLcdCtrl.ServiceDma();
   }
 
   mAudioCtrl.TickCh1();

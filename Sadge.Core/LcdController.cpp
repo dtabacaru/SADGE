@@ -37,9 +37,9 @@ bool LcdController::DmaRequested() const
   return mDmaReq;
 };
 
-uint16_t LcdController::GetCurrentDmaAddress() const
+void LcdController::SetCurrentDmaAddress() const
 {
-  return mDmaStart + mDmaPtr;
+  mAddrBus = mDmaStart + mDmaPtr;
 };
 
 std::array<Pixel, SCREEN_SIZE> LcdController::GetCurrentFrameBuffer()
@@ -218,9 +218,9 @@ void LcdController::HandleDmaWrite()
   mEnableNext = true;
 }
 
-void LcdController::ServiceDma(uint8_t val)
+void LcdController::ServiceDma()
 {
-  mOam[mDmaPtr] = val;
+  mOam[mDmaPtr] = mDataBus;
 
   mDmaPtr += 1;
   if (mDmaPtr == OAM_SIZE)
