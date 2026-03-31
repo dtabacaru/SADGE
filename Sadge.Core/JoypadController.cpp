@@ -1,9 +1,9 @@
 #include "JoypadController.h"
 
-JoypadController::JoypadController(InterruptReceiver& interrupt_receiver,
+JoypadController::JoypadController(InterruptReceiver& intRec,
                                    uint8_t& dataBus,
                                    uint16_t& addrBus) :
-  InterruptProvider(interrupt_receiver, InterruptBitMask::JOYPAD),
+  InterruptProvider(intRec, InterruptBitMask::JOYPAD),
   mDataBus(dataBus),
   mAddressBus(addrBus)
 {

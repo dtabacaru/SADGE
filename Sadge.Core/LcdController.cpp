@@ -4,17 +4,20 @@
 
 #include <algorithm>
 #include <execution>
+#include <ranges>
 
-LcdController::LcdController(InterruptReceiver& interrupt_receiver) :
-	InterruptProvider(interrupt_receiver, InterruptBitMask::LCD)
+LcdController::LcdController(InterruptReceiver& intRec, uint8_t& dataBus, uint16_t& addrBus) :
+	InterruptProvider(intRec, InterruptBitMask::LCD),
+	mDataBus(dataBus),
+	mAddrBus(addrBus)
 {
 }
 
 void LcdController::SetColorPalettes(const std::array<Pixel, 4>& bg, const std::array<Pixel, 4>& obj0, const std::array<Pixel, 4>& obj1)
 {
-	m_bg_palette = bg;
-	m_obj0_palette = obj0;
-	m_obj1_palette = obj1;
+	mBgPalette = bg;
+	mObj0Palette = obj0;
+	mObj1Palette = obj1;
 }
 
 void LcdController::SetFrameCallback(FrameCallback frame_callback)
@@ -37,329 +40,137 @@ std::array<Pixel, SCREEN_SIZE> LcdController::GetCurrentFrameBuffer()
 	return mFrameBuf;
 }
 
-void LcdController::ServiceDma(uint8_t val)
-{
-	mOam[mDmaPtr] = val;
-
-	mDmaPtr += 1;
-	if (mDmaPtr == OAM_SIZE)
-		mDmaReq = false;
-};
-
 void LcdController::UpdateFrameTime(double frame_time)
 {
 	mFrameTime = frame_time;
 }
 
-bool LcdController::Update()
+void LcdController::Read() const
 {
-	UpdateDma();
-
-	bool frame_ready = mEnabled ? UpdateState() : UpdateDisabled();
-
-	return frame_ready;
-}
-
-void LcdController::RenderBackground()
-{
-	if (mBgWinEnable)
+	if (mAddrBus >= 0x8000 && mAddrBus <= 0x9FFF)
 	{
-		uint16_t tile_map_offset = mBgTileMap ? TILE_MAP_OFFSET_1 : TILE_MAP_OFFSET_0;
-
-		uint8_t x = 0;
-		while (x < SCREEN_WIDTH)
-		{
-			uint8_t global_y = mSCY + mLY;
-			uint8_t global_x = mSCX + x;
-
-			uint16_t tile_index_address = tile_map_offset + (global_y / NUM_PIXELS_PER_TILE_COLUMN) * NUM_TILES_PER_ROW + (global_x / NUM_PIXELS_PER_TILE_ROW);
-			uint8_t tile_index = mVRAM[tile_index_address];
-
-			uint16_t byte_offset = (mBgWinTiles || (tile_index > TILE_BLOCK_0_THRESH)) ? tile_index * NUM_BYTES_PER_TILE
-				                                                                         : tile_index * NUM_BYTES_PER_TILE + TILE_BLOCK_1_OFFSET;
-
-			uint8_t tile_byte_offset = (global_y % NUM_PIXELS_PER_TILE_COLUMN) * 2;
-
-			int remaining_pixels = NUM_PIXELS_PER_TILE_ROW - (global_x % NUM_PIXELS_PER_TILE_ROW);
-			while (remaining_pixels > 0 && x < SCREEN_WIDTH)
-			{
-				uint8_t color_id = (((mVRAM[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
-					                  ((mVRAM[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
-
-				mLineBuf[x] = color_id;
-
-				x += 1;
-				remaining_pixels -= 1;
-			}
-		}
+		mDataBus = mVRAM[mAddrBus - 0x8000];
+		return;
 	}
-	else
+	else if (mAddrBus >= 0xFE00 && mAddrBus <= 0xFE9F)
 	{
-		for (int x = 0; x < SCREEN_WIDTH; x += 1)
-		{
-			mLineBuf[x] = 0;
-		}
-	}
-}
-
-void LcdController::RenderWindow()
-{
-	if (mBgWinEnable && mWinEnable)
-	{
-		if (mLY < mWY || mWX >= (SCREEN_WIDTH + WINDOW_X_OFFSET) || mWY >= SCREEN_HEIGHT)
-			return;
-
-		uint16_t tile_map_offset = mLCDC & GetLcdcBitMask(LcdcBitMask::WIN_TILE_MAP) ? TILE_MAP_OFFSET_1 : TILE_MAP_OFFSET_0;
-		
-		int window_x_start = mWX - WINDOW_X_OFFSET;
-		int x = window_x_start < 0 ? 0 : window_x_start;
-		while (x < SCREEN_WIDTH)
-		{
-			int relative_x = x - window_x_start;
-			int relative_y = mWLY;
-
-			uint16_t tile_index_address = tile_map_offset + relative_y / NUM_PIXELS_PER_TILE_COLUMN * NUM_TILES_PER_ROW + relative_x / NUM_PIXELS_PER_TILE_ROW;
-			uint8_t tile_index = mVRAM[tile_index_address];
-
-			uint16_t byte_offset = mBgWinTiles || (tile_index > TILE_BLOCK_0_THRESH) ? tile_index * NUM_BYTES_PER_TILE 
-				                                                                       : tile_index * NUM_BYTES_PER_TILE + TILE_BLOCK_1_OFFSET;
-
-			uint8_t tile_byte_offset = (relative_y % NUM_PIXELS_PER_TILE_COLUMN) * NUM_BYTES_PER_X_ROW;
-
-			int remaining_pixels = NUM_PIXELS_PER_TILE_ROW - (relative_x % NUM_PIXELS_PER_TILE_ROW);
-			while (remaining_pixels > 0 && x < SCREEN_WIDTH)
-			{
-				uint8_t color_id = (((mVRAM[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
-					                  ((mVRAM[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
-
-				mLineBuf[x] = color_id;
-
-				x += 1;
-				remaining_pixels -= 1;
-			}
-		}
-
-		mWLY += 1;
-	}
-}
-
-void LcdController::RenderObjects()
-{
-	if (mLCDC & GetLcdcBitMask(LcdcBitMask::OBJ_ENABLE))
-	{
-		bool doublesize = (mLCDC & GetLcdcBitMask(LcdcBitMask::OBJ_SIZE));
-
-		uint8_t valid_object_num = 0;
-		for (uint8_t object_num = 0; object_num < NUM_OBJECTS; object_num += 1)
-		{
-			uint8_t object_y   = mOam[object_num * NUM_BYTES_PER_ATTRIBUTES + 0];
-			uint8_t object_x   = mOam[object_num * NUM_BYTES_PER_ATTRIBUTES + 1];
-			uint8_t tile_index = mOam[object_num * NUM_BYTES_PER_ATTRIBUTES + 2];
-			uint8_t attributes = mOam[object_num * NUM_BYTES_PER_ATTRIBUTES + 3];
-
-			int global_y = object_y - OBJECT_Y_OFFSET;
-			int global_x = object_x - OBJECT_X_OFFSET;
-
-			uint8_t object_height = doublesize ? NUM_PIXELS_PER_DOUBLE_TILE_COLUMN : NUM_PIXELS_PER_TILE_COLUMN;
-
-			// Objects only unselected by y position, not x, even if off-screen
-			if (global_y > mLY || global_y <= (mLY - object_height))
-				continue;
-
-			mObjects[valid_object_num] = { global_y, global_x, tile_index, attributes, object_num };
-
-			valid_object_num += 1;
-
-			if (valid_object_num == OBJECT_LIMIT)
-				break;
-		}
-
-		if (valid_object_num == 0)
-			return;
-
-		std::stable_sort(mObjects.begin(), mObjects.begin() + valid_object_num,
-		[](const Object& a, const Object& b)
-		{
-			return a.x < b.x;
-		});
-
-		for (uint64_t object_num = 0; object_num < valid_object_num; object_num++)
-		{
-			// Objects fully off-screen, don't bother rendering
-			if (mObjects[object_num].x <= -8 || mObjects[object_num].x >= SCREEN_WIDTH)
-				continue;
-
-			bool flip_y = mObjects[object_num].attr & GetAttributeBitMask(ObjectAttributeBitMask::FLIP_Y);
-			bool flip_x = mObjects[object_num].attr & GetAttributeBitMask(ObjectAttributeBitMask::FLIP_X);
-
-			int byte_offset = mObjects[object_num].tileIdx * NUM_BYTES_PER_TILE;
-			
-			if (doublesize)
-			{
-				bool lower_tile = (mLY - mObjects[object_num].y) >= NUM_PIXELS_PER_TILE_COLUMN;
-
-				int tile_index_upper = flip_y ? (mObjects[object_num].tileIdx | DOUBLESIZE_TILE_0_MASK) : (mObjects[object_num].tileIdx & DOUBLESIZE_TILE_1_MASK);
-				int tile_index_lower = flip_y ? tile_index_upper - 1 : tile_index_upper + 1;
-
-				byte_offset = lower_tile ? tile_index_lower * NUM_BYTES_PER_TILE : tile_index_upper * NUM_BYTES_PER_TILE;
-			}
-			
-			int tile_byte_offset = ((mLY - mObjects[object_num].y) % NUM_PIXELS_PER_TILE_COLUMN) * 2;
-			if (flip_y) tile_byte_offset = 14 - tile_byte_offset;		
-
-			int x = flip_x ? mObjects[object_num].x + 7 : mObjects[object_num].x;
-			int x_increment = flip_x ? -1 : 1;
-
-			int remaining_pixels = NUM_PIXELS_PER_TILE_ROW;
-
-			while (remaining_pixels > 0)
-			{
-				if (x < 0 || x >= SCREEN_WIDTH)
-				{
-					x += x_increment;
-					remaining_pixels -= 1;
-					continue;
-				}
-
-				uint8_t color_id = (((mVRAM[byte_offset + tile_byte_offset + 1] >> (remaining_pixels - 1)) & 0b1) << 1) |
-					                  ((mVRAM[byte_offset + tile_byte_offset + 0] >> (remaining_pixels - 1)) & 0b1);
-
-				uint8_t prio_mask = mObjects[object_num].attr & GetAttributeBitMask(ObjectAttributeBitMask::PRIORITY)       ? 0b1111 : 0b1100;
-				uint8_t pallete   = mObjects[object_num].attr & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT) ? 0b1000 : 0b0100;
-
-				if (color_id && (mLineBuf[x] & prio_mask) == 0)
-				{
-					mLineBuf[x] = color_id | pallete;
-				}
-				// else transparent (don't draw)
-
-				x += x_increment;
-				remaining_pixels -= 1;
-			}
-		}
-	}
-}
-
-uint8_t LcdController::HandleRead(uint16_t addr) const
-{
-	if (addr >= 0x8000 && addr <= 0x9FFF)
-	{
-		addr -= 0x8000;
-		return mVRAM[addr];
-	}
-	else if (addr >= 0xFE00 && addr <= 0xFE9F)
-	{
-		addr -= 0xFE00;
-		return mOam[addr];
+		mDataBus = mOam[mAddrBus - 0xFE00];
+		return;
 	}
 
-	Address lcd_address = static_cast<Address>(addr);
+	Address addr = static_cast<Address>(mAddrBus);
 
-	switch (lcd_address)
+	switch (addr)
 	{
 		case LcdController::Address::CONTROL:
-			return mLCDC;
+			mDataBus = mLCDC;
+			break;
 		case LcdController::Address::STATUS:
-			return mSTAT;
+			mDataBus = mSTAT;
+			break;
 		case LcdController::Address::SCREEN_Y:
-			return mSCY;
+			mDataBus = mSCY;
+			break;
 		case LcdController::Address::SCREEN_X:
-			return mSCX;
+			mDataBus = mSCX;
+			break;
 		case LcdController::Address::LCD_Y:
-			return mLY;
+			mDataBus = mLY;
+			break;
 		case LcdController::Address::LCD_Y_COMP:
-			return mLYC;
+			mDataBus = mLYC;
+			break;
 		case LcdController::Address::DMA:
-			return mDMA;
+			mDataBus = mDMA;
+			break;
 		case LcdController::Address::BG_PALETTE:
-			return mBGP;
+			mDataBus = mBGP;
+			break;
 		case LcdController::Address::OBJ_PALETTE_0:
-			return mOBP0;
+			mDataBus = mOBP0;
+			break;
 		case LcdController::Address::OBJ_PALETTE_1:
-			return mOBP1;
+			mDataBus = mOBP1;
+			break;
 		case LcdController::Address::WINDOW_Y:
-			return mWY;
+			mDataBus = mWY;
+			break;
 		case LcdController::Address::WINDOW_X:
-			return mWX;
+			mDataBus = mWX;
+			break;
 		default:
-			return DEFAULT_READ;
+			mDataBus = DEFAULT_READ;
+			break;
 	}
 }
 
-void LcdController::HandleWrite(uint16_t addr, uint8_t val)
+void LcdController::Write()
 {
-  if (addr >= 0x8000 && addr <= 0x9FFF)
+	if (mAddrBus >= 0x8000 && mAddrBus <= 0x9FFF)
 	{
-		addr -= 0x8000;
-		mVRAM[addr] = val;
+		mVRAM[mAddrBus - 0x8000] = mDataBus;
 		return;
 	}
-	else if (addr >= 0xFE00 && addr <= 0xFE9F)
+	else if (mAddrBus >= 0xFE00 && mAddrBus <= 0xFE9F)
 	{
-		addr -= 0xFE00;
-		mOam[addr] = val;
+		mOam[mAddrBus - 0xFE00] = mDataBus;
 		return;
 	}
 
-	Address lcd_address = static_cast<Address>(addr);
+	Address addr = static_cast<Address>(mAddrBus);
 
-	switch (lcd_address)
+	switch (addr)
 	{
 		case LcdController::Address::CONTROL:
-			HandleLcdcWrite(val);
+			HandleLcdcWrite();
 			break;
 		case LcdController::Address::STATUS:
-			mSTAT = val;
+			HandleStatWrite();
 			break;
 		case LcdController::Address::SCREEN_Y:
-			mSCY = val;
+			mSCY = mDataBus;
 			break;
 		case LcdController::Address::SCREEN_X:
-			mSCX = val;
+			mSCX = mDataBus;
 			break;
 		case LcdController::Address::LCD_Y:
 			break;
 		case LcdController::Address::LCD_Y_COMP:
-			mLYC = val;
+			mLYC = mDataBus;
 			CheckLyc();
 			break;
 		case LcdController::Address::DMA:
-			HandleDmaWrite(val);
+			HandleDmaWrite();
 			break;
 		case LcdController::Address::BG_PALETTE:
-			mBGP = val;
+			mBGP = mDataBus;
 			break;
 		case LcdController::Address::OBJ_PALETTE_0:
-			mOBP0 = val;
+			mOBP0 = mDataBus;
 			break;
 		case LcdController::Address::OBJ_PALETTE_1:
-			mOBP1 = val;
+			mOBP1 = mDataBus;
 			break;
 		case LcdController::Address::WINDOW_Y:
-			mWY = val;
+			mWY = mDataBus;
 			break;
 		case LcdController::Address::WINDOW_X:
-			mWX = val;
-			break;
-		default:
-			(void)val;
+			mWX = mDataBus;
 			break;
 	}
 }
 
-void LcdController::HandleLcdcWrite(uint8_t val)
+void LcdController::HandleLcdcWrite()
 {
-	if (!mEnabled && (val & GetLcdcBitMask(LcdcBitMask::ENABLE)))
-	{
-		CheckLyc();
-	}
-
-	mLCDC = val;
+	mLCDC = mDataBus;
 	mEnabled = mLCDC & GetLcdcBitMask(LcdcBitMask::ENABLE);
 	mBgWinEnable = mLCDC & GetLcdcBitMask(LcdcBitMask::BG_WIN_ENABLE);
 	mWinEnable = mLCDC & GetLcdcBitMask(LcdcBitMask::WIN_ENABLE);
 	mBgTileMap = mLCDC & GetLcdcBitMask(LcdcBitMask::BG_TILE_MAP);
-	mBgWinTiles = mLCDC& GetLcdcBitMask(LcdcBitMask::BG_WIN_TILES);
+	mBgWinTiles = mLCDC & GetLcdcBitMask(LcdcBitMask::BG_WIN_TILES);
+	mWinTileMap = mLCDC & GetLcdcBitMask(LcdcBitMask::WIN_TILE_MAP);
+	mObjEnable = mLCDC & GetLcdcBitMask(LcdcBitMask::OBJ_ENABLE);
+	mDoublesize = (mLCDC & GetLcdcBitMask(LcdcBitMask::OBJ_SIZE));
 
 	if (!mEnabled)
 	{
@@ -375,22 +186,40 @@ void LcdController::HandleLcdcWrite(uint8_t val)
 	}
 }
 
-void LcdController::HandleDmaWrite(uint8_t val)
+void LcdController::HandleStatWrite()
 {
-	mDMA = val;
+	mSTAT = mDataBus;
+
+	mLycIntSel   = mSTAT & GetStatBitMask(StatBitMask::LYC_INT_SELECT);
+	mMode0IntSel = mSTAT & GetStatBitMask(StatBitMask::MODE0_INT_SELECT);
+	mMode1IntSel = mSTAT & GetStatBitMask(StatBitMask::MODE1_INT_SELECT);
+	mMode2IntSel = mSTAT & GetStatBitMask(StatBitMask::MODE2_INT_SELECT);
+}
+
+void LcdController::HandleDmaWrite()
+{
+	mDMA = mDataBus;
 	mDmaStart = mDMA * 0x100;
 	mDmaPtr = 0;
 	mEnableNext = true;
 }
 
-bool LcdController::GetStatState() const
+void LcdController::ServiceDma(uint8_t val)
 {
-	bool lyc_state    = (mSTAT & GetStatBitMask(StatBitMask::LYC_INT_SELECT)) && (mSTAT & GetStatBitMask(StatBitMask::LYC_EQ_LY));
-	bool mode_0_state = (mSTAT & GetStatBitMask(StatBitMask::MODE0_INT_SELECT)) && ((mSTAT & GetStatBitMask(StatBitMask::PPU_MODE)) == 0);
-	bool mode_1_state = (mSTAT & GetStatBitMask(StatBitMask::MODE1_INT_SELECT)) && ((mSTAT & GetStatBitMask(StatBitMask::PPU_MODE)) == 1);
-	bool mode_2_state = (mSTAT & GetStatBitMask(StatBitMask::MODE2_INT_SELECT)) && ((mSTAT & GetStatBitMask(StatBitMask::PPU_MODE)) == 2);
+	mOam[mDmaPtr] = val;
 
-	return lyc_state || mode_0_state || mode_1_state || mode_2_state;
+	mDmaPtr += 1;
+	if (mDmaPtr == OAM_SIZE)
+		mDmaReq = false;
+};
+
+bool LcdController::Update()
+{
+	UpdateDma();
+
+	bool frameReady = mEnabled ? UpdateState() : UpdateDisabled();
+
+	return frameReady;
 }
 
 void LcdController::UpdateDma()
@@ -402,30 +231,210 @@ void LcdController::UpdateDma()
 	}
 }
 
+void LcdController::RenderBackground()
+{
+	if (!mBgWinEnable)
+	{
+		for (int x = 0; x < SCREEN_WIDTH; x += 1)
+		{
+			mLineBuf[x] = 0;
+		}
+
+		return;
+	}
+
+	uint16_t tileMapOffset = mBgTileMap ? TILE_MAP_OFFSET_1 : TILE_MAP_OFFSET_0;
+
+	uint8_t x = 0;
+	while (x < SCREEN_WIDTH)
+	{
+		uint8_t globalY = mSCY + mLY;
+		uint8_t globalX = mSCX + x;
+
+		uint16_t tileIdxAddr = tileMapOffset + (globalY / NUM_PIXELS_PER_TILE_COLUMN) * NUM_TILES_PER_ROW + (globalX / NUM_PIXELS_PER_TILE_ROW);
+		uint8_t tileIdx = mVRAM[tileIdxAddr];
+
+		uint16_t bytePtr = (mBgWinTiles || (tileIdx > TILE_BLOCK_0_THRESH)) ? tileIdx * NUM_BYTES_PER_TILE
+				                                                                : tileIdx * NUM_BYTES_PER_TILE + TILE_BLOCK_1_OFFSET;
+
+		uint8_t tileBytePtr = (globalY % NUM_PIXELS_PER_TILE_COLUMN) * 2;
+
+		int pixelsLeft = NUM_PIXELS_PER_TILE_ROW - (globalX % NUM_PIXELS_PER_TILE_ROW);
+		while (pixelsLeft > 0 && x < SCREEN_WIDTH)
+		{
+			uint8_t colorId = (((mVRAM[bytePtr + tileBytePtr + 1] >> (pixelsLeft - 1)) & 0b1) << 1) |
+					               ((mVRAM[bytePtr + tileBytePtr + 0] >> (pixelsLeft - 1)) & 0b1);
+
+			mLineBuf[x] = colorId;
+
+			x += 1;
+			pixelsLeft -= 1;
+		}
+	}
+}
+
+void LcdController::RenderWindow()
+{
+	if (!(mBgWinEnable && mWinEnable))
+		return;
+
+	if (mLY < mWY || mWX >= (SCREEN_WIDTH + WINDOW_X_OFFSET) || mWY >= SCREEN_HEIGHT)
+		return;
+
+	uint16_t tileMapOffset = mWinTileMap ? TILE_MAP_OFFSET_1 : TILE_MAP_OFFSET_0;
+
+	int winXStart = mWX - WINDOW_X_OFFSET;
+	int x = winXStart < 0 ? 0 : winXStart;
+	while (x < SCREEN_WIDTH)
+	{
+		int relX = x - winXStart;
+		int relY = mWLY;
+
+		uint16_t tileIdxAddr = tileMapOffset + relY / NUM_PIXELS_PER_TILE_COLUMN * NUM_TILES_PER_ROW + relX / NUM_PIXELS_PER_TILE_ROW;
+		uint8_t tileIdx = mVRAM[tileIdxAddr];
+
+		uint16_t bytePtr = mBgWinTiles || (tileIdx > TILE_BLOCK_0_THRESH) ? tileIdx * NUM_BYTES_PER_TILE
+			: tileIdx * NUM_BYTES_PER_TILE + TILE_BLOCK_1_OFFSET;
+
+		uint8_t tileBytePtr = (relY % NUM_PIXELS_PER_TILE_COLUMN) * NUM_BYTES_PER_X_ROW;
+
+		int pixelsLeft = NUM_PIXELS_PER_TILE_ROW - (relX % NUM_PIXELS_PER_TILE_ROW);
+		while (pixelsLeft > 0 && x < SCREEN_WIDTH)
+		{
+			uint8_t colorId = (((mVRAM[bytePtr + tileBytePtr + 1] >> (pixelsLeft - 1)) & 0b1) << 1) |
+				                 ((mVRAM[bytePtr + tileBytePtr + 0] >> (pixelsLeft - 1)) & 0b1);
+
+			mLineBuf[x] = colorId;
+
+			x += 1;
+			pixelsLeft -= 1;
+		}
+	}
+
+	mWLY += 1;
+}
+
+void LcdController::RenderObjects()
+{
+	if (!mObjEnable)
+		return;
+
+	uint8_t validObjNum = 0;
+	for (uint8_t objNum = 0; objNum < NUM_OBJECTS; objNum += 1)
+	{
+		uint8_t objY   = mOam[objNum * NUM_BYTES_PER_ATTRIBUTES + 0];
+		uint8_t objX   = mOam[objNum * NUM_BYTES_PER_ATTRIBUTES + 1];
+		uint8_t tileIdx = mOam[objNum * NUM_BYTES_PER_ATTRIBUTES + 2];
+		uint8_t attr = mOam[objNum * NUM_BYTES_PER_ATTRIBUTES + 3];
+
+		int globalY = objY - OBJECT_Y_OFFSET;
+		int globalX = objX - OBJECT_X_OFFSET;
+
+		uint8_t objHeight = mDoublesize ? NUM_PIXELS_PER_DOUBLE_TILE_COLUMN : NUM_PIXELS_PER_TILE_COLUMN;
+
+		// Objects only unselected by y position, not x, even if off-screen
+		if (globalY > mLY || globalY <= (mLY - objHeight))
+			continue;
+
+		mObjects[validObjNum] = {globalY, globalX, tileIdx, attr};
+		validObjNum += 1;
+
+		if (validObjNum == OBJECT_LIMIT)
+			break;
+	}
+
+	if (validObjNum == 0)
+		return;
+
+	std::stable_sort(mObjects.begin(), mObjects.begin() + validObjNum,
+	[](const Object& a, const Object& b)
+	{
+		return a.x < b.x;
+	});
+
+	for (uint64_t objNum = 0; objNum < validObjNum; objNum++)
+	{
+		// Objects fully off-screen, don't bother rendering
+		if (mObjects[objNum].x <= -8 || mObjects[objNum].x >= SCREEN_WIDTH)
+			continue;
+
+		bool flipY = mObjects[objNum].attr & GetAttributeBitMask(ObjectAttributeBitMask::FLIP_Y);
+		bool flipX = mObjects[objNum].attr & GetAttributeBitMask(ObjectAttributeBitMask::FLIP_X);
+
+		int bytePtr = mObjects[objNum].tileIdx * NUM_BYTES_PER_TILE;
+
+		if (mDoublesize)
+		{
+			bool lowerTile = (mLY - mObjects[objNum].y) >= NUM_PIXELS_PER_TILE_COLUMN;
+
+			int tileIdxUpper = flipY ? (mObjects[objNum].tileIdx | DOUBLESIZE_TILE_0_MASK) : (mObjects[objNum].tileIdx & DOUBLESIZE_TILE_1_MASK);
+			int tileIdxLower = flipY ? tileIdxUpper - 1 : tileIdxUpper + 1;
+
+			bytePtr = lowerTile ? tileIdxLower * NUM_BYTES_PER_TILE : tileIdxUpper * NUM_BYTES_PER_TILE;
+		}
+
+		int tileBytePtr = ((mLY - mObjects[objNum].y) % NUM_PIXELS_PER_TILE_COLUMN) * 2;
+		if (flipY) tileBytePtr = 14 - tileBytePtr;
+
+		int x = flipX ? mObjects[objNum].x + 7 : mObjects[objNum].x;
+		int xIncr = flipX ? -1 : 1;
+
+		int pixelsLeft = NUM_PIXELS_PER_TILE_ROW;
+
+		while (pixelsLeft > 0)
+		{
+			if (x < 0 || x >= SCREEN_WIDTH)
+			{
+				x += xIncr;
+				pixelsLeft -= 1;
+				continue;
+			}
+
+			uint8_t colorId = (((mVRAM[bytePtr + tileBytePtr + 1] >> (pixelsLeft - 1)) & 0b1) << 1) |
+				                 ((mVRAM[bytePtr + tileBytePtr + 0] >> (pixelsLeft - 1)) & 0b1);
+
+			uint8_t prioMask = mObjects[objNum].attr & GetAttributeBitMask(ObjectAttributeBitMask::PRIORITY)       ? 0b1111 : 0b1100;
+			uint8_t palette  = mObjects[objNum].attr & GetAttributeBitMask(ObjectAttributeBitMask::PALLETE_SELECT) ? 0b1000 : 0b0100;
+
+			if (colorId && (mLineBuf[x] & prioMask) == 0)
+			{
+				mLineBuf[x] = colorId | palette;
+			}
+			// else transparent (don't draw)
+
+			x += xIncr;
+			pixelsLeft -= 1;
+		}
+	}
+}
+
 void LcdController::PopulateFrameLine()
 {
-	for (int x = 0; x < SCREEN_WIDTH; x += 1)
+	auto x = std::views::iota(static_cast<size_t>(0), mLineBuf.size());
+
+	std::for_each(std::execution::unseq, x.begin(), x.end(),
+	[this](size_t x)
 	{
-		auto frame_index = (mLY * SCREEN_WIDTH) + x;
+		auto frameIdx = (mLY * SCREEN_WIDTH) + x;
 
 		Pixel pixel{};
 		switch (mLineBuf[x] >> 2)
 		{
 			case 0:
-				pixel = m_bg_palette[(mPixelBgp[x] >> ((mLineBuf[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
+				pixel = mBgPalette  [(mBGP  >> ((mLineBuf[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
 				break;
 			case 1:
-				pixel = m_obj0_palette[(mOBP0 >> ((mLineBuf[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
+				pixel = mObj0Palette[(mOBP0 >> ((mLineBuf[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
 				break;
 			case 2:
-				pixel = m_obj1_palette[(mOBP1 >> ((mLineBuf[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
+				pixel = mObj1Palette[(mOBP1 >> ((mLineBuf[x] & 0b11) * BITS_PER_COLOR)) & 0b11];
 				break;
 			default:
 				break;
 		}
 
-		mFrameBuf[frame_index] = pixel;
-	}
+		mFrameBuf[frameIdx] = pixel;
+	});
 }
 
 void LcdController::RenderScanline()
@@ -436,23 +445,29 @@ void LcdController::RenderScanline()
 	PopulateFrameLine();
 }
 
+bool LcdController::GetStatState() const
+{
+	bool lycState = (mLycIntSel)   && (mLycEqLy);
+	bool m0State  = (mMode0IntSel) && (mStatMode == 0);
+	bool m1State  = (mMode1IntSel) && (mStatMode == 1);
+	bool m2State  = (mMode2IntSel) && (mStatMode == 2);
+
+	return lycState || m0State || m1State || m2State;
+}
+
 void LcdController::CheckStatInterrupt(StatBitMask mask)
 {
-	bool stat_state = GetStatState();
+	bool statState = GetStatState();
 
-	if (!stat_state && (mSTAT & GetStatBitMask(mask)))
+	if (!statState && (mSTAT & GetStatBitMask(mask)))
 		TriggerInterrupt();
 }
 
 void LcdController::SetStatMode(Modes mode)
 {
 	mSTAT &= ~GetStatBitMask(StatBitMask::PPU_MODE);
-	mSTAT |= GetMode(mode);
-}
-
-bool LcdController::ModeTransition(Modes new_mode) const
-{
-	return mCurrMode != new_mode;
+	mStatMode = GetMode(mode);
+	mSTAT |= mStatMode;
 }
 
 void LcdController::Transition()
@@ -492,7 +507,7 @@ void LcdController::Mode1()
 		mDelayFrame = false;
 	}
 
-	CheckStatInterrupt(StatBitMask::MODE0_INT_SELECT);
+	CheckStatInterrupt(StatBitMask::MODE1_INT_SELECT);
 	TriggerInterrupt(InterruptBitMask::VBLANK);
 
 	mWLY = 0;
@@ -507,8 +522,6 @@ void LcdController::Mode2()
 	mNextMode = Modes::MODE_3_DRAW;
 	mRemainingModeCycles = 80;
 }
-
-std::array<uint8_t, SCREEN_WIDTH> mPixelBgp;
 
 void LcdController::Mode3()
 {
@@ -539,11 +552,13 @@ void LcdController::CheckLyc()
 void LcdController::SetLyc()
 {
 	mSTAT |= GetStatBitMask(StatBitMask::LYC_EQ_LY);
+	mLycEqLy = true;
 }
 
 void LcdController::ResetLyc()
 {
 	mSTAT &= ~GetStatBitMask(StatBitMask::LYC_EQ_LY);
+	mLycEqLy = false;
 }
 
 bool LcdController::UpdateDisabled()
@@ -552,7 +567,7 @@ bool LcdController::UpdateDisabled()
 
 	if (mDisabledCycleCount == 4560)
 	{
-		mFrameBuf.fill(m_bg_palette[0]);
+		mFrameBuf.fill(mBgPalette[0]);
 
 		if (mCb)
 			mCb(mFrameBuf, mFrameTime);
@@ -571,26 +586,10 @@ bool LcdController::UpdateState()
 	if (mFrameCycleCount == FRAME_CYCLES)
 		mFrameCycleCount = 0;
 
-	// Line 153 sets m_ly to 0 after 4 cycles
-	//if (m_cycle_count == (FRAME_CYCLES - CYCLES_PER_ROW + 4))
-	//{
-	//  m_ly = 0;
-	//  CheckLyc();
-	//}
-	//else if ((m_cycle_count % CYCLES_PER_ROW) == 0)
 	if ((mFrameCycleCount % CYCLES_PER_ROW) == 0)
 	{
 		mLY = mFrameCycleCount / CYCLES_PER_ROW;
 		CheckLyc();
-	}
-
-	if ((mCurrMode == Modes::MODE_3_DRAW) && (mRemainingModeCycles <= 160) && (mRemainingModeCycles > 0))
-	{
-		uint8_t pixel = (160 - mRemainingModeCycles);
-		mPixelBgp[pixel] = mBGP;
-		mPixelBgp[pixel + 1] = mBGP;
-		mPixelBgp[pixel + 2] = mBGP;
-		mPixelBgp[pixel + 3] = mBGP;
 	}
 
 	if (mRemainingModeCycles == 0)

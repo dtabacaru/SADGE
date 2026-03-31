@@ -27,7 +27,7 @@ public:
     BUTTONS_START_DOWN = 0b00001000, // R
   };
 
-  JoypadController(InterruptReceiver& interrupt_receiver,
+  JoypadController(InterruptReceiver& intRec,
                    uint8_t& dataBus,
                    uint16_t& addrBus);
 

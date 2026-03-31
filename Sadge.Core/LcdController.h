@@ -2,7 +2,6 @@
 
 #include "InterruptProvider.h"
 
-#include <iostream>
 #include <array>
 
 struct Pixel
@@ -41,11 +40,11 @@ public:
     END = WINDOW_X
   };
 
-  LcdController(InterruptReceiver& interrupt_receiver);
+  LcdController(InterruptReceiver& intRec, uint8_t& dataBus, uint16_t& addrBus);
 
   void SetColorPalettes(const std::array<Pixel, 4>& bg, const std::array<Pixel, 4>& obj0, const std::array<Pixel, 4>& obj1);
 
-  void SetFrameCallback(FrameCallback frame_callback);
+  void SetFrameCallback(FrameCallback cb);
 
   bool DmaRequested() const;
 
@@ -55,12 +54,12 @@ public:
 
   void ServiceDma(uint8_t val);
 
-  void UpdateFrameTime(double frame_time);
+  void UpdateFrameTime(double frameTime);
 
   bool Update();
 
-  uint8_t HandleRead(uint16_t addr) const;
-  void HandleWrite(uint16_t addr, uint8_t val);
+  void Read() const;
+  void Write();
 
 private:
 
@@ -70,7 +69,6 @@ private:
     int x;
     uint8_t tileIdx;
     uint8_t attr;
-    uint8_t num;
   };
 
   constexpr static std::array<Pixel, 4> DEFAULT_COLOR_PALETTE{
@@ -169,8 +167,9 @@ private:
     return static_cast<uint8_t>(mode);
   }
 
-  void HandleLcdcWrite(uint8_t val);
-  void HandleDmaWrite(uint8_t val);
+  void HandleLcdcWrite();
+  void HandleStatWrite();
+  void HandleDmaWrite();
 
   void UpdateDma();
 
@@ -178,7 +177,6 @@ private:
   void CheckStatInterrupt(StatBitMask mask);
   void SetStatMode(Modes mode);
 
-  bool ModeTransition(Modes new_mode) const;
   void Transition();
 
   void Mode1();
@@ -206,14 +204,28 @@ private:
   uint32_t mRemainingModeCycles = 76;
 
   std::array<uint8_t, SCREEN_WIDTH> mLineBuf{};
-  std::array<uint8_t, SCREEN_WIDTH> mPixelBgp{};
   std::array<Pixel, SCREEN_SIZE>    mFrameBuf{};
   std::array<uint8_t, OAM_SIZE>     mOam{};
   std::array<uint8_t, VRAM_SIZE>    mVRAM{};
   std::array<Object, OBJECT_LIMIT>  mObjects{};
 
   uint8_t mLCDC{0};
+  bool    mBgWinEnable{false};
+  bool    mWinEnable{false};
+  bool    mBgTileMap{false};
+  bool    mBgWinTiles{false};
+  bool    mWinTileMap{false};
+  bool    mObjEnable{false};
+  bool    mDoublesize{false};
+
   uint8_t mSTAT{0};
+  bool    mLycIntSel{false};
+  bool    mMode0IntSel{false};
+  bool    mMode1IntSel{false};
+  bool    mMode2IntSel{false};
+  bool    mLycEqLy{false};
+  uint8_t mStatMode{0};
+
   uint8_t mSCY{0};
   uint8_t mSCX{0};
   uint8_t mLY{0};
@@ -225,11 +237,6 @@ private:
   uint8_t mWY{0};
   uint8_t mWX{0};
   uint8_t mWLY{0};
-  
-  bool mBgWinEnable{false};
-  bool mWinEnable{false};
-  bool mBgTileMap{false};
-  bool mBgWinTiles{false};
 
   bool     mEnabled{false};
   double   mFrameTime{0};
@@ -243,7 +250,10 @@ private:
   bool mDmaReq = false;
   bool mEnableNext{false};
 
-  std::array<Pixel, 4> m_bg_palette   = DEFAULT_COLOR_PALETTE;
-  std::array<Pixel, 4> m_obj0_palette = DEFAULT_COLOR_PALETTE;
-  std::array<Pixel, 4> m_obj1_palette = DEFAULT_COLOR_PALETTE;
+  uint8_t&  mDataBus;
+  uint16_t& mAddrBus;
+
+  std::array<Pixel, 4> mBgPalette   = DEFAULT_COLOR_PALETTE;
+  std::array<Pixel, 4> mObj0Palette = DEFAULT_COLOR_PALETTE;
+  std::array<Pixel, 4> mObj1Palette = DEFAULT_COLOR_PALETTE;
 };

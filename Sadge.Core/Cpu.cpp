@@ -5,7 +5,7 @@
 Cpu::Cpu() : mAudioCtrl(mDataBus, mAddressBus),
   mInterruptCtrl(mDataBus, mAddressBus),
   mJoypadCtrl(mInterruptCtrl, mDataBus, mAddressBus),
-  mLcdCtrl(mInterruptCtrl),
+  mLcdCtrl(mInterruptCtrl, mDataBus, mAddressBus),
   mSerialCtrl(mInterruptCtrl, mDataBus, mAddressBus),
   mTimerCtrl(mInterruptCtrl, mDataBus, mAddressBus)
 {
@@ -86,7 +86,7 @@ void Cpu::WriteIo()
   else if (mAddressBus >= static_cast<uint16_t>(LcdController::Address::START) &&
            mAddressBus <= static_cast<uint16_t>(LcdController::Address::END))
   {
-    mLcdCtrl.HandleWrite(mAddressBus, mDataBus);
+    mLcdCtrl.Write();
   }
   else if (mAddressBus == static_cast<uint16_t>(ExecutionAddress::BOOT_COMPLETE))
   {
@@ -131,7 +131,7 @@ void Cpu::ReadIo()
   else if (mAddressBus >= static_cast<uint16_t>(LcdController::Address::START) &&
            mAddressBus <= static_cast<uint16_t>(LcdController::Address::END))
   {
-    mDataBus = mLcdCtrl.HandleRead(mAddressBus);
+    mLcdCtrl.Read();
   }
   else
   {
@@ -159,7 +159,7 @@ void Cpu::Write()
   }
   else if (mAddressBus >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
   {
-    mLcdCtrl.HandleWrite(mAddressBus, mDataBus);
+    mLcdCtrl.Write();
   }
   else if (mAddressBus >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
   {
@@ -178,7 +178,7 @@ void Cpu::Write()
   }
   else if (mAddressBus >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
   {
-    mLcdCtrl.HandleWrite(mAddressBus, mDataBus);
+    mLcdCtrl.Write();
   }
   else if (mAddressBus >= 0x6000) // (6000-7FFF) MBC Mode
   {
@@ -317,13 +317,13 @@ void Cpu::Read()
   {
     ReadIo();
   }
-  else if (mAddressBus >= 0xFEA0) // (FEA0-FEFF) Not Usable
-  {
-    mDataBus = DEFAULT_READ;
-  }
+  //else if (mAddressBus >= 0xFEA0) // (FEA0-FEFF) Not Usable
+  //{
+  //  mDataBus = DEFAULT_READ;
+  //}
   else if (mAddressBus >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
   {
-    mDataBus = mLcdCtrl.HandleRead(mAddressBus);
+    mLcdCtrl.Read();
   }
   else if (mAddressBus >= 0xE000) // (E000-FDFF) Mirror of C000~DDFF (ECHO RAM) Typically not used
   {
@@ -342,7 +342,7 @@ void Cpu::Read()
   }
   else if (mAddressBus >= 0x8000) // (8000-9FFF) 8KB Video RAM (VRAM) bank 0
   {
-    mDataBus = mLcdCtrl.HandleRead(mAddressBus);
+    mLcdCtrl.Read();
   }
   else if (mAddressBus >= 0x4000) // (4000-7FFF) 16KB ROM bank 01~NN From cartridge, switchable bank via MBC (if any)
   {
