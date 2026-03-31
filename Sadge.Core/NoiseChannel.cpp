@@ -23,6 +23,9 @@ void NoiseChannel::HandleNr43Write()
 
 void NoiseChannel::ApuTick()
 {
+  if (!mEnabled)
+    return;
+
   mLfsrTick += 1;
 
   if (mLfsrTick < mPeriodCounterTick)
@@ -49,7 +52,8 @@ void NoiseChannel::UpdateChOut()
   bool bit0Set = (mLfsr & 0x1);
   mLevel = bit0Set ? mVolume : 0;
   mDcOffset = mVolume / 2;
-  mChOut = Dac(mLevel, mDcOffset);
+  //mChOut = Dac(mLevel, mDcOffset);
+  mChOut = Dac(mLevel);
 }
 
 void NoiseChannel::DivTick()

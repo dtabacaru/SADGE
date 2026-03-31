@@ -47,6 +47,9 @@ void WaveChannel::UpdateChOut()
 
 void WaveChannel::ApuTick()
 {
+  if (!mEnabled)
+    return;
+
   mPeriodCounterTick += 1;
 
   if (mPeriodCounterTick != MAX_PERIOD_COUNT)
