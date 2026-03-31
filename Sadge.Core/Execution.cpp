@@ -19,6 +19,12 @@ void Cpu::FallingTEvent()
 void Cpu::RisingTEvent()
 {
   mTHighCount += 1;
+
+  bool frame_ready = mLcdCtrl.Update() ||
+    mMFrameCycles == DEFAULT_FRAME_T_CYCLES;
+
+  if (frame_ready)
+    WaitFrame();
 }
 
 void Cpu::MEvent()
@@ -54,12 +60,6 @@ void Cpu::RisingMEvent()
   mAudioCtrl.TickCh1();
   mAudioCtrl.TickCh2();
   mAudioCtrl.TickCh4();
-
-  bool frame_ready = mLcdCtrl.Update() || 
-                     mMFrameCycles == DEFAULT_FRAME_M_CYCLES;
-
-  if (frame_ready)
-    WaitFrame();
 }
 
 void Cpu::Main()

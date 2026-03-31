@@ -56,8 +56,8 @@ public:
   Cpu();
   ~Cpu();
 
-  constexpr static auto DEFAULT_FRAME_M_CYCLES = 17556;
-  constexpr static auto DRAG_WINDOW_DETECT_TIME = DEFAULT_FRAME_M_CYCLES / M_RATE;
+  constexpr static auto DEFAULT_FRAME_T_CYCLES = 70224;
+  constexpr static auto DRAG_WINDOW_DETECT_TIME = DEFAULT_FRAME_T_CYCLES / T_RATE;
   constexpr static auto MIN_SLEEP_TIME = 0.003;
   
   Status SetRom(const std::filesystem::path& romPath, std::vector<uint8_t> rom);

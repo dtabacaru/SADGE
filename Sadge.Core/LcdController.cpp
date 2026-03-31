@@ -580,11 +580,9 @@ bool LcdController::UpdateDisabled()
 
 bool LcdController::UpdateState()
 {
-	mFrameCycleCount += 4;
-	mRemainingModeCycles -= 4;
-
-	if (mFrameCycleCount == FRAME_CYCLES)
-		mFrameCycleCount = 0;
+	mFrameCycleCount += 1;
+	mFrameCycleCount %= FRAME_CYCLES;
+	mRemainingModeCycles -= 1;
 
 	if ((mFrameCycleCount % CYCLES_PER_ROW) == 0)
 	{

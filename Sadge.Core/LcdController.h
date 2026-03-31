@@ -201,7 +201,7 @@ private:
 
   Modes mCurrMode = Modes::MODE_0_HBLANK;
   Modes mNextMode = Modes::MODE_3_DRAW;
-  uint32_t mRemainingModeCycles = 76;
+  uint32_t mRemainingModeCycles = 80;
 
   std::array<uint8_t, SCREEN_WIDTH> mLineBuf{};
   std::array<Pixel, SCREEN_SIZE>    mFrameBuf{};
@@ -238,12 +238,12 @@ private:
   uint8_t mWX{0};
   uint8_t mWLY{0};
 
-  bool     mEnabled{false};
-  double   mFrameTime{0};
-  uint32_t mFrameCycleCount{0};
-  uint32_t mDisabledCycleCount{0};
-  bool     mDelayFrame{true};
-  bool     mFrameReady{false};
+  bool   mEnabled{false};
+  double mFrameTime{0};
+  int    mFrameCycleCount{-1};
+  int    mDisabledCycleCount{0};
+  bool   mDelayFrame{true};
+  bool   mFrameReady{false};
   
   uint16_t mDmaStart = 0;
   uint8_t mDmaPtr = 0;
