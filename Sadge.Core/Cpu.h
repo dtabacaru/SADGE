@@ -293,7 +293,7 @@ private:
 
   uint8_t  mOpcode{0};
 
-  uint64_t mMFrameCycles = 0;
+  uint64_t mTFrameCycles = 0;
 
   StopWatch mExeStopwatch;
   

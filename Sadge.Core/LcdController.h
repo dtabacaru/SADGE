@@ -46,6 +46,8 @@ public:
 
   void SetFrameCallback(FrameCallback cb);
 
+  bool GetFrameReady();
+
   bool DmaRequested() const;
 
   uint16_t GetCurrentDmaAddress() const;
@@ -56,7 +58,7 @@ public:
 
   void UpdateFrameTime(double frameTime);
 
-  bool Update();
+  void Update();
 
   void Read() const;
   void Write();
@@ -107,6 +109,7 @@ private:
   constexpr static auto DOUBLESIZE_TILE_1_MASK = 0xFE;
 
   constexpr static auto CYCLES_PER_ROW = 456;
+  constexpr static auto DISABLED_FRAME_CYCLES = 456 * 10; // Undocumented?
   constexpr static auto FRAME_CYCLES = 154 * CYCLES_PER_ROW;
 
   enum class ObjectAttributeBitMask : uint8_t
@@ -177,8 +180,6 @@ private:
   void CheckStatInterrupt(StatBitMask mask);
   void SetStatMode(Modes mode);
 
-  void Transition();
-
   void Mode1();
   void Mode2();
   void Mode3();
@@ -188,8 +189,9 @@ private:
   void SetLyc();
   void ResetLyc();
 
-  bool UpdateDisabled();
-  bool UpdateState();
+  void UpdateDisabled();
+  void UpdateLy();
+  void UpdateState();
 
   void PopulateFrameLine();
   void RenderScanline();
@@ -240,7 +242,7 @@ private:
 
   bool   mEnabled{false};
   double mFrameTime{0};
-  int    mFrameCycleCount{-1};
+  int    mFrameCycleCount{0};
   int    mDisabledCycleCount{0};
   bool   mDelayFrame{true};
   bool   mFrameReady{false};

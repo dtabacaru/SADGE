@@ -19,11 +19,14 @@ void Cpu::FallingTEvent()
 void Cpu::RisingTEvent()
 {
   mTHighCount += 1;
+  mTFrameCycles += 1;
 
-  bool frame_ready = mLcdCtrl.Update() ||
-    mMFrameCycles == DEFAULT_FRAME_T_CYCLES;
+  mLcdCtrl.Update();
 
-  if (frame_ready)
+  bool frameReady =  mLcdCtrl.GetFrameReady() ||
+                     mTFrameCycles == DEFAULT_FRAME_T_CYCLES;
+
+  if (frameReady)
     WaitFrame();
 }
 
@@ -43,7 +46,6 @@ void Cpu::FallingMEvent()
 void Cpu::RisingMEvent()
 {
   mMHighCount += 1;
-  mMFrameCycles += 1;
 
   mTimerCtrl.Tick();
   mAudioCtrl.UpdateClk(mTimerCtrl.GetClk());
@@ -113,7 +115,7 @@ void Cpu::HaltCompleteEvent()
 
 void Cpu::WaitFrame()
 {
-  double expectedFrameTime = (mMFrameCycles / M_RATE) - mCompensationTime;
+  double expectedFrameTime = (mTFrameCycles / T_RATE) - mCompensationTime;
   double waitTime = expectedFrameTime - mExeStopwatch.Elapsed();
 
   if(waitTime > MIN_SLEEP_TIME)
@@ -134,7 +136,7 @@ void Cpu::WaitFrame()
   mCompensationTime = mFrameTime - expectedFrameTime;
   mLcdCtrl.UpdateFrameTime(mFrameTime);
   
-  mMFrameCycles = 0;
+  mTFrameCycles = 0;
 }
 
 void Cpu::ReadNextUint8()
