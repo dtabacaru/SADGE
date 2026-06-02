@@ -4,6 +4,7 @@
 
 Cpu::Cpu() : mAudioCtrl(mDataBus, mAddressBus),
   mInterruptCtrl(mDataBus, mAddressBus),
+  mDmaCtrl(mDataBus, mAddressBus),
   mJoypadCtrl(mInterruptCtrl, mDataBus, mAddressBus),
   mLcdCtrl(mInterruptCtrl, mDataBus, mAddressBus),
   mSerialCtrl(mInterruptCtrl, mDataBus, mAddressBus),
@@ -16,25 +17,45 @@ Cpu::~Cpu()
   WriteEram();
 }
 
-void Cpu::WriteEram()
+void Cpu::SetFrameCallback(LcdController::FrameCallback cb)
 {
-  if (m_battery_flag)
-  {
-    std::ofstream sram = std::ofstream(m_save_file_path, std::ios_base::binary);
-
-    for (int rom_bank_num = 0; rom_bank_num < m_num_ram_banks; rom_bank_num += 1)
-      sram.write(reinterpret_cast<const char*>(mRamBanks[rom_bank_num].data()), ERAM_SIZE);
-  }
+  mLcdCtrl.SetFrameCallback(cb);
 }
 
-void Cpu::RunUntil(uint64_t count)
+void Cpu::SetAudioCallback(AudioController::AudioCallback cb)
 {
-  Init();
+  mAudioCtrl.SetAudioCallback(cb);
+}
 
-  do
+void Cpu::PressActionButton(JoypadController::JoypadButtonBitMask button)
+{
+  mJoypadCtrl.PressActionButton(button);
+}
+
+void Cpu::ReleaseActionButton(JoypadController::JoypadButtonBitMask button)
+{
+  mJoypadCtrl.ReleaseActionButton(button);
+}
+
+void Cpu::PressDirectionButton(JoypadController::JoypadButtonBitMask button)
+{
+  mJoypadCtrl.PressDirectionButton(button);
+}
+
+void Cpu::ReleaseDirectionButton(JoypadController::JoypadButtonBitMask button)
+{
+  mJoypadCtrl.ReleaseDirectionButton(button);
+}
+
+void Cpu::WriteEram()
+{
+  if (mBattery)
   {
-    Main();
-  } while (mTEdgeCount < count);
+    std::ofstream sram = std::ofstream(mSaveFilePath, std::ios_base::binary);
+
+    for (int i = 0; i < mNumRomBanks; i += 1)
+      sram.write(reinterpret_cast<const char*>(mRamBanks[i].data()), ERAM_SIZE);
+  }
 }
 
 void Cpu::Run()
@@ -352,49 +373,4 @@ void Cpu::Read()
   {
     mDataBus = mRomBanks[0][mAddressBus];
   }
-}
-
-void Cpu::SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie)
-{
-  ime;
-  ie;
-
-  mPC.HL = pc;
-  mSP.HL = sp;
-  mAF.H = a;
-  mBC.H = b;
-  mBC.L = c;
-  mDE.H = d;
-  mDE.L = e;
-  mAF.L = f;
-  mHL.H = h;
-  mHL.L = l;
-}
-
-bool Cpu::CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime)
-{
-  ime;
-
-  if (pc != mPC.HL)
-    return false;
-  else if (sp != mSP.HL)
-    return false;
-  else if (a != mAF.H)
-    return false;
-  else if (b != mBC.H)
-    return false;
-  else if (c != mBC.L)
-    return false;
-  else if (d != mDE.H)
-    return false;
-  else if (e != mDE.L)
-    return false;
-  else if (f != mAF.L)
-    return false;
-  else if (h != mHL.H)
-    return false;
-  else if (l != mHL.L)
-    return false;
-  else
-    return true;
 }

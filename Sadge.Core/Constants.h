@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+constexpr static auto KILOBYTES_TO_BYTES = 1024;
+
 constexpr static double  T_RATE = (1 << 22);
 
 constexpr static double  M_RATE = T_RATE / 4;

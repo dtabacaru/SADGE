@@ -23,6 +23,7 @@
     <ClCompile Include="AudioController.cpp" />
     <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="Cpu.cpp" />
+    <ClCompile Include="DmaController.cpp" />
     <ClCompile Include="Execution.cpp" />
     <ClCompile Include="ExtendedInstructionSet.cpp" />
     <ClCompile Include="Flags.cpp" />
@@ -46,6 +47,7 @@
     <ClInclude Include="Cartridge.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Cpu.h" />
+    <ClInclude Include="DmaController.h" />
     <ClInclude Include="InterruptController.h" />
     <ClInclude Include="InterruptProvider.h" />
     <ClInclude Include="InterruptReceiver.h" />

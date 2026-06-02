@@ -96,6 +96,9 @@
     <ClCompile Include="NoiseChannel.cpp">
       <Filter>Source Files\Audio</Filter>
     </ClCompile>
+    <ClCompile Include="DmaController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cpu.h">
@@ -159,6 +162,9 @@
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Cartridge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DmaController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -330,7 +330,7 @@ void AudioController::BandPass(Sample& in)
   }
 }
 
-Sample AudioController::Mixer()
+AudioController::Sample AudioController::Mixer()
 {
   constexpr double CHAN_AVG_SCALE = 1.0 / NUM_CHANNELS;
   constexpr double INV_SCALE = -1.0;
@@ -346,7 +346,7 @@ Sample AudioController::Mixer()
   if (mCh3R) out.right += mCh3.ChOut();
   if (mCh4R) out.right += mCh4.ChOut();
 
-  double leftScale  = mLeftVolScale * CHAN_AVG_SCALE * INV_SCALE;
+  double leftScale  = mLeftVolScale  * CHAN_AVG_SCALE * INV_SCALE;
   double rightScale = mRightVolScale * CHAN_AVG_SCALE * INV_SCALE;
 
   out.left  *= leftScale;

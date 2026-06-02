@@ -9,7 +9,8 @@ constexpr auto SUCCESS = 0;
 constexpr auto ERROR = 1;
 
 #pragma region JOYPAD
-constexpr static float JOYSTICK_THRESH = 0.5f;
+constexpr static float JOYSTICK_THRESH_ENGAGED    = 0.5f;
+constexpr static float JOYSTICK_THRESH_DISENGAGED = 0.4f;
 
 bool joyDown = false;
 bool joyUp = false;
@@ -21,193 +22,193 @@ void CheckButtons()
 #pragma region ACTION
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_MIDDLE_RIGHT))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_MIDDLE_RIGHT))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_MIDDLE_LEFT))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_MIDDLE_LEFT))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
-	}
-
-	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT))
-	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
-	}
-	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT))
-	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+	}
+
+	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT))
+	{
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+	}
+	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT))
+	{
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 
 	if (IsKeyDown(KEY_ENTER))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 	else if (IsKeyReleased(KEY_ENTER))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 
 	if (IsKeyDown(KEY_RIGHT_SHIFT))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 	else if (IsKeyReleased(KEY_RIGHT_SHIFT))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 
 	if (IsKeyDown(KEY_K))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 	else if (IsKeyReleased(KEY_K))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 
 	if (IsKeyDown(KEY_J))
 	{
-		gameboyCpu.GetJoypadController().PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.PressActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 	else if (IsKeyReleased(KEY_J))
 	{
-		gameboyCpu.GetJoypadController().ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.ReleaseActionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 #pragma endregion
 
 #pragma region DIRECTION
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > JOYSTICK_THRESH) && !joyDown)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > JOYSTICK_THRESH_ENGAGED) && !joyDown)
 	{
 		joyDown = true;
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < JOYSTICK_THRESH) && joyDown)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < JOYSTICK_THRESH_DISENGAGED) && joyDown)
 	{
 		joyDown = false;
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < -JOYSTICK_THRESH) && !joyUp)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < -JOYSTICK_THRESH_ENGAGED) && !joyUp)
 	{
 		joyUp = true;
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > -JOYSTICK_THRESH) && joyUp)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > -JOYSTICK_THRESH_DISENGAGED) && joyUp)
 	{
 		joyUp = false;
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > JOYSTICK_THRESH) && !joyRight)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > JOYSTICK_THRESH_ENGAGED) && !joyRight)
 	{
 		joyRight = true;
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < JOYSTICK_THRESH) && joyRight)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < JOYSTICK_THRESH_DISENGAGED) && joyRight)
 	{
 		joyRight = false;
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 
-	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -JOYSTICK_THRESH) && !joyLeft)
+	if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -JOYSTICK_THRESH_ENGAGED) && !joyLeft)
 	{
 		joyLeft = true;
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
-	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > -JOYSTICK_THRESH) && joyLeft)
+	else if ((GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > -JOYSTICK_THRESH_DISENGAGED) && joyLeft)
 	{
 		joyLeft = false;
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 
 	if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 	else if (IsGamepadButtonReleased(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 
 	if (IsKeyDown(KEY_S))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 	else if (IsKeyReleased(KEY_S))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_START_DOWN);
 	}
 
 	if (IsKeyDown(KEY_W))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 	else if (IsKeyReleased(KEY_W))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_SELECT_UP);
 	}
 
 	if (IsKeyDown(KEY_D))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 	else if (IsKeyReleased(KEY_D))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_A_RIGHT);
 	}
 
 	if (IsKeyDown(KEY_A))
 	{
-		gameboyCpu.GetJoypadController().PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.PressDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 	else if (IsKeyReleased(KEY_A))
 	{
-		gameboyCpu.GetJoypadController().ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
+		gameboyCpu.ReleaseDirectionButton(JoypadController::JoypadButtonBitMask::BUTTONS_B_LEFT);
 	}
 
 #pragma endregion
@@ -352,8 +353,8 @@ int main(int num_args, char* args[])
 		stream = LoadAudioStream(A_RATE, AUDIO_BITS, AUDIO_CHANNELS);
 		SetAudioStreamCallback(stream, AudioInputCallback);
 
-		gameboyCpu.GetLcdController().SetFrameCallback(DrawFrame);
-		gameboyCpu.GetAudioController().SetAudioCallback(PlayAudio);
+		gameboyCpu.SetFrameCallback(DrawFrame);
+		gameboyCpu.SetAudioCallback(PlayAudio);
 
 		PlayAudioStream(stream);
 

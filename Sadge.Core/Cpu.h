@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InterruptController.h"
+#include "DmaController.h"
 #include "AudioController.h"
 #include "LcdController.h"
 #include "JoypadController.h"
@@ -16,78 +17,28 @@
 #include <filesystem>
 #include <fstream>
 
-struct Palettes
-{
-  std::array<Pixel, 4> bg;
-  std::array<Pixel, 4> obj0;
-  std::array<Pixel, 4> obj1;
-};
-
-enum class EdgeType : uint8_t
-{
-  FALLING = 0,
-  RISING = 1
-};
-
-enum class LevelType : uint8_t
-{
-  LOW = 0,
-  HIGH = 1
-};
-
-struct TestCycle
-{
-  uint16_t addrBus;
-  uint8_t  dataBus;
-};
-
 class Cpu
 {
 public:
-#pragma region PUBLIC CONSTANTS
-  constexpr static auto KILOBYTES_TO_BYTES = 1024;
-  constexpr static auto NUM_BANKS = 512;
-  constexpr static uint64_t BANK_SIZE = 16 * KILOBYTES_TO_BYTES;
-  constexpr static auto MAX_ROM_SIZE = NUM_BANKS * BANK_SIZE; // 512 banks @ 16 KB
-  constexpr static uint8_t DEFAULT_READ = 0xFF;
-#pragma endregion
-
 #pragma region PUBLIC FUNCTIONS
   Cpu();
   ~Cpu();
 
-  constexpr static auto DEFAULT_FRAME_T_CYCLES = 70224;
-  constexpr static auto DRAG_WINDOW_DETECT_TIME = DEFAULT_FRAME_T_CYCLES / T_RATE;
-  constexpr static auto MIN_SLEEP_TIME = 0.003;
-  
-  Status SetRom(const std::filesystem::path& romPath, std::vector<uint8_t> rom);
-  virtual void Main();
-
-  void RunUntil(uint64_t count);
-  void Run();
+  virtual void Run();
   void Stop();
 
-  AudioController&  GetAudioController()  { return mAudioCtrl;  }
-  LcdController&    GetLcdController()    { return mLcdCtrl;    }
-  JoypadController& GetJoypadController() { return mJoypadCtrl; }
+  void SetFrameCallback(LcdController::FrameCallback cb);
+  void SetAudioCallback(AudioController::AudioCallback cb);
+
+  void PressActionButton(JoypadController::JoypadButtonBitMask button);
+  void ReleaseActionButton(JoypadController::JoypadButtonBitMask button);
+  void PressDirectionButton(JoypadController::JoypadButtonBitMask button);
+  void ReleaseDirectionButton(JoypadController::JoypadButtonBitMask button);
 
   Status InsertRom(const std::filesystem::path& rom_path);
-
-  Palettes GetPalettes(std::string title);
-  uint8_t  GetTitleHash(std::string title);
-
-  void Fetch();
-
-  void SetState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime, uint8_t ie);
-  bool CheckState(uint16_t pc, uint16_t sp, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t h, uint8_t l, bool ime);
-
-  uint64_t mExeCycle{0};
-  uint16_t mAddressBus{0};
-  uint8_t  mDataBus{0};
-  void TickExecution();
 #pragma endregion
 
-private:
+protected:
 
 #pragma region REGISTERS
   union Register
@@ -142,11 +93,25 @@ private:
 #pragma endregion
 
 #pragma region CARTRIDGE
+  constexpr static auto NUM_BANKS = 512;
+  constexpr static uint64_t BANK_SIZE = 16 * KILOBYTES_TO_BYTES;
+  constexpr static auto MAX_ROM_SIZE = NUM_BANKS * BANK_SIZE; // 512 banks @ 16 KB
+
   enum class Mbc1Mode
   {
     SINGLE_RAM = 0b0,
     MULTIPLE_RAM = 0b1
   };
+
+  struct Palettes
+  {
+    std::array<Pixel, 4> bg;
+    std::array<Pixel, 4> obj0;
+    std::array<Pixel, 4> obj1;
+  };
+
+  Palettes GetPalettes(std::string title);
+  uint8_t  GetTitleHash(std::string title);
 
   void Mbc1_7FFF(uint8_t val);
   void Mbc1_5FFF(uint8_t val);
@@ -163,18 +128,19 @@ private:
   RomHeader m_rom_header;
   Status ParseHeader();
   
+  Status SetRom(const std::filesystem::path& romPath, std::vector<uint8_t> rom);
   void InitBanks();
   void WriteEram();
   
-  bool m_battery_flag = false;
+  bool mBattery = false;
   std::filesystem::path m_rom_file_path{};
-  std::filesystem::path m_save_file_path{};
+  std::filesystem::path mSaveFilePath{};
 
   bool mEramEn = true;
   Mbc1Mode m_mbc_mode = Mbc1Mode::SINGLE_RAM;
 
   uint64_t m_num_rom_banks = 2;
-  uint64_t m_num_ram_banks = 1;
+  uint64_t mNumRomBanks = 1;
   int mRomBank = 1;
   int mRamBank = 0;
 
@@ -215,6 +181,9 @@ private:
 #pragma endregion
 
 #pragma region EXECUTION
+  constexpr static auto DEFAULT_FRAME_T_CYCLES = 70224;
+  constexpr static auto DRAG_WINDOW_DETECT_TIME = DEFAULT_FRAME_T_CYCLES / T_RATE;
+  constexpr static auto MIN_SLEEP_TIME = 0.003;
   constexpr static auto M_DIV = 4;
   constexpr static auto EXE_COMPLETE = 0;
 
@@ -246,10 +215,28 @@ private:
     STOP
   };
 
+  enum class EdgeType : uint8_t
+  {
+    FALLING = 0,
+    RISING = 1
+  };
+
+  enum class LevelType : uint8_t
+  {
+    LOW = 0,
+    HIGH = 1
+  };
+
   static constexpr uint16_t GetRestartVectorAddress(RestartVector vec)
   {
     return static_cast<uint16_t>(vec);
   }
+
+  virtual void Main();
+
+  void Fetch();
+
+  void TickExecution();
 
   void Init();
 
@@ -279,14 +266,10 @@ private:
   // of powering on a DMG
   EdgeType  mTEdge{EdgeType::FALLING};
   LevelType mTLevel{LevelType::LOW};
-  uint64_t  mTLowCount{static_cast<uint64_t>(-1)};
-  uint64_t  mTHighCount{static_cast<uint64_t>(-1)};
   uint64_t  mTEdgeCount{static_cast<uint64_t>(-1)};
 
   EdgeType  mMEdge{EdgeType::FALLING};
   LevelType mMLevel{LevelType::LOW};
-  uint64_t  mMLowCount{static_cast<uint64_t>(-1)};
-  uint64_t  mMHighCount{static_cast<uint64_t>(-1)};
   uint64_t  mMEdgeCount{static_cast<uint64_t>(-1)};
 
   ExecutionMode mExecutionMode = ExecutionMode::INSTRUCTION;
@@ -294,6 +277,10 @@ private:
   uint8_t  mOpcode{0};
 
   uint64_t mTFrameCycles = 0;
+
+  uint64_t mExeCycle{0};
+  uint16_t mAddressBus{0};
+  uint8_t  mDataBus{0};
 
   StopWatch mExeStopwatch;
   
@@ -315,6 +302,7 @@ private:
 
 #pragma region I/O CONTROLLERS
   InterruptController mInterruptCtrl;
+  DmaController mDmaCtrl;
   AudioController mAudioCtrl;
   LcdController mLcdCtrl;
   JoypadController mJoypadCtrl;

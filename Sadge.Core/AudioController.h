@@ -16,15 +16,15 @@ constexpr static uint32_t NUM_SAMPLE = 98304; // @ W Rate = 196608 T cycles = 2.
 constexpr static uint8_t  AUDIO_CHANNELS = 2;
 constexpr static uint64_t NUM_SUB_SAMPLE = static_cast<uint64_t>(NUM_SAMPLE * (A_RATE / W_RATE)) * 2; // * 2 for stereo
 
-struct Sample
-{
-  double left{};
-  double right{};
-};
-
 class AudioController
 {
 public:
+  struct Sample
+  {
+    double left{};
+    double right{};
+  };
+
   typedef void (*AudioCallback)(std::array<short, NUM_SUB_SAMPLE>& buf);
 
   constexpr static uint16_t DIV_APU_BIT_MASK = 0b10000000000;

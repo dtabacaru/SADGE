@@ -13,21 +13,20 @@ void Cpu::TEvent()
 
 void Cpu::FallingTEvent()
 {
-  mTLowCount += 1;
-}
-
-void Cpu::RisingTEvent()
-{
-  mTHighCount += 1;
   mTFrameCycles += 1;
 
   mLcdCtrl.Update();
 
   bool frameReady =  mLcdCtrl.GetFrameReady() ||
-                     mTFrameCycles == DEFAULT_FRAME_T_CYCLES;
+    mTFrameCycles == DEFAULT_FRAME_T_CYCLES;
 
   if (frameReady)
     WaitFrame();
+}
+
+void Cpu::RisingTEvent()
+{
+
 }
 
 void Cpu::MEvent()
@@ -40,18 +39,18 @@ void Cpu::MEvent()
 
 void Cpu::FallingMEvent()
 {
-  mMLowCount += 1;
+
 }
 
 void Cpu::RisingMEvent()
 {
-  mMHighCount += 1;
-
   mTimerCtrl.Tick();
   mAudioCtrl.UpdateClk(mTimerCtrl.GetClk());
 
   TickExecution();
   
+  mDmaCtrl.Tick();
+
   if (mLcdCtrl.DmaRequested())
   {
     mLcdCtrl.SetCurrentDmaAddress();
@@ -1245,7 +1244,7 @@ void Cpu::InterruptHandler()
 
 void Cpu::TickExecution()
 {
-  switch (this->mExecutionMode)
+  switch (mExecutionMode)
   {
     case ExecutionMode::INSTRUCTION:
       InstructionHandler();

@@ -50,21 +50,21 @@ void Cpu::InitBanks()
     std::copy(m_rom.begin() + BANK_SIZE * rom_bank_num, m_rom.begin() + BANK_SIZE * rom_bank_num + BANK_SIZE, mRomBanks[rom_bank_num].begin());
   }
 
-  m_num_ram_banks = RamSizeToNumBanks(m_rom_header.GetRamSize());
-  mRamBanks = std::vector<std::vector<uint8_t>>(m_num_ram_banks);
+  mNumRomBanks = RamSizeToNumBanks(m_rom_header.GetRamSize());
+  mRamBanks = std::vector<std::vector<uint8_t>>(mNumRomBanks);
 
-  for (int ram_bank_num = 0; ram_bank_num < m_num_ram_banks; ram_bank_num += 1)
+  for (int ram_bank_num = 0; ram_bank_num < mNumRomBanks; ram_bank_num += 1)
     mRamBanks[ram_bank_num] = std::vector<uint8_t>(ERAM_SIZE);
 
-  if (m_battery_flag)
+  if (mBattery)
   {
-    m_save_file_path = m_rom_file_path;
-    m_save_file_path.replace_extension(SAVE_EXTENSION);
+    mSaveFilePath = m_rom_file_path;
+    mSaveFilePath.replace_extension(SAVE_EXTENSION);
 
-    std::ifstream eram_file(m_save_file_path, std::ios_base::binary);
+    std::ifstream eram_file(mSaveFilePath, std::ios_base::binary);
 
     if (eram_file)
-      for (int ram_bank_num = 0; ram_bank_num < m_num_ram_banks; ram_bank_num += 1)
+      for (int ram_bank_num = 0; ram_bank_num < mNumRomBanks; ram_bank_num += 1)
         eram_file.read((char*)mRamBanks[ram_bank_num].data(), ERAM_SIZE);
   }
 
@@ -77,7 +77,7 @@ Status Cpu::InsertRom(const std::filesystem::path& rom_path)
 
   size_t rom_size = std::filesystem::file_size(rom_path);
 
-  if (rom_size > Cpu::MAX_ROM_SIZE)
+  if (rom_size > MAX_ROM_SIZE)
   {
     std::string msg = "ROM too large to load.";
 
@@ -125,7 +125,7 @@ uint8_t Cpu::GetTitleHash(std::string title)
 }
 
 // https://tcrf.net/Notes:Game_Boy_Color_Bootstrap_ROM#Assigned_Palette_Configurations
-Palettes Cpu::GetPalettes(std::string title)
+Cpu::Palettes Cpu::GetPalettes(std::string title)
 {
   uint8_t hash = GetTitleHash(title);
   char dis = title[3]; // Disambiguation is 4th char of title
@@ -728,7 +728,7 @@ Status Cpu::ParseHeader()
       break;
     case CartridgeType::MBC1_RAM_BATTERY:
       // OK
-      m_battery_flag = true;
+      mBattery = true;
       break;
     case CartridgeType::MBC3:
       // TEST
@@ -740,7 +740,7 @@ Status Cpu::ParseHeader()
       // Fall through
     case CartridgeType::MBC3_RAM_BATTERY:
       // TEST
-      m_battery_flag = true;
+      mBattery = true;
       break;
     case CartridgeType::MBC5:
       // TEST
@@ -750,7 +750,7 @@ Status Cpu::ParseHeader()
       break;
     case CartridgeType::MBC5_RAM_BATTERY:
       // TEST
-      m_battery_flag = true;
+      mBattery = true;
       break;
     default:
       throw std::exception(std::format("Cartridge type not implemented: {}", CartridgeTypeToString(m_rom_header.GetCartridgeType())).c_str());

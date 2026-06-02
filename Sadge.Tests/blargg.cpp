@@ -7,32 +7,24 @@
 
 TEST(Blargg, cpu_instrs)
 {
-  FrameBufferCpu cpu;
+  static FrameBufferCpu cpu(475000000);
 
   std::filesystem::path rom_path = "blargg\\cpu_instrs.gb";
-  uint64_t file_size = std::filesystem::file_size(rom_path);
-  std::ifstream rom_stream(rom_path, std::ios_base::binary);
-  std::vector<uint8_t> rom(file_size);
-  rom_stream.read(reinterpret_cast<char*>(rom.data()), rom.size());
 
-  cpu.SetRom(rom_path, rom);
-  cpu.RunUntil(475000000);
+  cpu.InsertRom(rom_path);
+  cpu.Run();
 
-  EXPECT_TRUE(CheckFrameBuffer(cpu.GetLcdController().GetCurrentFrameBuffer(), "blargg\\cpu_instrs_frame_dump.bin"));
+  EXPECT_TRUE(cpu.CheckFrameBuffer("blargg\\cpu_instrs_frame_dump.bin"));
 }
 
 TEST(Blargg, instr_timing)
 {
-  FrameBufferCpu cpu;
+  static FrameBufferCpu cpu(22500000);
 
   std::filesystem::path rom_path = "blargg\\instr_timing.gb";
-  uint64_t file_size = std::filesystem::file_size(rom_path);
-  std::ifstream rom_stream(rom_path, std::ios_base::binary);
-  std::vector<uint8_t> rom(file_size);
-  rom_stream.read(reinterpret_cast<char*>(rom.data()), rom.size());
 
-  cpu.SetRom(rom_path, rom);
-  cpu.RunUntil(22500000);
+  cpu.InsertRom(rom_path);
+  cpu.Run();
 
-  EXPECT_TRUE(CheckFrameBuffer(cpu.GetLcdController().GetCurrentFrameBuffer(), "blargg\\instr_timing_frame_dump.bin"));
+  EXPECT_TRUE(cpu.CheckFrameBuffer("blargg\\instr_timing_frame_dump.bin"));
 }

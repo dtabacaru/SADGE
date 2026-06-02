@@ -7,7 +7,7 @@
 
 #define ENABLED
 
-static SstCpu cpu_;
+static SstCpu cpu;
 
 static void TestOpcode(uint8_t opcode)
 {
@@ -30,7 +30,7 @@ static void TestOpcode(uint8_t opcode)
   {
     const auto& initial = test["initial"];
 
-    cpu_.SetState(initial["pc"].asUInt(),
+    cpu.SetState(initial["pc"].asUInt(),
                   initial["sp"].asUInt(),
                   initial["a"].asUInt(),
                   initial["b"].asUInt(),
@@ -45,16 +45,16 @@ static void TestOpcode(uint8_t opcode)
 
     for (const auto& ram : initial["ram"])
     {
-      cpu_.mAddressBus = ram[0].asUInt();
-      cpu_.mDataBus = ram[1].asUInt();
-      cpu_.Write();
+      cpu.SetAddressBus(ram[0].asUInt());
+      cpu.SetDataBus(ram[1].asUInt());
+      cpu.Write();
     }
 
-    cpu_.Main();
+    cpu.Main();
 
     const auto& final_ = test["final"];
 
-    bool state_passed = cpu_.CheckState(final_["pc"].asUInt(),
+    bool state_passed = cpu.CheckState(final_["pc"].asUInt(),
                                         final_["sp"].asUInt(),
                                         final_["a"].asUInt(),
                                         final_["b"].asUInt(),
@@ -70,15 +70,15 @@ static void TestOpcode(uint8_t opcode)
 
     for (const auto& ram : final_["ram"])
     {
-      cpu_.mAddressBus = ram[0].asUInt();
-      cpu_.Read();
-      bool ram_passed = cpu_.mDataBus == ram[1].asUInt();
+      cpu.SetAddressBus(ram[0].asUInt());
+      cpu.Read();
+      bool ram_passed = cpu.GetDataBus() == ram[1].asUInt();
 
       EXPECT_TRUE(ram_passed) << test["name"].asString();
     }
 
     const auto& test_cycles = test["cycles"];
-    auto emulator_test_cycles = cpu_.GetTestCycles();
+    auto emulator_test_cycles = cpu.GetTestCycles();
 
     EXPECT_EQ(test_cycles.size(), emulator_test_cycles.size());
 
@@ -92,8 +92,8 @@ static void TestOpcode(uint8_t opcode)
       if (test_cycle[2].asString() == "---")
         continue;
 
-      bool address_matched = test_cycle[0].asUInt() == cpu_.GetTestCycles()[cycle_num].addrBus;
-      bool data_matched = test_cycle[1].asUInt() == cpu_.GetTestCycles()[cycle_num].dataBus;
+      bool address_matched = test_cycle[0].asUInt() == cpu.GetTestCycles()[cycle_num].addrBus;
+      bool data_matched    = test_cycle[1].asUInt() == cpu.GetTestCycles()[cycle_num].dataBus;
 
       EXPECT_TRUE(address_matched) << test["name"].asString();
       EXPECT_TRUE(data_matched) << test["name"].asString();

@@ -2,6 +2,8 @@
 
 #include "InterruptProvider.h"
 
+#include "Constants.h"
+
 #include <array>
 
 struct Pixel
@@ -10,18 +12,20 @@ struct Pixel
   uint8_t G{};
   uint8_t B{};
   uint8_t A{};
+
+  bool operator==(const Pixel&) const = default;
 };
 
 constexpr static auto SCREEN_WIDTH = 160;
 constexpr static auto SCREEN_HEIGHT = 144;
 constexpr static auto SCREEN_SIZE = SCREEN_WIDTH * SCREEN_HEIGHT;
 
-typedef void (*FrameCallback)(const std::array<Pixel, SCREEN_SIZE>& frame, double frameTime);
-
 // TODO: https://github.com/AntonioND/giibiiadvance/blob/master/docs/TCAGBD.pdf
 class LcdController : public InterruptProvider
 {
 public:
+  typedef void (*FrameCallback)(const std::array<Pixel, SCREEN_SIZE>& frame, double frameTime);
+
   enum class Address : uint16_t
   {
     CONTROL = 0xFF40,
@@ -61,6 +65,7 @@ public:
   void Update();
 
   void Read() const;
+
   void Write();
 
 private:
@@ -80,7 +85,6 @@ private:
     Pixel{0x00, 0x00, 0x00, 0xFF}
   };
 
-  constexpr static auto KILOBYTES_TO_BYTES = 1024;
   constexpr static auto VRAM_SIZE = 8 * KILOBYTES_TO_BYTES;
   constexpr static auto OAM_SIZE = 160;
 
