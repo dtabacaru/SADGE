@@ -338,10 +338,10 @@ void Cpu::Read()
   {
     ReadIo();
   }
-  //else if (mAddressBus >= 0xFEA0) // (FEA0-FEFF) Not Usable
-  //{
-  //  mDataBus = DEFAULT_READ;
-  //}
+  else if (mAddressBus >= 0xFEA0) // (FEA0-FEFF) Not Usable
+  {
+    mDataBus = DEFAULT_READ;
+  }
   else if (mAddressBus >= 0xFE00) // (FE00-FE9F) Sprite attribute table (OAM)
   {
     mLcdCtrl.Read();

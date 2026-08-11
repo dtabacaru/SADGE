@@ -169,6 +169,8 @@ void LcdController::Write()
 
 void LcdController::HandleLcdcWrite()
 {
+  mLCDC = mDataBus;
+
   bool enabled = mLCDC & GetLcdcBitMask(LcdcBitMask::ENABLE);
 
   if (mEnabled && !enabled)
@@ -187,8 +189,6 @@ void LcdController::HandleLcdcWrite()
     mFrameCycleCount = 0;
     mDelayFrame = true;
   }
-
-  mLCDC = mDataBus;
   
   mEnabled     = mLCDC & GetLcdcBitMask(LcdcBitMask::ENABLE);
   mBgWinEnable = mLCDC & GetLcdcBitMask(LcdcBitMask::BG_WIN_ENABLE);

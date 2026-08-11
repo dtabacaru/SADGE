@@ -153,9 +153,6 @@ void AudioChannel::TickSoundLength()
 
 void AudioChannel::DivTick()
 {
-  if (!mEnabled)
-    return;
-
   TickSoundLength();
 }
 

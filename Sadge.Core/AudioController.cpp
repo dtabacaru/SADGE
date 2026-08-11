@@ -379,7 +379,7 @@ void AudioController::SubSample()
   int    sampleIdx = 0;
   for (int subsampleIdx = 0; subsampleIdx < NUM_SUB_SAMPLE; subsampleIdx += 2)
   {
-    mSubsampleBuf[subsampleIdx + 0] = static_cast<short>(mSampleBuf[sampleIdx].left * SHRT_MAX);
+    mSubsampleBuf[subsampleIdx + 0] = static_cast<short>(mSampleBuf[sampleIdx].left  * SHRT_MAX);
     mSubsampleBuf[subsampleIdx + 1] = static_cast<short>(mSampleBuf[sampleIdx].right * SHRT_MAX);
 
     sampleIdxF += sampleIdxStep;

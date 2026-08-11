@@ -5,6 +5,8 @@
 constexpr static auto KILOBYTES_TO_BYTES = 1024;
 
 constexpr static double  T_RATE = (1 << 22);
+//constexpr static double  T_RATE = (1 << 21); // 0.5x speed
+//constexpr static double  T_RATE = (1 << 24); // 2.0x speed
 
 constexpr static double  M_RATE = T_RATE / 4;
 constexpr static double  M_RATE_4 = M_RATE / 4;
