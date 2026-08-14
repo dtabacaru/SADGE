@@ -41,19 +41,19 @@ Status Cpu::SetRom(const std::filesystem::path& rom_path, std::vector<uint8_t> r
 
 void Cpu::InitBanks()
 {
-  m_num_rom_banks = m_rom.size() / BANK_SIZE;
-  mRomBanks = std::vector<std::vector<uint8_t>>(m_num_rom_banks);
+  mNumRomBanks = m_rom.size() / BANK_SIZE;
+  mRomBanks = std::vector<std::vector<uint8_t>>(mNumRomBanks);
 
-  for (int rom_bank_num = 0; rom_bank_num < m_num_rom_banks; rom_bank_num += 1)
+  for (int rom_bank_num = 0; rom_bank_num < mNumRomBanks; rom_bank_num += 1)
   {
     mRomBanks[rom_bank_num] = std::vector<uint8_t>(BANK_SIZE);
     std::copy(m_rom.begin() + BANK_SIZE * rom_bank_num, m_rom.begin() + BANK_SIZE * rom_bank_num + BANK_SIZE, mRomBanks[rom_bank_num].begin());
   }
 
-  mNumRomBanks = RamSizeToNumBanks(m_rom_header.GetRamSize());
-  mRamBanks = std::vector<std::vector<uint8_t>>(mNumRomBanks);
+  mNumRamBanks = RamSizeToNumBanks(m_rom_header.GetRamSize());
+  mRamBanks = std::vector<std::vector<uint8_t>>(mNumRamBanks);
 
-  for (int ram_bank_num = 0; ram_bank_num < mNumRomBanks; ram_bank_num += 1)
+  for (int ram_bank_num = 0; ram_bank_num < mNumRamBanks; ram_bank_num += 1)
     mRamBanks[ram_bank_num] = std::vector<uint8_t>(ERAM_SIZE);
 
   if (mBattery)
@@ -64,7 +64,7 @@ void Cpu::InitBanks()
     std::ifstream eram_file(mSaveFilePath, std::ios_base::binary);
 
     if (eram_file)
-      for (int ram_bank_num = 0; ram_bank_num < mNumRomBanks; ram_bank_num += 1)
+      for (int ram_bank_num = 0; ram_bank_num < mNumRamBanks; ram_bank_num += 1)
         eram_file.read((char*)mRamBanks[ram_bank_num].data(), ERAM_SIZE);
   }
 
@@ -719,6 +719,9 @@ Status Cpu::ParseHeader()
   {
     case CartridgeType::ROM_ONLY:
       // OK
+      break;
+    case CartridgeType::ROM_RAM:
+      // Test
       break;
     case CartridgeType::MBC1:
       // OK

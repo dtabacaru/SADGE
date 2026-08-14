@@ -14,7 +14,7 @@ void Cpu::Mbc3_3FFF(uint8_t val)
 {
   mRomBank = val & 0x7F;
   mRomBank = mRomBank == 0 ? 1 : mRomBank;
-  mRomBank %= m_num_rom_banks;
+  mRomBank %= mNumRomBanks;
 }
 
 void Cpu::Mbc3_1FFF(uint8_t val)
@@ -35,7 +35,7 @@ void Cpu::Mbc1_5FFF(uint8_t val)
   {
     m_upper_bank_bits = (val & 0b11) << 5;
     mRomBank = m_upper_bank_bits | m_lower_bank_bits;
-    mRomBank %= m_num_rom_banks;
+    mRomBank %= mNumRomBanks;
   }
 }
 
@@ -44,7 +44,7 @@ void Cpu::Mbc1_3FFF(uint8_t val)
   m_lower_bank_bits = val & 0x1F;
   m_lower_bank_bits = m_lower_bank_bits == 0 ? 1 : m_lower_bank_bits;
   mRomBank = m_upper_bank_bits | m_lower_bank_bits;
-  mRomBank %= m_num_rom_banks;
+  mRomBank %= mNumRomBanks;
 }
 
 void Cpu::Mbc1_1FFF(uint8_t val)

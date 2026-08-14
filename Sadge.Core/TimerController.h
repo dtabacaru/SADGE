@@ -95,11 +95,11 @@ private:
   //   -set mReloadCycle = RELOAD_START_CYCLE on overflow
   //   -if mReloadCycle == RELOAD_CYCLE, TIMA is reloaded
   // 2. On cycle 1, if TMA is written to, TIMA is also set to the same value.
-  //   -if m_tima_reload_cycle == RELOAD_CYCLE on TMA write, TIMA=val
+  //   -if mReloadCycle == RELOAD_CYCLE on TMA write, TIMA=val
   // 3. On cycle 1, if TIMA is written to, the write is ignored.
-  //   -if m_tima_reload_cycle != RELOAD_CYCLE on TIMA write, TIMA = val
+  //   -if mReloadCycle != RELOAD_CYCLE on TIMA write, TIMA = val
   // 4. If TIMA is written to during the overflow cycle, the overflow is ignored
-  //   -set m_tima_reload_cycle = RELOAD_END_CYCLE on TIMA write so reload stops
+  //   -set mReloadCycle = RELOAD_END_CYCLE on TIMA write so reload stops
   //
   constexpr static uint8_t  RELOAD_START_CYCLE = 0;
   constexpr static uint8_t  RELOAD_CYCLE = 1;

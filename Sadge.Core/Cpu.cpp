@@ -53,7 +53,7 @@ void Cpu::WriteEram()
   {
     std::ofstream sram = std::ofstream(mSaveFilePath, std::ios_base::binary);
 
-    for (int i = 0; i < mNumRomBanks; i += 1)
+    for (int i = 0; i < mNumRamBanks; i += 1)
       sram.write(reinterpret_cast<const char*>(mRamBanks[i].data()), ERAM_SIZE);
   }
 }

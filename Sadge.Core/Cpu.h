@@ -139,8 +139,8 @@ protected:
   bool mEramEn = true;
   Mbc1Mode m_mbc_mode = Mbc1Mode::SINGLE_RAM;
 
-  uint64_t m_num_rom_banks = 2;
-  uint64_t mNumRomBanks = 1;
+  uint64_t mNumRomBanks = 2;
+  uint64_t mNumRamBanks = 1;
   int mRomBank = 1;
   int mRamBank = 0;
 

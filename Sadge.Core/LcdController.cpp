@@ -503,6 +503,7 @@ void LcdController::Mode1()
   }
 
   CheckStatInterrupt(StatBitMask::MODE1_INT_SELECT);
+  CheckStatInterrupt(StatBitMask::MODE2_INT_SELECT); // Mode 1 interrupt is also triggered by mode 2 int select
   TriggerInterrupt(InterruptBitMask::VBLANK);
 
   mWLY = 0;
